@@ -1,0 +1,1052 @@
+[gd_scene load_steps=20 format=3 uid="uid://bs31tu7ihq6ph"]
+
+[ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
+[ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
+[ext_resource type="Texture2D" uid="uid://nvy17qohbhok" path="res://Images/white-dot.png" id="2_qq3op"]
+[ext_resource type="Shader" uid="uid://c4haf57i81360" path="res://Particle Shaders/water_particles.gdshader" id="3_qq3op"]
+[ext_resource type="Shader" uid="uid://c48ebg6d0jeej" path="res://Fragment Shaders/blur.gdshader" id="5_rqihb"]
+[ext_resource type="Shader" uid="uid://dtkum57k88kwj" path="res://Fragment Shaders/water_color.gdshader" id="6_jf7k4"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_wojkn"]
+viewport_path = NodePath("ParticlesSubViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
+viewport_path = NodePath("LowResWaterDensitySubViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_rh4ni"]
+viewport_path = NodePath("WaterSubViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jf7k4"]
+shader = ExtResource("2_bjixy")
+shader_parameter/u_use_r = true
+shader_parameter/u_use_g = true
+shader_parameter/u_use_b = true
+shader_parameter/u_use_a = true
+shader_parameter/u_min_value = -0.5
+shader_parameter/u_max_value = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bjixy"]
+shader = ExtResource("2_bjixy")
+shader_parameter/u_use_r = true
+shader_parameter/u_use_g = true
+shader_parameter/u_use_b = true
+shader_parameter/u_use_a = true
+shader_parameter/u_min_value = -1.0
+shader_parameter/u_max_value = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rqihb"]
+shader = ExtResource("3_qq3op")
+shader_parameter/u_particle_color = Vector4(0, 0, 0, 0)
+shader_parameter/u_verbose_particle_color = Vector4(0, 0, 0, 0)
+shader_parameter/u_neighbor_particle_color = Vector4(0, 0, 0, 0)
+shader_parameter/u_n_to_v_scale_factor = Vector2(0, 0)
+shader_parameter/u_particle_vis_size = 0.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_bjixy"]
+viewport_path = NodePath("ParticlesSubViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mkv50"]
+shader = ExtResource("5_rqihb")
+shader_parameter/lod = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tosn6"]
+shader = ExtResource("6_jf7k4")
+shader_parameter/u_water_density_threshold = 0.5
+shader_parameter/u_edge_softness = 0.1
+shader_parameter/u_tint_threshold_min = 0.5
+shader_parameter/u_tint_threshold_max = 0.5
+shader_parameter/u_water_main_color = Vector3(0.033, 0.707, 0.581)
+shader_parameter/u_water_tint_color = Vector3(0.723, 0.902, 0.893)
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_tosn6"]
+viewport_path = NodePath("LowResWaterDensitySubViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_rqihb"]
+viewport_path = NodePath("ParticlesSubViewport")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bjixy"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jf7k4"]
+bg_color = Color(0.321728, 0.321728, 0.321728, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="WaterCompatible" type="Node2D"]
+script = ExtResource("1_slmpt")
+textures = Array[ViewportTexture]([SubResource("ViewportTexture_wojkn"), SubResource("ViewportTexture_2i0ow"), SubResource("ViewportTexture_rh4ni")])
+labels = Array[String](["Particles", "Low Res Water Density", "Water"])
+
+[node name="GlassSDFSprite2D" type="Sprite2D" parent="."]
+visible = false
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_jf7k4")
+centered = false
+
+[node name="GlassSDFGradientSprite2D" type="Sprite2D" parent="."]
+visible = false
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_bjixy")
+centered = false
+
+[node name="ParticlesSubViewport" type="SubViewport" parent="."]
+disable_3d = true
+transparent_bg = true
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="ParticlesSubViewport"]
+texture = ExtResource("2_qq3op")
+preprocess = 1.0
+process_material = SubResource("ShaderMaterial_rqihb")
+
+[node name="LowResWaterDensitySubViewport" type="SubViewport" parent="."]
+disable_3d = true
+transparent_bg = true
+size = Vector2i(256, 256)
+render_target_update_mode = 4
+
+[node name="LowResTextureRect" type="TextureRect" parent="LowResWaterDensitySubViewport"]
+offset_right = 256.0
+offset_bottom = 256.0
+texture = SubResource("ViewportTexture_bjixy")
+expand_mode = 1
+
+[node name="LowResColorRect" type="ColorRect" parent="LowResWaterDensitySubViewport"]
+material = SubResource("ShaderMaterial_mkv50")
+offset_right = 256.0
+offset_bottom = 256.0
+
+[node name="WaterSubViewport" type="SubViewport" parent="."]
+disable_3d = true
+transparent_bg = true
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="AnotherBackgroundSprite2D" type="Sprite2D" parent="WaterSubViewport"]
+texture_filter = 1
+texture_repeat = 1
+centered = false
+
+[node name="UpscaledTextureRect" type="TextureRect" parent="WaterSubViewport"]
+material = SubResource("ShaderMaterial_tosn6")
+offset_right = 1152.0
+offset_bottom = 648.0
+texture = SubResource("ViewportTexture_tosn6")
+
+[node name="Display" type="Sprite2D" parent="."]
+texture = SubResource("ViewportTexture_rqihb")
+centered = false
+
+[node name="Glass" type="Polygon2D" parent="."]
+offset = Vector2(4, 0)
+polygon = PackedVector2Array(-80, -72, -56, 72, 48, 72, 72, -72, 64, -72, 40, 64, -48, 64, -72, -72)
+uv = PackedVector2Array(440.081, 216.02, 463.976, 359.986, 568.13, 360.065, 592.068, 216.049, 584.056, 216.045, 560.04, 352.004, 472.108, 352.043, 447.974, 216.02)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/TopMarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Label"
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxFlat_bjixy")
+
+[node name="FPSLabel" type="Label" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "FPS"
+horizontal_alignment = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BottomMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 10
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer"]
+custom_minimum_size = Vector2(411, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_jf7k4")
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ColorPickerButtonsHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaterMainColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+text = "Water Main Color"
+
+[node name="WaterMainColorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_right = 3
+
+[node name="WaterMainColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterMainColorMarginContainer" groups=["ParamColorPickerButton"]]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+color = Color(0, 0.413, 0.66, 1)
+edit_alpha = false
+
+[node name="WaterTintColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+text = "Water Tint Color"
+
+[node name="WaterTintColorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_right = 3
+
+[node name="WaterTintColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterTintColorMarginContainer" groups=["ParamColorPickerButton"]]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+color = Color(0, 0.652, 0.85, 1)
+edit_alpha = false
+
+[node name="ParticleColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Particle Color"
+
+[node name="ParticleColorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 3
+theme_override_constants/margin_right = 3
+
+[node name="ParticleColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/ParticleColorMarginContainer" groups=["ParamColorPickerButton"]]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+color = Color(0.111, 0.639, 0.925, 1)
+edit_alpha = false
+
+[node name="ParticleVisSizeHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ParticleVisSize" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Particle Vis Size"
+
+[node name="ParticleVisSizeMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="ParticleVisSizeHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer/ParticleVisSizeMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.25
+
+[node name="ParticleVisSizeValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.25"
+
+[node name="RestDensityHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RestDensity" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Rest Density"
+
+[node name="RestDensityMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="RestDensityHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer/RestDensityMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.01
+value = 1.0
+
+[node name="RestDensityValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="StiffnessHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Stiffness" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Stiffness"
+
+[node name="StiffnessMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="StiffnessHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer/StiffnessMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = 1.0
+max_value = 50.0
+step = 0.1
+value = 10.0
+
+[node name="StiffnessValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
+
+[node name="StiffnessNearHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StiffnessNear" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Stiffness Near"
+
+[node name="StiffnessNearMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="StiffnessNearHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer/StiffnessNearMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = -2.0
+max_value = 10.0
+step = 0.01
+value = 1.0
+
+[node name="StiffnessNearValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="ViscosityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ViscosityScale" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Viscosity Scale"
+
+[node name="ViscosityScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="ViscosityScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer/ViscosityScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.001
+value = 0.001
+
+[node name="ViscosityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.001"
+
+[node name="XSPHScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="XSPHScale" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "XSPH Scale"
+
+[node name="XSPHScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="XSPHScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer/XSPHScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.001
+value = 0.03
+
+[node name="XSPHScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.03"
+
+[node name="VorticityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VorticityScale" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vorticity Scale"
+
+[node name="VorticityScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="VorticityScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer/VorticityScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 2.0
+step = 0.01
+value = 0.1
+
+[node name="VorticityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.1"
+
+[node name="SurfaceTensionThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SurfaceTensionThreshold" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Surface Tension Threshold"
+
+[node name="SurfaceTensionThresholdMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SurfaceTensionThresholdHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer/SurfaceTensionThresholdMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1000.0
+value = 550.0
+
+[node name="SurfaceTensionThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "550.0"
+
+[node name="SurfaceTensionScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SurfaceTensionScale" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Surface Tension Scale"
+
+[node name="SurfaceTensionScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SurfaceTensionScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer/SurfaceTensionScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 10.0
+step = 0.001
+value = 5.0
+
+[node name="SurfaceTensionScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "5.0"
+
+[node name="AdhesionThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AdhesionThreshold" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Adhesion Threshold"
+
+[node name="AdhesionThresholdMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="AdhesionThresholdHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer/AdhesionThresholdMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.5
+step = 0.001
+value = 0.01
+
+[node name="AdhesionThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.01"
+
+[node name="AdhesionScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AdhesionScale" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Adhesion Scale"
+
+[node name="AdhesionScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="AdhesionScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer/AdhesionScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.01
+value = 0.3
+
+[node name="AdhesionScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.3"
+
+[node name="GravityMultiplierHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GravityMultiplier" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Gravity Multiplier"
+
+[node name="GravityMultiplierMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="GravityMultiplierHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer/GravityMultiplierMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = -1.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="GravityMultiplierValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="DampingHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Damping" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Damping"
+
+[node name="DampingMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="DampingHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer/DampingMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = 0.999
+max_value = 1.0
+step = 0.001
+value = 0.999
+
+[node name="DampingValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.999"
+
+[node name="BoundsDampingHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BoundsDamping" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Bounds Damping"
+
+[node name="BoundsDampingMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="BoundsDampingHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer/BoundsDampingMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.001
+value = 0.5
+
+[node name="BoundsDampingValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.5"
+
+[node name="VelClampHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VelClamp" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vel Clamp"
+
+[node name="VelClampMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="VelClampHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer/VelClampMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 20.0
+step = 0.1
+value = 20.0
+
+[node name="VelClampValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "20.0"
+
+[node name="MouseInteractionRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MouseInteractionRadius" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Mouse Interaction Radius"
+
+[node name="MouseInteractionRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="MouseInteractionRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer/MouseInteractionRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.25
+
+[node name="MouseInteractionRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.25"
+
+[node name="MouseInteractionStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MouseInteractionStrength" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Mouse Interaction Strength"
+
+[node name="MouseInteractionStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="MouseInteractionStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer/MouseInteractionStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+step = 0.1
+value = 25.0
+
+[node name="MouseInteractionStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "25.0"
+
+[node name="GlassMovementSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GlassMovementSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Glass Movement Speed"
+
+[node name="GlassMovementSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="GlassMovementSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer/GlassMovementSpeedMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1000.0
+value = 200.0
+
+[node name="GlassMovementSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "200.0"
+
+[node name="GlassRotationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GlassRotationSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Glass Rotation Speed"
+
+[node name="GlassRotationSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="GlassRotationSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer/GlassRotationSpeedMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 6.283
+step = 0.001
+value = 3.141
+
+[node name="GlassRotationSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "3.141"
+
+[node name="GlassScalingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GlassScalingSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Glass Scaling Speed (x/y)"
+
+[node name="XHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer"]
+layout_mode = 2
+
+[node name="GlassScalingSpeedXMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="GlassScalingSpeedXHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer/GlassScalingSpeedXMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.1
+value = 3.0
+
+[node name="GlassScalingSpeedXValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "3.0"
+
+[node name="YHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer"]
+layout_mode = 2
+
+[node name="GlassScalingSpeedYMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="GlassScalingSpeedYHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer/GlassScalingSpeedYMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.1
+value = 3.0
+
+[node name="GlassScalingSpeedYValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "3.0"
+
+[node name="SpawnRateHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SpawnRate" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Spawn Rate"
+
+[node name="SpawnRateMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SpawnRateHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer/SpawnRateMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 32000.0
+step = 100.0
+value = 32000.0
+
+[node name="SpawnRateValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "32000.0"
+
+[node name="SpawnRandomOffsetRangeHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SpawnRandomOffsetRange" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Spawn Random Offset Range"
+
+[node name="SpawnRandomOffsetRangeMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SpawnRandomOffsetRangeHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 32.0
+value = 16.0
+
+[node name="SpawnRandomOffsetRangeValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "16.0"
+
+[node name="SpawnInitVelHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SpawnInitVel" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Spawn Init Vel (x/y)"
+
+[node name="XHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer"]
+layout_mode = 2
+
+[node name="SpawnInitVelXMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SpawnInitVelXHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = -6.0
+max_value = 6.0
+step = 0.1
+
+[node name="SpawnInitVelXValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.0"
+
+[node name="YHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer"]
+layout_mode = 2
+
+[node name="SpawnInitVelYMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SpawnInitVelYHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_vertical = 1
+min_value = -6.0
+max_value = 6.0
+step = 0.1
+
+[node name="SpawnInitVelYValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.0"
+
+[node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BlurAmount" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Blur Amount"
+
+[node name="BlurAmountMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="BlurAmountHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.1
+value = 0.9
+
+[node name="BlurAmountValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.9"
+
+[node name="WaterDensityThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaterDensityThreshold" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Water Density Threshold"
+
+[node name="WaterDensityThresholdMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="WaterDensityThresholdHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.2
+
+[node name="WaterDensityThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.2"
+
+[node name="EdgeSoftnessHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EdgeSoftness" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Edge Softness"
+
+[node name="EdgeSoftnessMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="EdgeSoftnessHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.2
+step = 0.01
+value = 0.05
+
+[node name="EdgeSoftnessValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.05"
+
+[node name="TintThresholdMinHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TintThresholdMin" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Tint Threshold Min"
+
+[node name="TintThresholdMinMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="TintThresholdMinHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.25
+
+[node name="TintThresholdMinValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.25"
+
+[node name="TintThresholdMaxHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TintThresholdMax" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Tint Threshold Max"
+
+[node name="TintThresholdMaxMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="TintThresholdMaxHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="TintThresholdMaxValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="VisNeighborhoodSearchToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VisNeighborhoodSearchToggle" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer"]
+layout_mode = 2
+text = "Vis Neighborhood Search"
+
+[node name="VisNeighborhoodSearchToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="VisNeighborhoodSearchToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer/VisNeighborhoodSearchToggleMarginContainer" groups=["ParamToggle"]]
+layout_mode = 2

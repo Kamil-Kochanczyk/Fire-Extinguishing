@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dettkbpvwh07v"
+path="res://.godot/imported/spawn-particles.glsl-183c52cb031a2dc423814dca37548720.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/spawn-particles.glsl"
+dest_files=["res://.godot/imported/spawn-particles.glsl-183c52cb031a2dc423814dca37548720.res"]
+
+[params]
+

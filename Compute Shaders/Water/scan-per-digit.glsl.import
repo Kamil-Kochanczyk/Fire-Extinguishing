@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bxq84rch0nic3"
+path="res://.godot/imported/scan-per-digit.glsl-c9e924cd5d0d4b12dd85fcbab3801e7b.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/scan-per-digit.glsl"
+dest_files=["res://.godot/imported/scan-per-digit.glsl-c9e924cd5d0d4b12dd85fcbab3801e7b.res"]
+
+[params]
+

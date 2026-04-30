@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://ejp101sq702e"
+path="res://.godot/imported/pps16.glsl-973ea884370ec80ee45d055ab293238b.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/pps16.glsl"
+dest_files=["res://.godot/imported/pps16.glsl-973ea884370ec80ee45d055ab293238b.res"]
+
+[params]
+

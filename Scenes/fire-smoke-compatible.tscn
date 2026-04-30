@@ -1,0 +1,1717 @@
+[gd_scene load_steps=70 format=3 uid="uid://cnqcnhd6ct3ry"]
+
+[ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
+[ext_resource type="Texture2D" uid="uid://0r0k7y2n07an" path="res://Images/black.png" id="2_hbe1w"]
+[ext_resource type="Shader" uid="uid://51v7cpfotmx6" path="res://Fragment Shaders/obstacles_edges.gdshader" id="3_cphy5"]
+[ext_resource type="Shader" uid="uid://c4j7cvfvpxur8" path="res://Fragment Shaders/velocity.gdshader" id="4_cwdux"]
+[ext_resource type="Shader" uid="uid://bxds82v43fw2i" path="res://Fragment Shaders/fire_fuel_smoke_density_splash.gdshader" id="5_kid1v"]
+[ext_resource type="Shader" uid="uid://bmoxm7t0ccst" path="res://Fragment Shaders/fire_smoke_temperature.gdshader" id="6_1pbsg"]
+[ext_resource type="Texture2D" uid="uid://b4yi1wseeec6b" path="res://Images/white.png" id="7_xnvxc"]
+[ext_resource type="Shader" uid="uid://b8hu52ufme6sk" path="res://Fragment Shaders/fire_fuel_burn.gdshader" id="8_3bid5"]
+[ext_resource type="Shader" uid="uid://b71ohhrmnaktf" path="res://Fragment Shaders/fire_temperature_cool.gdshader" id="9_jj6as"]
+[ext_resource type="Shader" uid="uid://xwynpsffae4g" path="res://Fragment Shaders/velocity_forces_for_fire_smoke.gdshader" id="10_v6dpt"]
+[ext_resource type="Shader" uid="uid://ddxpkklgkfr02" path="res://Fragment Shaders/velocity_outflow_boundary.gdshader" id="11_c4pv6"]
+[ext_resource type="Shader" uid="uid://bwixeg1bgldft" path="res://Fragment Shaders/divergence.gdshader" id="12_y6upe"]
+[ext_resource type="Shader" uid="uid://bysm6j852u00b" path="res://Fragment Shaders/pressure_init.gdshader" id="13_lp386"]
+[ext_resource type="Shader" uid="uid://catifx2o5n3hb" path="res://Fragment Shaders/velocity_div_free.gdshader" id="14_11fkg"]
+[ext_resource type="Shader" uid="uid://b3jybqmncimd2" path="res://Fragment Shaders/fire_smoke_temperature_advect.gdshader" id="15_kb7fg"]
+[ext_resource type="Shader" uid="uid://c0g0k8pj4cyvc" path="res://Fragment Shaders/fire_fuel_smoke_density_advect.gdshader" id="16_oj18q"]
+[ext_resource type="Shader" uid="uid://dgidqstkgc4fr" path="res://Fragment Shaders/plancks_law.gdshader" id="17_t424u"]
+[ext_resource type="Texture2D" uid="uid://cpx4du24f7q5u" path="res://Fire Color Spectrum/fire_gradient.png" id="18_shihg"]
+[ext_resource type="Shader" uid="uid://ctk5vasevd74o" path="res://Fragment Shaders/smoke_vis.gdshader" id="19_gujhc"]
+[ext_resource type="Shader" uid="uid://dmpf8bdla1axa" path="res://Fragment Shaders/fire_smoke_together.gdshader" id="20_w6xmb"]
+[ext_resource type="PackedScene" uid="uid://8ytan70082j4" path="res://Scenes/gradient-editor.tscn" id="21_5kuns"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0aj0r"]
+shader = ExtResource("3_cphy5")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_meckj"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_h2yge"]
+shader = ExtResource("4_cwdux")
+shader_parameter/u_timestep = 0.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_b2345"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6pvs2"]
+resource_local_to_scene = true
+shader = ExtResource("5_kid1v")
+shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_fuel_splash_position = Vector2(-1, -1)
+shader_parameter/u_fuel_splash_radius = 0.1
+shader_parameter/u_fuel_splash_strength = 10.0
+shader_parameter/u_fuel_source_1_toggle = 1
+shader_parameter/u_fuel_source_2_toggle = 1
+shader_parameter/u_fuel_source_3_toggle = 1
+shader_parameter/u_fuel_source_4_toggle = 1
+shader_parameter/u_fuel_source_5_toggle = 1
+shader_parameter/u_fuel_source_6_toggle = 1
+shader_parameter/u_fuel_source_7_toggle = 1
+shader_parameter/u_density_splash_position = Vector2(-1, -1)
+shader_parameter/u_density_splash_radius = 0.05
+shader_parameter/u_density_splash_strength = 10.0
+shader_parameter/u_density_dissipation_rate = 0.05
+shader_parameter/u_density_source_1_toggle = 1
+shader_parameter/u_density_source_2_toggle = 1
+shader_parameter/u_density_source_3_toggle = 1
+shader_parameter/u_density_source_4_toggle = 1
+shader_parameter/u_density_source_5_toggle = 1
+shader_parameter/u_density_source_6_toggle = 1
+shader_parameter/u_density_source_7_toggle = 1
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_rr1vq"]
+viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_fcd3f"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7mbn0"]
+resource_local_to_scene = true
+shader = ExtResource("6_1pbsg")
+shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_rr1vq")
+shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_fcd3f")
+shader_parameter/u_init_state = true
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_burn = 2000.0
+shader_parameter/u_fire_temp_max = 2000.0
+shader_parameter/u_smoke_temp_ambient = 300.0
+shader_parameter/u_smoke_temp_max = 500.0
+shader_parameter/u_smoke_temp_heating_mouse_position = Vector2(-1, -1)
+shader_parameter/u_smoke_temp_heating_splash_radius = 0.05
+shader_parameter/u_smoke_temp_heating_splash_strength = 10.0
+shader_parameter/u_smoke_temp_cooling_mouse_position = Vector2(-1, -1)
+shader_parameter/u_smoke_temp_cooling_splash_radius = 0.2
+shader_parameter/u_smoke_temp_cooling_splash_strength = 10.0
+shader_parameter/u_smoke_temp_dissipation_rate = 0.05
+shader_parameter/u_smoke_temp_heating_source_1_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_2_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_3_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_4_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_5_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_6_toggle = 1
+shader_parameter/u_smoke_temp_heating_source_7_toggle = 1
+shader_parameter/u_smoke_temp_cooling_source_1_toggle = 1
+shader_parameter/u_smoke_temp_cooling_source_2_toggle = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jd5mo"]
+shader = ExtResource("8_3bid5")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_gamma_fuel = 0.925
+shader_parameter/u_burn_strength = 0.01
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_aiuiy"]
+viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4dgd1"]
+shader = ExtResource("9_jj6as")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_sigma_cool = 5000.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
+shader_parameter/u_exponent = 1.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_gwkax"]
+viewport_path = NodePath("FireSmokeTemperatureViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_2cr0e"]
+viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_sr856"]
+viewport_path = NodePath("FireTemperatureCoolViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_uult5"]
+resource_local_to_scene = true
+shader = ExtResource("10_v6dpt")
+shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_2cr0e")
+shader_parameter/u_fire_temperature_cool = SubResource("ViewportTexture_sr856")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_fire_disturbance_origin = Vector2(-1, -1)
+shader_parameter/u_fire_disturbance_vector = Vector2(0, 0)
+shader_parameter/u_fire_disturbance_radius = 0.005
+shader_parameter/u_fire_disturbance_strength = 2.5
+shader_parameter/u_fire_vorticity_scale = 5.0
+shader_parameter/u_fire_beta = 10.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
+shader_parameter/u_fire_buoyancy_dir = Vector2(0, -1)
+shader_parameter/u_smoke_disturbance_origin = Vector2(-1, -1)
+shader_parameter/u_smoke_disturbance_vector = Vector2(0, 0)
+shader_parameter/u_smoke_disturbance_radius = 0.005
+shader_parameter/u_smoke_disturbance_strength = 2.5
+shader_parameter/u_smoke_vorticity_scale = 1.0
+shader_parameter/u_smoke_alpha = 0.1
+shader_parameter/u_smoke_beta = 2.0
+shader_parameter/u_smoke_temp_ambient = 300.0
+shader_parameter/u_smoke_temp_max = 500.0
+shader_parameter/u_smoke_buoyancy_dir = Vector2(0, -1)
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_7mycd"]
+viewport_path = NodePath("VelocityViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_0aj0r"]
+viewport_path = NodePath("ObstaclesEdgesViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_vc6m8"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nw6y7"]
+resource_local_to_scene = true
+shader = ExtResource("11_c4pv6")
+shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_vc6m8")
+shader_parameter/u_obstacles_edges = SubResource("ViewportTexture_0aj0r")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_272bh"]
+viewport_path = NodePath("VelocityForcesViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ycdy4"]
+shader = ExtResource("12_y6upe")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_kek77"]
+viewport_path = NodePath("VelocityBoundaryViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_getpj"]
+shader = ExtResource("13_lp386")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_gngh3"]
+viewport_path = NodePath("VelocityBoundaryViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0n3wm"]
+resource_local_to_scene = true
+shader = ExtResource("14_11fkg")
+shader_parameter/u_velocity_boundary = SubResource("ViewportTexture_gngh3")
+shader_parameter/fire_vel_abs_val_limit = 1.0
+shader_parameter/smoke_vel_abs_val_limit = 1.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_run7a"]
+viewport_path = NodePath("VelocityDivFreeViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1tdn5"]
+resource_local_to_scene = true
+shader = ExtResource("15_kb7fg")
+shader_parameter/u_velocity_div_free = SubResource("ViewportTexture_run7a")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
+shader_parameter/u_smoke_temp_ambient = 300.0
+shader_parameter/u_smoke_temp_max = 500.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_cyaav"]
+viewport_path = NodePath("FireTemperatureCoolViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_2r3ol"]
+viewport_path = NodePath("VelocityDivFreeViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cyaav"]
+resource_local_to_scene = true
+shader = ExtResource("16_oj18q")
+shader_parameter/u_velocity_div_free = SubResource("ViewportTexture_2r3ol")
+shader_parameter/u_timestep = 0.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_nw6y7"]
+viewport_path = NodePath("FireFuelBurnViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_rofs8"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2cr0e"]
+resource_local_to_scene = true
+shader = ExtResource("17_t424u")
+shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_rofs8")
+shader_parameter/u_baked_fire_temp = ExtResource("18_shihg")
+shader_parameter/u_use_custom_fire_temp = 0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_awra1"]
+viewport_path = NodePath("FireSmokeTemperatureAdvectViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_kcd83"]
+viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sr856"]
+resource_local_to_scene = true
+shader = ExtResource("19_gujhc")
+shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_kcd83")
+shader_parameter/u_use_custom_density_color = 0
+shader_parameter/u_density_color = Vector3(0, 0, 0)
+shader_parameter/u_min_albedo = Vector3(0, 0, 0)
+shader_parameter/u_max_albedo = Vector3(0.3, 0.3, 0.3)
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_7r87g"]
+viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_lygpt"]
+viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_4nja0"]
+viewport_path = NodePath("SmokeVisViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fcd3f"]
+resource_local_to_scene = true
+shader = ExtResource("20_w6xmb")
+shader_parameter/u_smoke_vis = SubResource("ViewportTexture_4nja0")
+shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture_lygpt")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_5u06a"]
+viewport_path = NodePath("PlancksLawViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
+viewport_path = NodePath("PlancksLawViewport")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b2345"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0aj0r"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meckj"]
+bg_color = Color(0.321728, 0.321728, 0.321728, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_meckj"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rr1vq"]
+bg_color = Color(0.321728, 0.321728, 0.321728, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_fcd3f"]
+
+[node name="FireSmokeCompatible" type="Node2D"]
+script = ExtResource("1_lak56")
+
+[node name="ObstaclesRawViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="ObstaclesRawViewport"]
+texture_filter = 1
+texture_repeat = 1
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="Polygon2D" type="Polygon2D" parent="ObstaclesRawViewport"]
+offset = Vector2(-66, 100)
+polygon = PackedVector2Array(631.901, 132.48, 608.368, 192.683, 544.323, 192.456, 600.977, 227.233, 584.15, 295.026, 631.964, 253.662, 679.764, 293.484, 663.82, 225.691, 718.932, 191.819, 656.867, 192.039)
+uv = PackedVector2Array(631.901, 132.48, 613.723, 186.738, 566.346, 152.84, 588.887, 209.088, 539.026, 212.263, 592.612, 245.722, 577.087, 295.403, 620.552, 268.703, 631.108, 289.815, 641.663, 268.082, 684.507, 295.403, 670.848, 242.618, 723.625, 226.481, 667.123, 206.604, 684.508, 155.692, 645.39, 184.875)
+
+[node name="ObstaclesEdgesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="ObstaclesEdgesViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_0aj0r")
+texture = SubResource("ViewportTexture_meckj")
+centered = false
+
+[node name="VelocityViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="VelocityViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_h2yge")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="FireFuelSmokeDensitySplashViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireFuelSmokeDensitySplashViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_6pvs2")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="FireSmokeTemperatureViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireSmokeTemperatureViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_7mbn0")
+texture = ExtResource("7_xnvxc")
+centered = false
+
+[node name="FireFuelBurnViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireFuelBurnViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_jd5mo")
+texture = SubResource("ViewportTexture_aiuiy")
+centered = false
+
+[node name="FireTemperatureCoolViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireTemperatureCoolViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_4dgd1")
+texture = SubResource("ViewportTexture_gwkax")
+centered = false
+
+[node name="VelocityForcesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="VelocityForcesViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_uult5")
+texture = SubResource("ViewportTexture_7mycd")
+centered = false
+
+[node name="VelocityBoundaryViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="VelocityBoundaryViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_nw6y7")
+texture = SubResource("ViewportTexture_272bh")
+centered = false
+
+[node name="DivergenceViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="DivergenceViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_ycdy4")
+texture = SubResource("ViewportTexture_kek77")
+centered = false
+
+[node name="PressureInitViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="PressureInitViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_getpj")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="VelocityDivFreeViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="VelocityDivFreeViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_0n3wm")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="FireSmokeTemperatureAdvectViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireSmokeTemperatureAdvectViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_1tdn5")
+texture = SubResource("ViewportTexture_cyaav")
+centered = false
+
+[node name="FireFuelSmokeDensityAdvectViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireFuelSmokeDensityAdvectViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_cyaav")
+texture = SubResource("ViewportTexture_nw6y7")
+centered = false
+
+[node name="PlancksLawViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="PlancksLawViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_2cr0e")
+texture = SubResource("ViewportTexture_awra1")
+centered = false
+
+[node name="SmokeVisViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="SmokeVisViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_sr856")
+texture = SubResource("ViewportTexture_7r87g")
+centered = false
+
+[node name="FireSmokeTogetherViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireSmokeTogetherViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_fcd3f")
+texture = SubResource("ViewportTexture_5u06a")
+centered = false
+
+[node name="Display" type="Sprite2D" parent="."]
+texture_filter = 1
+texture_repeat = 1
+position = Vector2(576, 324)
+texture = SubResource("ViewportTexture_8yd1n")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/TopMarginContainer"]
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "[Mode]"
+
+[node name="Label" type="Label" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Texture"
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxFlat_b2345")
+
+[node name="FPSLabel" type="Label" parent="CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "FPS"
+horizontal_alignment = 2
+
+[node name="VSeparator" type="VSeparator" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/separator = SubResource("StyleBoxFlat_0aj0r")
+
+[node name="FireBottomMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="FirePanelContainer" type="PanelContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer"]
+custom_minimum_size = Vector2(411, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_meckj")
+
+[node name="FireMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="FireVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer"]
+layout_mode = 2
+
+[node name="FireTitleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireTitle" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTitleHBoxContainer"]
+layout_mode = 2
+text = "Fire"
+
+[node name="FireDisturbanceRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireDisturbanceRadius" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Disturbance Radius"
+
+[node name="FireDisturbanceRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireDisturbanceRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer/FireDisturbanceRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.05
+step = 0.001
+value = 0.005
+
+[node name="FireDisturbanceRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.005"
+
+[node name="FireDisturbanceStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireDisturbanceStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Disturbance Strength"
+
+[node name="FireDisturbanceStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireDisturbanceStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer/FireDisturbanceStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.5
+value = 2.5
+
+[node name="FireDisturbanceStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "2.5"
+
+[node name="FireSplashRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireSplashRadius" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Splash Radius"
+
+[node name="FireSplashRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireSplashRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashRadiusHBoxContainer/FireSplashRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.3
+step = 0.001
+value = 0.1
+
+[node name="FireSplashRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.1"
+
+[node name="FireSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Splash Strength"
+
+[node name="FireSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashStrengthHBoxContainer/FireSplashStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 20.0
+step = 0.1
+value = 10.0
+
+[node name="FireSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
+
+[node name="FireFuelDissipationHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireFuelDissipation" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Fuel Dissipation"
+
+[node name="FireFuelDissipationMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelDissipationHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireFuelDissipationHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelDissipationHBoxContainer/FireFuelDissipationMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.001
+value = 0.925
+
+[node name="FireFuelDissipationValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.925"
+
+[node name="FireFuelBurnStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireFuelBurnStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelBurnStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Fuel Burn Strength"
+
+[node name="FireFuelBurnStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelBurnStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireFuelBurnStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelBurnStrengthHBoxContainer/FireFuelBurnStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.25
+step = 0.01
+value = 0.01
+
+[node name="FireFuelBurnStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireFuelBurnStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.01"
+
+[node name="FireTemperatureDissipationHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireTemperatureDissipation" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Temperature Dissipation"
+
+[node name="FireTemperatureDissipationMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireTemperatureDissipationHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureDissipationHBoxContainer/FireTemperatureDissipationMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 6000.0
+step = 100.0
+value = 5000.0
+
+[node name="FireTemperatureDissipationValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "5000.0"
+
+[node name="FireTemperatureCoolExponentHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireTemperatureCoolExponent" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureCoolExponentHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Temperature Cool Exponent"
+
+[node name="FireTemperatureCoolExponentMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureCoolExponentHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireTemperatureCoolExponentHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureCoolExponentHBoxContainer/FireTemperatureCoolExponentMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 4.0
+value = 1.0
+
+[node name="FireTemperatureCoolExponentValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTemperatureCoolExponentHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="FireVorticityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireVorticityScale" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vorticity Scale"
+
+[node name="FireVorticityScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireVorticityScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer/FireVorticityScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 20.0
+value = 5.0
+
+[node name="FireVorticityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "5.0"
+
+[node name="FireBuoyancyStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireBuoyancyStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Buoyancy Strength"
+
+[node name="FireBuoyancyStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireBuoyancyStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer/FireBuoyancyStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 20.0
+step = 0.1
+value = 10.0
+
+[node name="FireBuoyancyStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
+
+[node name="FireVelAbsValLimitHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireVelAbsValLimit" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vel Abs Val Limit"
+
+[node name="FireVelAbsValLimitMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireVelAbsValLimitHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="FireVelAbsValLimitValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="FireObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="FireObstacleToggle" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer"]
+layout_mode = 2
+text = "Obstacle"
+
+[node name="FireObstacleToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+
+[node name="FireObstacleToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer/FireObstacleToggleMarginContainer" groups=["ParamToggle"]]
+layout_mode = 2
+
+[node name="FireSplashTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggles" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer"]
+layout_mode = 2
+text = "Splash"
+
+[node name="FireVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer"]
+layout_mode = 2
+
+[node name="FireTopHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="FireSplashToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle1" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer/FireSplashToggle1HBoxContainer"]
+layout_mode = 2
+text = "Source 1"
+
+[node name="FireSplashToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer/FireSplashToggle1HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireSplashToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle2" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer/FireSplashToggle2HBoxContainer"]
+layout_mode = 2
+text = "Source 2"
+
+[node name="FireSplashToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer/FireSplashToggle2HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireSplashToggle3MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle3HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle3" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer/FireSplashToggle3HBoxContainer"]
+layout_mode = 2
+text = "Source 3"
+
+[node name="FireSplashToggle3CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer/FireSplashToggle3HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireSplashToggle4MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle4HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle4" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer/FireSplashToggle4HBoxContainer"]
+layout_mode = 2
+text = "Source 4"
+
+[node name="FireSplashToggle4CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer/FireSplashToggle4HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireBottomHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="FireSplashToggle5MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle5HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle5" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer/FireSplashToggle5HBoxContainer"]
+layout_mode = 2
+text = "Source 5"
+
+[node name="FireSplashToggle5CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer/FireSplashToggle5HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireSplashToggle6MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle6HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle6" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer/FireSplashToggle6HBoxContainer"]
+layout_mode = 2
+text = "Source 6"
+
+[node name="FireSplashToggle6CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer/FireSplashToggle6HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireSplashToggle7MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="FireSplashToggle7HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer"]
+layout_mode = 2
+
+[node name="FireSplashToggle7" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer/FireSplashToggle7HBoxContainer"]
+layout_mode = 2
+text = "Source 7"
+
+[node name="FireSplashToggle7CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer/FireSplashToggle7HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="FireColorPickerHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireColor" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer"]
+layout_mode = 2
+text = "Fire Color"
+
+[node name="FireBakedToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+
+[node name="FireBakedToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireBakedToggleMarginContainer"]
+layout_mode = 2
+
+[node name="FireBaked" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireBakedToggleMarginContainer/FireBakedToggleHBoxContainer"]
+layout_mode = 2
+text = "Predefined"
+
+[node name="FireBakedToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireBakedToggleMarginContainer/FireBakedToggleHBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+size_flags_vertical = 4
+button_pressed = true
+button_group = SubResource("ButtonGroup_meckj")
+
+[node name="FireCustomToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+
+[node name="FireCustomToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireCustomToggleMarginContainer"]
+layout_mode = 2
+
+[node name="FireCustom" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireCustomToggleMarginContainer/FireCustomToggleHBoxContainer"]
+layout_mode = 2
+text = "Custom"
+
+[node name="FireCustomToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireCustomToggleMarginContainer/FireCustomToggleHBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+size_flags_vertical = 4
+button_group = SubResource("ButtonGroup_meckj")
+
+[node name="FireGradientEditorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireCustomToggleMarginContainer/FireCustomToggleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="FireGradientEditor" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireCustomToggleMarginContainer/FireCustomToggleHBoxContainer/FireGradientEditorMarginContainer" instance=ExtResource("21_5kuns")]
+visible = false
+layout_mode = 2
+size_multiplier = 2.0
+
+[node name="SmokeBottomMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="SmokePanelContainer" type="PanelContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer"]
+custom_minimum_size = Vector2(411, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_rr1vq")
+
+[node name="SmokeMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="SmokeVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer"]
+layout_mode = 2
+
+[node name="SmokeTitleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeTitle" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTitleHBoxContainer"]
+layout_mode = 2
+text = "Smoke"
+
+[node name="SmokeDisturbanceRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDisturbanceRadius" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Disturbance Radius"
+
+[node name="SmokeDisturbanceRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDisturbanceRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer/SmokeDisturbanceRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.05
+step = 0.001
+value = 0.005
+
+[node name="SmokeDisturbanceRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.005"
+
+[node name="SmokeDisturbanceStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDisturbanceStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Disturbance Strength"
+
+[node name="SmokeDisturbanceStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDisturbanceStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer/SmokeDisturbanceStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.5
+value = 2.5
+
+[node name="SmokeDisturbanceStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "2.5"
+
+[node name="SmokeDensityAndHeatingSplashRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingSplashRadius" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Density/Heating Splash Radius"
+
+[node name="SmokeDensityAndHeatingSplashRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDensityAndHeatingSplashRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer/SmokeDensityAndHeatingSplashRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.2
+step = 0.001
+value = 0.05
+
+[node name="SmokeDensityAndHeatingSplashRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.05"
+
+[node name="SmokeDensityAndHeatingSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Density/Heating Splash Strength"
+
+[node name="SmokeDensityAndHeatingSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDensityAndHeatingSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer/SmokeDensityAndHeatingSplashStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 10.0
+step = 0.1
+value = 10.0
+
+[node name="SmokeDensityAndHeatingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
+
+[node name="SmokeCoolingSplashRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeCoolingSplashRadius" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Cooling Splash Radius"
+
+[node name="SmokeCoolingSplashRadiusMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeCoolingSplashRadiusHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer/SmokeCoolingSplashRadiusMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.5
+step = 0.01
+value = 0.2
+
+[node name="SmokeCoolingSplashRadiusValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.2"
+
+[node name="SmokeCoolingSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeCoolingSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Cooling Splash Strength"
+
+[node name="SmokeCoolingSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeCoolingSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer/SmokeCoolingSplashStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 10.0
+step = 0.01
+value = 10.0
+
+[node name="SmokeCoolingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
+
+[node name="SmokeDensityDissipationHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityDissipation" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Density Dissipation"
+
+[node name="SmokeDensityDissipationMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDensityDissipationHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer/SmokeDensityDissipationMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.5
+step = 0.01
+value = 0.05
+
+[node name="SmokeDensityDissipationValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.05"
+
+[node name="SmokeTemperatureDissipationHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeTemperatureDissipation" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Temperature Dissipation"
+
+[node name="SmokeTemperatureDissipationMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeTemperatureDissipationHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer/SmokeTemperatureDissipationMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.5
+step = 0.01
+value = 0.05
+
+[node name="SmokeTemperatureDissipationValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.05"
+
+[node name="SmokeVorticityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeVorticityScale" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vorticity Scale"
+
+[node name="SmokeVorticityScaleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeVorticityScaleHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer/SmokeVorticityScaleMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 16.0
+value = 5.0
+
+[node name="SmokeVorticityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "5.0"
+
+[node name="SmokeDenseDownForceHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDenseDownForce" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Dense Down Force"
+
+[node name="SmokeDenseDownForceMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeDenseDownForceHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer/SmokeDenseDownForceMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[node name="SmokeDenseDownForceValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.1"
+
+[node name="SmokeHotUpForceHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeHotUpForce" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Hot Up Force"
+
+[node name="SmokeHotUpForceMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeHotUpForceHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer/SmokeHotUpForceMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 5.0
+step = 0.1
+value = 2.0
+
+[node name="SmokeHotUpForceValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "2.0"
+
+[node name="SmokeVelAbsValLimitHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeVelAbsValLimit" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vel Abs Val Limit"
+
+[node name="SmokeVelAbsValLimitMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeVelAbsValLimitHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer/SmokeVelAbsValLimitMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="SmokeVelAbsValLimitValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="SmokeMinAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeMinAlbedo" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Min Albedo"
+
+[node name="SmokeMinAlbedoMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeMinAlbedoHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer/SmokeMinAlbedoMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+
+[node name="SmokeMinAlbedoValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.0"
+
+[node name="SmokeMaxAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeMaxAlbedo" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Max Albedo"
+
+[node name="SmokeMaxAlbedoMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeMaxAlbedoHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer/SmokeMaxAlbedoMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[node name="SmokeMaxAlbedoValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.1"
+
+[node name="SmokeObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="SmokeObstacleToggle" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeObstacleToggleHBoxContainer"]
+layout_mode = 2
+text = "Obstacle"
+
+[node name="SmokeObstacleToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeObstacleToggleHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+
+[node name="SmokeObstacleToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeObstacleToggleHBoxContainer/SmokeObstacleToggleMarginContainer" groups=["ParamToggle"]]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggles" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer"]
+layout_mode = 2
+text = "Density/Heating"
+
+[node name="SmokeVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeTopHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="SmokeDensityAndHeatingToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle1" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer/SmokeDensityAndHeatingToggle1HBoxContainer"]
+layout_mode = 2
+text = "Source 1"
+
+[node name="SmokeDensityAndHeatingToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer/SmokeDensityAndHeatingToggle1HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeDensityAndHeatingToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle2" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer/SmokeDensityAndHeatingToggle2HBoxContainer"]
+layout_mode = 2
+text = "Source 2"
+
+[node name="SmokeDensityAndHeatingToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer/SmokeDensityAndHeatingToggle2HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeDensityAndHeatingToggle3MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle3HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle3" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer/SmokeDensityAndHeatingToggle3HBoxContainer"]
+layout_mode = 2
+text = "Source 3"
+
+[node name="SmokeDensityAndHeatingToggle3CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer/SmokeDensityAndHeatingToggle3HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeDensityAndHeatingToggle4MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle4HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle4" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer/SmokeDensityAndHeatingToggle4HBoxContainer"]
+layout_mode = 2
+text = "Source 4"
+
+[node name="SmokeDensityAndHeatingToggle4CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer/SmokeDensityAndHeatingToggle4HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeBottomHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="SmokeDensityAndHeatingToggle5MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle5HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle5" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer/SmokeDensityAndHeatingToggle5HBoxContainer"]
+layout_mode = 2
+text = "Source 5"
+
+[node name="SmokeDensityAndHeatingToggle5CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer/SmokeDensityAndHeatingToggle5HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeDensityAndHeatingToggle6MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle6HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle6" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer/SmokeDensityAndHeatingToggle6HBoxContainer"]
+layout_mode = 2
+text = "Source 6"
+
+[node name="SmokeDensityAndHeatingToggle6CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer/SmokeDensityAndHeatingToggle6HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeDensityAndHeatingToggle7MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeDensityAndHeatingToggle7HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeDensityAndHeatingToggle7" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer/SmokeDensityAndHeatingToggle7HBoxContainer"]
+layout_mode = 2
+text = "Source 7"
+
+[node name="SmokeDensityAndHeatingToggle7CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer/SmokeDensityAndHeatingToggle7HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeCoolingTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeCoolingToggles" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Cooling"
+
+[node name="SmokeCoolingToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeCoolingToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeCoolingToggle1" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer/SmokeCoolingToggle1HBoxContainer"]
+layout_mode = 2
+text = "Source 1"
+
+[node name="SmokeCoolingToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer/SmokeCoolingToggle1HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeCoolingToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+
+[node name="SmokeCoolingToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer"]
+layout_mode = 2
+
+[node name="SmokeCoolingToggle2" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer/SmokeCoolingToggle2HBoxContainer"]
+layout_mode = 2
+text = "Source 2"
+
+[node name="SmokeCoolingToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer/SmokeCoolingToggle2HBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+
+[node name="SmokeColorPickerHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeColor" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Smoke Color"
+
+[node name="SmokeGrayscaleToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+
+[node name="SmokeGrayscaleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeGrayscaleToggleMarginContainer"]
+layout_mode = 2
+
+[node name="SmokeGrayscale" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeGrayscaleToggleMarginContainer/SmokeGrayscaleToggleHBoxContainer"]
+layout_mode = 2
+text = "Predefined"
+
+[node name="SmokeGrayscaleToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeGrayscaleToggleMarginContainer/SmokeGrayscaleToggleHBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_pressed = true
+button_group = SubResource("ButtonGroup_fcd3f")
+
+[node name="SmokeCustomToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+
+[node name="SmokeCustomToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer"]
+layout_mode = 2
+
+[node name="SmokeCustom" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer/SmokeCustomToggleHBoxContainer"]
+layout_mode = 2
+text = "Custom"
+
+[node name="SmokeCustomToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer/SmokeCustomToggleHBoxContainer" groups=["ParamToggle"]]
+layout_mode = 2
+button_group = SubResource("ButtonGroup_fcd3f")
+
+[node name="SmokeCustomColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer/SmokeCustomToggleHBoxContainer" groups=["ParamColorPickerButton"]]
+visible = false
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+color = Color(1, 1, 1, 1)
+edit_alpha = false
