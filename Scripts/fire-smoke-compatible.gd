@@ -309,6 +309,8 @@ var toggle_callbacks_dict: Dictionary = {}
 var color_picker_button_callbacks_dict: Dictionary = {}
 
 func _ready() -> void:
+	Engine.max_fps = 120
+	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
 	
 	for vp in get_tree().get_nodes_in_group("ViewportPipeline"):

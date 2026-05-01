@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://bs31tu7ihq6ph"]
+[gd_scene load_steps=21 format=3 uid="uid://bs31tu7ihq6ph"]
 
 [ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
 [ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
@@ -61,6 +61,9 @@ shader_parameter/u_water_tint_color = Vector3(0.723, 0.902, 0.893)
 [sub_resource type="ViewportTexture" id="ViewportTexture_tosn6"]
 viewport_path = NodePath("LowResWaterDensitySubViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_os4xb"]
+viewport_path = NodePath("ParticlesSubViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_rqihb"]
 viewport_path = NodePath("ParticlesSubViewport")
 
@@ -96,6 +99,7 @@ centered = false
 [node name="ParticlesSubViewport" type="SubViewport" parent="."]
 disable_3d = true
 transparent_bg = true
+use_hdr_2d = true
 size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
@@ -138,11 +142,17 @@ offset_right = 1152.0
 offset_bottom = 648.0
 texture = SubResource("ViewportTexture_tosn6")
 
+[node name="TmpDisplay" type="Sprite2D" parent="."]
+texture = SubResource("ViewportTexture_os4xb")
+centered = false
+
 [node name="Display" type="Sprite2D" parent="."]
+visible = false
 texture = SubResource("ViewportTexture_rqihb")
 centered = false
 
 [node name="Glass" type="Polygon2D" parent="."]
+visible = false
 offset = Vector2(4, 0)
 polygon = PackedVector2Array(-80, -72, -56, 72, 48, 72, 72, -72, 64, -72, 40, 64, -48, 64, -72, -72)
 uv = PackedVector2Array(440.081, 216.02, 463.976, 359.986, 568.13, 360.065, 592.068, 216.049, 584.056, 216.045, 560.04, 352.004, 472.108, 352.043, 447.974, 216.02)
@@ -245,16 +255,19 @@ color = Color(0, 0.652, 0.85, 1)
 edit_alpha = false
 
 [node name="ParticleColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 1
 text = "Particle Color"
 
 [node name="ParticleColorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
+visible = false
 layout_mode = 2
 theme_override_constants/margin_left = 3
 theme_override_constants/margin_right = 3
 
 [node name="ParticleColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/ParticleColorMarginContainer" groups=["ParamColorPickerButton"]]
+visible = false
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 color = Color(0.111, 0.639, 0.925, 1)
@@ -705,6 +718,7 @@ size_flags_vertical = 1
 text = "25.0"
 
 [node name="GlassMovementSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
 [node name="GlassMovementSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer"]
@@ -730,6 +744,7 @@ size_flags_vertical = 1
 text = "200.0"
 
 [node name="GlassRotationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
 [node name="GlassRotationSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer"]
@@ -756,6 +771,7 @@ size_flags_vertical = 1
 text = "3.141"
 
 [node name="GlassScalingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
 [node name="GlassScalingSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer"]

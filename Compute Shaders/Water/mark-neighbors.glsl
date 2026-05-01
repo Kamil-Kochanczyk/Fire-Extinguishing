@@ -2,6 +2,7 @@
 #version 450
 
 // compute shader used to save the information "Am I a neigbhor of the verbose particle or not?" in the alpha channel of the chosen texture
+// it's outdated and shouldn't be used anymore due to the fact that the texture is now used to store the temperatures of the particles
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -9,7 +10,7 @@ layout(set = 0, binding = 0, std430) restrict readonly buffer NeighborFlags {
     uint neighbor_flags[];
 };
 
-layout(set = 0, binding = 1, rgba32f) uniform image2D particle_pos_img;
+layout(set = 0, binding = 1, rgba32f) uniform restrict image2D particle_pos_img;
 
 layout(push_constant) uniform Parameters {
     uint particle_count;

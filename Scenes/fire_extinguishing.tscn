@@ -17,6 +17,8 @@ viewport_path = NodePath("WaterSubViewport")
 script = ExtResource("1_wcyfl")
 
 [node name="WaterCompatible" parent="." instance=ExtResource("2_wcyfl")]
+particle_grid_size = Vector2i(138, 138)
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_wcyfl"), SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu")])
 
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("3_rq2oy")]
+pressure_jacobi_iterations = 20
