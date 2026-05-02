@@ -4,13 +4,13 @@
 [ext_resource type="PackedScene" uid="uid://bs31tu7ihq6ph" path="res://Scenes/water-compatible.tscn" id="2_wcyfl"]
 [ext_resource type="PackedScene" uid="uid://cnqcnhd6ct3ry" path="res://Scenes/fire-smoke-compatible.tscn" id="3_rq2oy"]
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_wojkn"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_wcyfl"]
 viewport_path = NodePath("ParticlesSubViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_rq2oy"]
 viewport_path = NodePath("LowResWaterDensityTemperatureSubViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_rh4ni"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_k45wu"]
 viewport_path = NodePath("WaterSubViewport")
 
 [node name="FireExtinguishing" type="Node2D"]
@@ -20,7 +20,9 @@ script = ExtResource("1_wcyfl")
 sim_steps_per_frame = 3
 desired_waiting_frames = 0
 particle_grid_size = Vector2i(100, 100)
-textures = Array[ViewportTexture]([SubResource("ViewportTexture_wojkn"), SubResource("ViewportTexture_2i0ow"), SubResource("ViewportTexture_rh4ni")])
+mortal_particle_lifetime_min = 10.0
+mortal_particle_lifetime_max = 11.0
+textures = Array[ViewportTexture]([SubResource("ViewportTexture_wcyfl"), SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu")])
 
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("3_rq2oy")]
 pressure_jacobi_iterations = 20

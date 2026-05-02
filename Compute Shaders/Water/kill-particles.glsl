@@ -77,7 +77,8 @@ void main() {
             // for simplicity we don't do any bilinear interpolation
             vec2 pos = positions[id];
             vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
-            ivec2 pixel_pos = ivec2(int(clamped_pos.x * params.grid_to_particles_img_size_x), int(clamped_pos.y * params.grid_to_particles_img_size_y));
+            vec2 grid_space_pos = vec2(clamped_pos.x * params.grid_to_particles_img_size_x, clamped_pos.y * params.grid_to_particles_img_size_y);
+            ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
             vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
             float delta_temperature = pixel.g;
             float new_temperature = temperatures[id] + delta_temperature;
