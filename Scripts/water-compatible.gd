@@ -155,12 +155,14 @@ var particle_count: int
 
 var particle_pos_temp_img_size: int
 var glass_sdf_imgs_size: Vector2i
+var grid_to_particles_img_size: Vector2i
 
 var viewport_size_f: Vector2
 var sim_steps_per_frame_f: float
 var particle_grid_size_f: Vector2
 var particle_pos_temp_img_size_f: float
 var glass_sdf_imgs_size_f: Vector2
+var grid_to_particles_img_size_f: Vector2
 
 var verbose_particle_idx: int
 
@@ -304,9 +306,9 @@ var curr_display_idx: int
 @onready var glass_sdf_gradient_sprite_2d: Sprite2D = $GlassSDFGradientSprite2D
 @onready var particles_sub_viewport: SubViewport = $ParticlesSubViewport
 @onready var gpu_particles_2d: GPUParticles2D = $ParticlesSubViewport/GPUParticles2D
-@onready var low_res_water_density_sub_viewport: SubViewport = $LowResWaterDensitySubViewport
-@onready var low_res_texture_rect: TextureRect = $LowResWaterDensitySubViewport/LowResTextureRect
-@onready var low_res_color_rect: ColorRect = $LowResWaterDensitySubViewport/LowResColorRect
+@onready var low_res_water_density_temperature_sub_viewport: SubViewport = $LowResWaterDensityTemperatureSubViewport
+@onready var low_res_texture_rect: TextureRect = $LowResWaterDensityTemperatureSubViewport/LowResTextureRect
+@onready var low_res_color_rect: ColorRect = $LowResWaterDensityTemperatureSubViewport/LowResColorRect
 @onready var water_sub_viewport: SubViewport = $WaterSubViewport
 @onready var another_background_sprite_2d: Sprite2D = $WaterSubViewport/AnotherBackgroundSprite2D
 @onready var upscaled_texture_rect: TextureRect = $WaterSubViewport/UpscaledTextureRect
@@ -490,12 +492,14 @@ var kill_particles_ages_uniform: RDUniform
 var kill_particles_is_alive_uniform: RDUniform
 var kill_particles_dead_stack_uniform: RDUniform
 var kill_particles_dead_count_uniform: RDUniform
+var kill_particles_temperatures_uniform: RDUniform
 var spawn_particles_positions_uniform: RDUniform
 var spawn_particles_velocities_uniform: RDUniform
 var spawn_particles_ages_uniform: RDUniform
 var spawn_particles_is_alive_uniform: RDUniform
 var spawn_particles_dead_stack_uniform: RDUniform
 var spawn_particles_dead_count_uniform: RDUniform
+var spawn_particles_temperatures_uniform: RDUniform
 var compute_hashes_positions_uniform: RDUniform
 var compute_hashes_hashes_uniform: RDUniform
 var compute_hashes_particle_indices_uniform: RDUniform
@@ -594,6 +598,18 @@ var glass_sdf_gradient_img_ren_texture_rid: RID
 var glass_sdf_gradient_img_texture_rid: RID
 var glass_sdf_gradient_img_texture_2drd: Texture2DRD
 
+var grid_viewport_texture: ViewportTexture
+var grid_viewport_texture_rid: RID
+var grid_viewport_texture_format: RDTextureFormat
+var grid_viewport_texture_size: Vector3
+
+var grid_to_particles_img_texture_view: RDTextureView
+var grid_to_particles_img_texture_format: RDTextureFormat
+var grid_to_particles_img_ren_texture_rid: RID
+var grid_to_particles_img_texture_rid: RID
+var grid_to_particles_img_texture_2drd: Texture2DRD
+
+var kill_particles_grid_to_particles_img_uniform: RDUniform
 var integrate_motion_particle_pos_temp_img_uniform: RDUniform
 var integrate_motion_glass_sdf_img_uniform: RDUniform
 var integrate_motion_glass_sdf_gradient_img_uniform: RDUniform
@@ -651,12 +667,12 @@ var mark_neighbors_pipeline_rid: RID
 
 #endregion
 
-func _ready() -> void:
+func water_ready() -> void:
 	init_general_predefined_variables()
 	init_parallel_radix_sort_predefined_variables()
 	
 	particles_sub_viewport.size = viewport_size
-	low_res_water_density_sub_viewport.size = low_res_size
+	low_res_water_density_temperature_sub_viewport.size = low_res_size
 	low_res_texture_rect.size = low_res_size
 	low_res_color_rect.size = low_res_size
 	water_sub_viewport.size = viewport_size
@@ -670,7 +686,7 @@ func _ready() -> void:
 	T_init_inverse = T_init.affine_inverse()
 	
 	#print_transforms_intuition()
-
+	
 	# because each frame we need to convert P'' to P' and vice-versa, we need to pass M to the compute shader each frame
 	# but because we can move/rotate/scale as we like, M can be different each frame
 	# below is the template that will be used in each frame to update M if some changes occur
@@ -698,7 +714,7 @@ func _ready() -> void:
 	M_rotation_Y_y = col_Y.y
 	
 	create_sdf_related_textures(false)
-
+	
 	init_gpu()
 	
 	verbose_particle_idx = randi() % particle_count
@@ -719,6 +735,10 @@ func _ready() -> void:
 	
 	particle_pos_temp_img_texture_2drd = Texture2DRD.new()
 	particle_pos_temp_img_texture_2drd.texture_rd_rid = particle_pos_temp_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
+	
+	grid_to_particles_img_texture_2drd = Texture2DRD.new()
+	grid_to_particles_img_texture_2drd.texture_rd_rid = grid_to_particles_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
+	#tmp_display.texture = grid_to_particles_img_texture_2drd
 	
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_pos_temp_img", particle_pos_temp_img_texture_2drd)
 	gpu_particles_2d.process_material.set_shader_parameter("u_verbose_particle_color", Vector4(verbose_particle_color.r, verbose_particle_color.g, verbose_particle_color.b, verbose_particle_color.a))
@@ -754,7 +774,7 @@ func _ready() -> void:
 	
 	set_display()
 
-func _process(delta: float) -> void:
+func water_process(delta: float) -> void:
 	if not waiting_for_gpu:
 		var adjusted_delta: float = delta * float(desired_waiting_frames + 1)
 		
@@ -873,6 +893,10 @@ func _input(event: InputEvent) -> void:
 			#print("Positions: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(positions_buffer_rid)).slice(0, 10))
 			#print("Velocities: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(velocities_buffer_rid)).slice(0, 10))
 			#
+			#var temperatures_gpu: PackedFloat32Array = rd.buffer_get_data(temperatures_buffer_rid).to_float32_array()
+			#print("Temperatures avg: ", average(temperatures_gpu))
+			#print("Temperatures: ", temperatures_gpu.slice(0, 10))
+			#
 			#print("Lifetimes: ", rd.buffer_get_data(lifetimes_buffer_rid).to_float32_array())
 			#print("Ages: ", rd.buffer_get_data(ages_buffer_rid).to_float32_array())
 			#print("Is alive: ", get_uint_arr(rd.buffer_get_data(is_alive_buffer_rid)))
@@ -941,12 +965,14 @@ func init_general_predefined_variables() -> void:
 	
 	particle_pos_temp_img_size = int(ceil(sqrt(particle_count)))
 	glass_sdf_imgs_size = viewport_size
+	grid_to_particles_img_size = viewport_size
 	
 	viewport_size_f = Vector2(float(viewport_size.x), float(viewport_size.y))
 	sim_steps_per_frame_f = float(sim_steps_per_frame)
 	particle_grid_size_f = Vector2(float(particle_grid_size.x), float(particle_grid_size.y))
 	particle_pos_temp_img_size_f = float(particle_pos_temp_img_size)
 	glass_sdf_imgs_size_f = Vector2(float(glass_sdf_imgs_size.x), float(glass_sdf_imgs_size.y))
+	grid_to_particles_img_size_f = Vector2(float(grid_to_particles_img_size.x), float(grid_to_particles_img_size.y))
 	
 	verbose_particle_idx = -1
 	
@@ -1423,6 +1449,10 @@ func init_gpu() -> void:
 	kill_particles_dead_count_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_dead_count_uniform.binding = 6
 	kill_particles_dead_count_uniform.add_id(dead_count_buffer_rid)
+	kill_particles_temperatures_uniform = RDUniform.new()
+	kill_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	kill_particles_temperatures_uniform.binding = 7
+	kill_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
 	spawn_particles_positions_uniform = RDUniform.new()
 	spawn_particles_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_positions_uniform.binding = 0
@@ -1447,6 +1477,10 @@ func init_gpu() -> void:
 	spawn_particles_dead_count_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_dead_count_uniform.binding = 5
 	spawn_particles_dead_count_uniform.add_id(dead_count_buffer_rid)
+	spawn_particles_temperatures_uniform = RDUniform.new()
+	spawn_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	spawn_particles_temperatures_uniform.binding = 6
+	spawn_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
 	compute_hashes_positions_uniform = RDUniform.new()
 	compute_hashes_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_positions_uniform.binding = 0
@@ -1751,6 +1785,7 @@ func init_gpu() -> void:
 	
 	#region textures
 	# my usage bits: allow sampling and allow shaders to read from and write to an image without using a fixed-function graphics pipeline
+	# bonus: allow one texture to be the destination of copying
 	
 	particle_pos_temp_img_texture_view = RDTextureView.new()
 	particle_pos_temp_img_texture_format = RDTextureFormat.new()
@@ -1818,6 +1853,65 @@ func init_gpu() -> void:
 		glass_sdf_gradient_img_texture_format.array_layers
 	)
 	
+	grid_viewport_texture_rid = RenderingServer.texture_get_rd_texture(grid_viewport_texture.get_rid())
+	grid_viewport_texture_format = ren_rd.texture_get_format(grid_viewport_texture_rid)
+	assert(grid_viewport_texture_format.width == grid_to_particles_img_size.x and grid_viewport_texture_format.height == grid_to_particles_img_size.y, "Sizes must match")
+	grid_viewport_texture_size = Vector3(grid_viewport_texture_format.width, grid_viewport_texture_format.height, 0)
+	
+	#print(grid_viewport_texture_rid)
+	#print(grid_viewport_texture_format.width)
+	#print(grid_viewport_texture_format.height)
+	#print(grid_viewport_texture_format.format)    # 96 = DATA_FORMAT_R16G16B16A16_SFLOAT
+	#print(grid_viewport_texture_format.usage_bits)    # 139 = 1 + 2 + 8 + 128
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT:
+		#print("Sampling enabled")    # 1
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT:
+		#print("Color attachment enabled")    # 2
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
+		#print("Depth stencil attachment enabled")    # 4
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_STORAGE_BIT:
+		#print("Storage enabled")    # 8
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_STORAGE_ATOMIC_BIT :
+		#print("Storage atomic enabled")    # 16
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_CPU_READ_BIT:
+		#print("CPU read enabled")    # 32
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT:
+		#print("Can update")    # 64
+	#if grid_viewport_texture_format.usage_bits & RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT:
+		#print("Can copy from")    # 128
+	#print(grid_viewport_texture_format.depth)
+	#print(grid_viewport_texture_format.array_layers)
+	#print(grid_viewport_texture_format.samples)
+	#print(grid_viewport_texture_format.mipmaps)
+	
+	grid_to_particles_img_texture_view = RDTextureView.new()
+	grid_to_particles_img_texture_format = RDTextureFormat.new()
+	grid_to_particles_img_texture_format.width = grid_viewport_texture_format.width
+	grid_to_particles_img_texture_format.height = grid_viewport_texture_format.height
+	grid_to_particles_img_texture_format.format = grid_viewport_texture_format.format
+	grid_to_particles_img_texture_format.usage_bits = (
+		RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT + 
+		RenderingDevice.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT + 
+		RenderingDevice.TEXTURE_USAGE_STORAGE_BIT + 
+		RenderingDevice.TEXTURE_USAGE_CAN_COPY_TO_BIT
+	)
+	grid_to_particles_img_ren_texture_rid = ren_rd.texture_create(grid_to_particles_img_texture_format, grid_to_particles_img_texture_view)
+	grid_to_particles_img_texture_rid = rd.texture_create_from_extension(
+		RenderingDevice.TEXTURE_TYPE_2D,
+		grid_to_particles_img_texture_format.format,
+		grid_to_particles_img_texture_format.samples,
+		grid_to_particles_img_texture_format.usage_bits,
+		ren_rd.get_driver_resource(RenderingDevice.DRIVER_RESOURCE_TEXTURE, grid_to_particles_img_ren_texture_rid, 0),
+		grid_to_particles_img_texture_format.width,
+		grid_to_particles_img_texture_format.height,
+		grid_to_particles_img_texture_format.depth,
+		grid_to_particles_img_texture_format.array_layers
+	)
+	
+	kill_particles_grid_to_particles_img_uniform = RDUniform.new()
+	kill_particles_grid_to_particles_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	kill_particles_grid_to_particles_img_uniform.binding = 8
+	kill_particles_grid_to_particles_img_uniform.add_id(grid_to_particles_img_texture_rid)
 	integrate_motion_particle_pos_temp_img_uniform = RDUniform.new()
 	integrate_motion_particle_pos_temp_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	integrate_motion_particle_pos_temp_img_uniform.binding = 9
@@ -1841,8 +1935,8 @@ func init_gpu() -> void:
 	#endregion
 	
 	#region uniform sets
-	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform], kill_particles_shader_rid, 0)
-	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform], spawn_particles_shader_rid, 0)
+	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_temperatures_uniform, kill_particles_grid_to_particles_img_uniform], kill_particles_shader_rid, 0)
+	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_temperatures_uniform], spawn_particles_shader_rid, 0)
 	compute_hashes_uniform_set_rid = rd.uniform_set_create([compute_hashes_positions_uniform, compute_hashes_hashes_uniform, compute_hashes_particle_indices_uniform], compute_hashes_shader_rid, 0)
 	
 	#region parallel radix sort uniform sets
@@ -1909,6 +2003,8 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		params.fill(0)
 		params.encode_u32(0, particle_count)
 		params.encode_float(4, delta)
+		params.encode_float(8, grid_to_particles_img_size_f.x)
+		params.encode_float(12, grid_to_particles_img_size_f.y)
 		rd.compute_list_set_push_constant(compute_list, params, params.size())
 		rd.compute_list_add_barrier(compute_list)
 		rd.compute_list_dispatch(compute_list, kill_particles_workgroups_x, 1, 1)
@@ -2332,6 +2428,7 @@ func free_gpu() -> void:
 	rd.free_rid(particle_pos_temp_img_texture_rid)
 	rd.free_rid(glass_sdf_img_texture_rid)
 	rd.free_rid(glass_sdf_gradient_img_texture_rid)
+	rd.free_rid(grid_to_particles_img_texture_rid)
 	#endregion
 	
 	rd.free()
@@ -2701,7 +2798,7 @@ func print_transforms_intuition() -> void:
 	# affine inverse assumes that T is composed of rotation, scaling and translation
 	# T_init is computed only once and so T_init_inverse is computed only once
 	# we'll need T_init_inverse in other parts of the code
-	var T_init: Transform2D = glass.get_global_transform()
+	T_init = glass.get_global_transform()
 	T_init_inverse = T_init.affine_inverse()
 	print(T_init.x.x)
 	print(T_init.x.y)
@@ -2879,10 +2976,10 @@ func create_sdf_related_textures(sdf_collisions_on: bool) -> void:
 		glass_sdf_img.fill(Color(0.0, 0.0, 0.0, 1.0))
 		glass_sdf_gradient_img.fill(Color(0.0, 0.0, 0.0, 1.0))
 
-func get_polygon_vertices_normalized(vertices: Array[Vector2], offset: Vector2, transform: Transform2D, normalization_factor: Vector2) -> Array[Vector2]:
+func get_polygon_vertices_normalized(vertices: Array[Vector2], offset: Vector2, t: Transform2D, normalization_factor: Vector2) -> Array[Vector2]:
 	var vertices_normalized: Array[Vector2] = []
 	for vertex in vertices:
-		vertices_normalized.append((transform * (vertex + offset)) * normalization_factor)	
+		vertices_normalized.append((t * (vertex + offset)) * normalization_factor)	
 	return vertices_normalized
 
 func distance_to_segment(P: Vector2, A: Vector2, B: Vector2) -> float:
@@ -2977,6 +3074,7 @@ func give_me_my_packedvector2array_xD(bytes: PackedByteArray) -> PackedVector2Ar
 		return []
 	
 	var result: PackedVector2Array = []
+	@warning_ignore("narrowing_conversion")
 	var count: int = bytes.size() / 8.0
 	
 	result.resize(count)
@@ -2988,6 +3086,7 @@ func give_me_my_packedvector2array_xD(bytes: PackedByteArray) -> PackedVector2Ar
 
 func get_uint_arr(uint_packed_byte_arr: PackedByteArray) -> Array[int]:
 	var arr: Array[int] = []
+	@warning_ignore("integer_division")
 	for i in range(uint_packed_byte_arr.size() / 4):
 		arr.append(uint_packed_byte_arr.decode_u32(i * 4))
 	return arr
@@ -3005,3 +3104,14 @@ func average(numbers: Array) -> float:
 	for n in numbers:
 		sum += n
 	return sum / numbers.size()
+
+func get_particles_to_grid_connection() -> ViewportTexture:
+	return low_res_water_density_temperature_sub_viewport.get_texture()
+
+func set_grid_to_particles_connection(grid_texture: ViewportTexture) -> void:
+	grid_viewport_texture = grid_texture
+
+func get_grid_data() -> void:
+	var error = ren_rd.texture_copy(grid_viewport_texture_rid, grid_to_particles_img_ren_texture_rid, Vector3.ZERO, Vector3.ZERO, grid_viewport_texture_size, 0, 0, 0, 0)
+	if error != OK:
+		printerr("Failure!")

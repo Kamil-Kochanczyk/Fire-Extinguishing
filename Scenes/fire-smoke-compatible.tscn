@@ -1,4 +1,4 @@
-[gd_scene load_steps=70 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=73 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Texture2D" uid="uid://0r0k7y2n07an" path="res://Images/black.png" id="2_hbe1w"]
@@ -21,6 +21,7 @@
 [ext_resource type="Shader" uid="uid://ctk5vasevd74o" path="res://Fragment Shaders/smoke_vis.gdshader" id="19_gujhc"]
 [ext_resource type="Shader" uid="uid://dmpf8bdla1axa" path="res://Fragment Shaders/fire_smoke_together.gdshader" id="20_w6xmb"]
 [ext_resource type="PackedScene" uid="uid://8ytan70082j4" path="res://Scenes/gradient-editor.tscn" id="21_5kuns"]
+[ext_resource type="Shader" uid="uid://hl1nakw6w7o1" path="res://Fragment Shaders/modify_particle_temperature.gdshader" id="21_hbe1w"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0aj0r"]
 shader = ExtResource("3_cphy5")
@@ -262,6 +263,13 @@ viewport_path = NodePath("PlancksLawViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cphy5"]
+resource_local_to_scene = true
+shader = ExtResource("21_hbe1w")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_hbe1w"]
+viewport_path = NodePath("ParticlesToGridViewport")
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b2345"]
 bg_color = Color(0.6, 0.6, 0.6, 0)
 
@@ -288,6 +296,19 @@ corner_radius_bottom_left = 5
 
 [node name="FireSmokeCompatible" type="Node2D"]
 script = ExtResource("1_lak56")
+
+[node name="ParticlesToGridViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="ParticlesToGridViewport"]
+texture_filter = 1
+texture_repeat = 1
+centered = false
 
 [node name="ObstaclesRawViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
@@ -553,6 +574,21 @@ texture_filter = 1
 texture_repeat = 1
 position = Vector2(576, 324)
 texture = SubResource("ViewportTexture_8yd1n")
+
+[node name="GridToParticlesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="GridToParticlesViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_cphy5")
+texture = SubResource("ViewportTexture_hbe1w")
+centered = false
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

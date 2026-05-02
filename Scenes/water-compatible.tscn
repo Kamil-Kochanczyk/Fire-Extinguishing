@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://bs31tu7ihq6ph"]
+[gd_scene load_steps=20 format=3 uid="uid://bs31tu7ihq6ph"]
 
 [ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
 [ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
@@ -11,7 +11,7 @@
 viewport_path = NodePath("ParticlesSubViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
-viewport_path = NodePath("LowResWaterDensitySubViewport")
+viewport_path = NodePath("LowResWaterDensityTemperatureSubViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rh4ni"]
 viewport_path = NodePath("WaterSubViewport")
@@ -58,11 +58,8 @@ shader_parameter/u_tint_threshold_max = 0.5
 shader_parameter/u_water_main_color = Vector3(0.033, 0.707, 0.581)
 shader_parameter/u_water_tint_color = Vector3(0.723, 0.902, 0.893)
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_tosn6"]
-viewport_path = NodePath("LowResWaterDensitySubViewport")
-
-[sub_resource type="ViewportTexture" id="ViewportTexture_os4xb"]
-viewport_path = NodePath("ParticlesSubViewport")
+[sub_resource type="ViewportTexture" id="ViewportTexture_jk0yl"]
+viewport_path = NodePath("LowResWaterDensityTemperatureSubViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rqihb"]
 viewport_path = NodePath("ParticlesSubViewport")
@@ -80,7 +77,7 @@ corner_radius_bottom_left = 5
 [node name="WaterCompatible" type="Node2D"]
 script = ExtResource("1_slmpt")
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_wojkn"), SubResource("ViewportTexture_2i0ow"), SubResource("ViewportTexture_rh4ni")])
-labels = Array[String](["Particles", "Low Res Water Density", "Water"])
+labels = Array[String](["Particles", "Low Res Water Density & Temperature", "Water"])
 
 [node name="GlassSDFSprite2D" type="Sprite2D" parent="."]
 visible = false
@@ -108,19 +105,20 @@ texture = ExtResource("2_qq3op")
 preprocess = 1.0
 process_material = SubResource("ShaderMaterial_rqihb")
 
-[node name="LowResWaterDensitySubViewport" type="SubViewport" parent="."]
+[node name="LowResWaterDensityTemperatureSubViewport" type="SubViewport" parent="."]
 disable_3d = true
 transparent_bg = true
+use_hdr_2d = true
 size = Vector2i(256, 256)
 render_target_update_mode = 4
 
-[node name="LowResTextureRect" type="TextureRect" parent="LowResWaterDensitySubViewport"]
+[node name="LowResTextureRect" type="TextureRect" parent="LowResWaterDensityTemperatureSubViewport"]
 offset_right = 256.0
 offset_bottom = 256.0
 texture = SubResource("ViewportTexture_bjixy")
 expand_mode = 1
 
-[node name="LowResColorRect" type="ColorRect" parent="LowResWaterDensitySubViewport"]
+[node name="LowResColorRect" type="ColorRect" parent="LowResWaterDensityTemperatureSubViewport"]
 material = SubResource("ShaderMaterial_mkv50")
 offset_right = 256.0
 offset_bottom = 256.0
@@ -128,6 +126,7 @@ offset_bottom = 256.0
 [node name="WaterSubViewport" type="SubViewport" parent="."]
 disable_3d = true
 transparent_bg = true
+use_hdr_2d = true
 size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
@@ -140,14 +139,9 @@ centered = false
 material = SubResource("ShaderMaterial_tosn6")
 offset_right = 1152.0
 offset_bottom = 648.0
-texture = SubResource("ViewportTexture_tosn6")
-
-[node name="TmpDisplay" type="Sprite2D" parent="."]
-texture = SubResource("ViewportTexture_os4xb")
-centered = false
+texture = SubResource("ViewportTexture_jk0yl")
 
 [node name="Display" type="Sprite2D" parent="."]
-visible = false
 texture = SubResource("ViewportTexture_rqihb")
 centered = false
 

@@ -1,6 +1,7 @@
 class_name FireSmokeCompatible
 extends Node2D
 
+@onready var particles_to_grid_sprite: Sprite2D = $ParticlesToGridViewport/Sprite2D
 @onready var velocity_sprite: Sprite2D = $VelocityViewport/Sprite2D
 @onready var fire_fuel_smoke_density_splash_sprite: Sprite2D = $FireFuelSmokeDensitySplashViewport/Sprite2D
 @onready var fire_smoke_temperature_sprite: Sprite2D = $FireSmokeTemperatureViewport/Sprite2D
@@ -13,7 +14,9 @@ extends Node2D
 @onready var fire_fuel_smoke_density_advect_sprite: Sprite2D = $FireFuelSmokeDensityAdvectViewport/Sprite2D
 @onready var plancks_law_sprite: Sprite2D = $PlancksLawViewport/Sprite2D
 @onready var smoke_vis_sprite: Sprite2D = $SmokeVisViewport/Sprite2D
+@onready var grid_to_particles_sprite: Sprite2D = $GridToParticlesViewport/Sprite2D
 
+@onready var particles_to_grid_viewport: SubViewport = $ParticlesToGridViewport
 @onready var obstacles_raw_viewport: SubViewport = $ObstaclesRawViewport
 @onready var obstacles_edges_viewport: SubViewport = $ObstaclesEdgesViewport
 @onready var divergence_viewport: SubViewport = $DivergenceViewport
@@ -24,6 +27,7 @@ extends Node2D
 @onready var plancks_law_viewport: SubViewport = $PlancksLawViewport
 @onready var smoke_vis_viewport: SubViewport = $SmokeVisViewport
 @onready var fire_smoke_together_viewport: SubViewport = $FireSmokeTogetherViewport
+@onready var grid_to_particles_viewport: SubViewport = $GridToParticlesViewport
 
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var display: Sprite2D = $Display
@@ -308,7 +312,7 @@ var slider_callbacks_dict: Dictionary = {}
 var toggle_callbacks_dict: Dictionary = {}
 var color_picker_button_callbacks_dict: Dictionary = {}
 
-func _ready() -> void:
+func fire_smoke_ready() -> void:
 	Engine.max_fps = 120
 	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
@@ -384,7 +388,7 @@ func _ready() -> void:
 	
 	reset_params()
 
-func _process(delta: float) -> void:
+func fire_smoke_process(delta: float) -> void:
 	velocity_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_timestep", delta)
@@ -1388,3 +1392,9 @@ func swap_curr_params_panel() -> void:
 		curr_params_panel = smoke_bottom_margin_container
 	elif curr_params_panel == smoke_bottom_margin_container:
 		curr_params_panel = fire_bottom_margin_container
+
+func set_particles_to_grid_connection(particles_texture: ViewportTexture) -> void:
+	particles_to_grid_sprite.texture = particles_texture
+
+func get_grid_to_particles_connection() -> ViewportTexture:
+	return grid_to_particles_viewport.get_texture()

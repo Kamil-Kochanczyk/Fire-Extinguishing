@@ -12,7 +12,7 @@ extends Control
 
 var gradient: Gradient
 var gradient_texture: GradientTexture1D
-var gradient_texture_width: float = 256
+var gradient_texture_width: int = 256
 
 var max_handles: int = 5
 var handles: Array[CheckBox] = []
@@ -131,7 +131,7 @@ func _ready() -> void:
 		# even if size hasn't changed, we force the root node to resize itself
 		h_box_container.emit_signal("resized")
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if left_button_clicked and (curr_selected_handle != null) and (not picking_color):
 		var local_mouse_x = get_global_mouse_position().x - handles_container.get_global_rect().position.x
 		curr_selected_handle.position.x = get_corrected_position_x(curr_selected_handle, local_mouse_x) + get_centered_position_offset(curr_selected_handle).x
@@ -149,7 +149,7 @@ func _process(delta: float) -> void:
 			# orig_offset guy is actually reduntant as it will be forgotten
 			
 			var orig_color = gradient.get_color(orig_gradient_point)
-			var orig_offset = gradient.get_offset(orig_gradient_point)
+			var _orig_offset = gradient.get_offset(orig_gradient_point)
 			
 			var curr_color = gradient.get_color(curr_gradient_point)
 			var curr_offset = gradient.get_offset(curr_gradient_point)

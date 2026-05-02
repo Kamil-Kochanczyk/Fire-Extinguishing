@@ -3,7 +3,7 @@
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = 0, binding = 0, std430) restrict writeonly buffer Positions {
+layout(set = 0, binding = 0, std430) restrict buffer Positions {
     vec2 positions[];
 };
 
@@ -31,9 +31,17 @@ layout(set = 0, binding = 6, std430) restrict buffer DeadCount {
     int dead_count;
 };
 
+layout(set = 0, binding = 7, std430) restrict buffer Temperatures {
+    float temperatures[];
+};
+
+layout(set = 0, binding = 8, rgba16f) uniform restrict readonly image2D grid_to_particles_img;
+
 layout(push_constant) uniform Parameters {
     uint particle_count;
     float delta;
+    float grid_to_particles_img_size_x;
+    float grid_to_particles_img_size_y;
 } params;
 
 // Wang hash function for generating random numbers on the GPU
@@ -64,10 +72,20 @@ void main() {
         if (lifetime != (1.0 / 0.0)) {
             float age = ages[id];
             age += params.delta;
+
+            // get the temperature of the particle from the grid_to_particles_img using its position
+            // for simplicity we don't do any bilinear interpolation
+            vec2 pos = positions[id];
+            vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
+            ivec2 pixel_pos = ivec2(int(clamped_pos.x * params.grid_to_particles_img_size_x), int(clamped_pos.y * params.grid_to_particles_img_size_y));
+            vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
+            float delta_temperature = pixel.g;
+            float new_temperature = temperatures[id] + delta_temperature;
             
-            // if age exceeds lifetime of a mortal particle, this particle is killed (becomes dead)
-            if (age > lifetime) {
+            // if age exceeds lifetime of a mortal particle or the particle reaches its maximum possible temperature, this particle is killed (becomes dead)
+            if ((age > lifetime) || (new_temperature > 1.0)) {
                 ages[id] = 0.0;
+                temperatures[id] = 0.0;
                 is_alive[id] = 0u;
 
                 // move the killed particle to a random position outside the simulation domain [0,1]x[0,1] using positive coordinates between 2.0 and 12.0
@@ -84,8 +102,9 @@ void main() {
                 dead_stack[uint(push_idx)] = id;
             }
             else {
-                // the particle stays alive but its age is increased
+                // the particle stays alive but its age is increased and its temperature is updated
                 ages[id] = age;
+                temperatures[id] = new_temperature;
             }
         }
     }
