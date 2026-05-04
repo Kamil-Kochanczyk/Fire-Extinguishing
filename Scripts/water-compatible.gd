@@ -601,7 +601,7 @@ var glass_sdf_gradient_img_texture_2drd: Texture2DRD
 var grid_viewport_texture: ViewportTexture
 var grid_viewport_texture_rid: RID
 var grid_viewport_texture_format: RDTextureFormat
-var grid_viewport_texture_size: Vector3
+var grid_viewport_copying_size: Vector3
 
 var grid_to_particles_img_texture_view: RDTextureView
 var grid_to_particles_img_texture_format: RDTextureFormat
@@ -965,14 +965,14 @@ func init_general_predefined_variables() -> void:
 	
 	particle_pos_temp_img_size = int(ceil(sqrt(particle_count)))
 	glass_sdf_imgs_size = viewport_size
-	grid_to_particles_img_size = viewport_size
+	#grid_to_particles_img_size
 	
 	viewport_size_f = Vector2(float(viewport_size.x), float(viewport_size.y))
 	sim_steps_per_frame_f = float(sim_steps_per_frame)
 	particle_grid_size_f = Vector2(float(particle_grid_size.x), float(particle_grid_size.y))
 	particle_pos_temp_img_size_f = float(particle_pos_temp_img_size)
 	glass_sdf_imgs_size_f = Vector2(float(glass_sdf_imgs_size.x), float(glass_sdf_imgs_size.y))
-	grid_to_particles_img_size_f = Vector2(float(grid_to_particles_img_size.x), float(grid_to_particles_img_size.y))
+	#grid_to_particles_img_size_f
 	
 	verbose_particle_idx = -1
 	
@@ -1855,8 +1855,9 @@ func init_gpu() -> void:
 	
 	grid_viewport_texture_rid = RenderingServer.texture_get_rd_texture(grid_viewport_texture.get_rid())
 	grid_viewport_texture_format = ren_rd.texture_get_format(grid_viewport_texture_rid)
-	assert(grid_viewport_texture_format.width == grid_to_particles_img_size.x and grid_viewport_texture_format.height == grid_to_particles_img_size.y, "Sizes must match")
-	grid_viewport_texture_size = Vector3(grid_viewport_texture_format.width, grid_viewport_texture_format.height, 0)
+	grid_to_particles_img_size = Vector2i(grid_viewport_texture_format.width, grid_viewport_texture_format.height)
+	grid_to_particles_img_size_f = Vector2(float(grid_to_particles_img_size.x), float(grid_to_particles_img_size.y))
+	grid_viewport_copying_size = Vector3(grid_viewport_texture_format.width, grid_viewport_texture_format.height, 0)
 	
 	#print(grid_viewport_texture_rid)
 	#print(grid_viewport_texture_format.width)
@@ -3105,13 +3106,13 @@ func average(numbers: Array) -> float:
 		sum += n
 	return sum / numbers.size()
 
-func get_particles_to_grid_connection() -> ViewportTexture:
-	return low_res_water_density_temperature_sub_viewport.get_texture()
-
 func set_grid_to_particles_connection(grid_texture: ViewportTexture) -> void:
 	grid_viewport_texture = grid_texture
 
+func get_particles_to_grid_connection() -> ViewportTexture:
+	return low_res_water_density_temperature_sub_viewport.get_texture()
+
 func get_grid_data() -> void:
-	var error = ren_rd.texture_copy(grid_viewport_texture_rid, grid_to_particles_img_ren_texture_rid, Vector3.ZERO, Vector3.ZERO, grid_viewport_texture_size, 0, 0, 0, 0)
+	var error = ren_rd.texture_copy(grid_viewport_texture_rid, grid_to_particles_img_ren_texture_rid, Vector3.ZERO, Vector3.ZERO, grid_viewport_copying_size, 0, 0, 0, 0)
 	if error != OK:
 		printerr("Failure!")

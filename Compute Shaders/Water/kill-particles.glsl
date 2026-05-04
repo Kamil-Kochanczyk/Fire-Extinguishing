@@ -81,7 +81,9 @@ void main() {
             ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
             vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
             float delta_temperature = pixel.g;
+            float modified_temperature = pixel.b;
             float new_temperature = temperatures[id] + delta_temperature;
+            // float new_temperature = modified_temperature;
             
             // if age exceeds lifetime of a mortal particle or the particle reaches its maximum possible temperature, this particle is killed (becomes dead)
             if ((age > lifetime) || (new_temperature > 1.0)) {

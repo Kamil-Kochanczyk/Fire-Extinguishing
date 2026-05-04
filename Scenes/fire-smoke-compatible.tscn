@@ -1,9 +1,10 @@
-[gd_scene load_steps=73 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=78 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Texture2D" uid="uid://0r0k7y2n07an" path="res://Images/black.png" id="2_hbe1w"]
 [ext_resource type="Shader" uid="uid://51v7cpfotmx6" path="res://Fragment Shaders/obstacles_edges.gdshader" id="3_cphy5"]
 [ext_resource type="Shader" uid="uid://c4j7cvfvpxur8" path="res://Fragment Shaders/velocity.gdshader" id="4_cwdux"]
+[ext_resource type="Shader" uid="uid://bd2e0exkvbsm7" path="res://Fragment Shaders/splash_mask.gdshader" id="5_cphy5"]
 [ext_resource type="Shader" uid="uid://bxds82v43fw2i" path="res://Fragment Shaders/fire_fuel_smoke_density_splash.gdshader" id="5_kid1v"]
 [ext_resource type="Shader" uid="uid://bmoxm7t0ccst" path="res://Fragment Shaders/fire_smoke_temperature.gdshader" id="6_1pbsg"]
 [ext_resource type="Texture2D" uid="uid://b4yi1wseeec6b" path="res://Images/white.png" id="7_xnvxc"]
@@ -33,35 +34,37 @@ viewport_path = NodePath("ObstaclesRawViewport")
 shader = ExtResource("4_cwdux")
 shader_parameter/u_timestep = 0.0
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cwdux"]
+shader = ExtResource("5_cphy5")
+shader_parameter/u_fuel_splash_position = Vector2(-1, -1)
+shader_parameter/u_fuel_splash_radius = 0.1
+shader_parameter/u_fuel_splash_strength = 10.0
+shader_parameter/u_fuel_eraser_off = 1
+shader_parameter/u_density_heating_splash_position = Vector2(-1, -1)
+shader_parameter/u_density_heating_splash_radius = 0.05
+shader_parameter/u_density_heating_splash_strength = 10.0
+shader_parameter/u_density_heating_eraser_off = 1
+shader_parameter/u_cooling_mouse_position = Vector2(-1, -1)
+shader_parameter/u_cooling_splash_radius = 0.2
+shader_parameter/u_cooling_splash_strength = 10.0
+shader_parameter/u_cooling_eraser_off = 1
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_1pbsg"]
+viewport_path = NodePath("SplashMaskViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_b2345"]
 viewport_path = NodePath("ObstaclesRawViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_cwdux"]
+viewport_path = NodePath("SplashMaskViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_6pvs2"]
 resource_local_to_scene = true
 shader = ExtResource("5_kid1v")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
+shader_parameter/u_splash_mask = SubResource("ViewportTexture_cwdux")
 shader_parameter/u_timestep = 0.0
-shader_parameter/u_fuel_splash_position = Vector2(-1, -1)
-shader_parameter/u_fuel_splash_radius = 0.1
-shader_parameter/u_fuel_splash_strength = 10.0
-shader_parameter/u_fuel_source_1_toggle = 1
-shader_parameter/u_fuel_source_2_toggle = 1
-shader_parameter/u_fuel_source_3_toggle = 1
-shader_parameter/u_fuel_source_4_toggle = 1
-shader_parameter/u_fuel_source_5_toggle = 1
-shader_parameter/u_fuel_source_6_toggle = 1
-shader_parameter/u_fuel_source_7_toggle = 1
-shader_parameter/u_density_splash_position = Vector2(-1, -1)
-shader_parameter/u_density_splash_radius = 0.05
-shader_parameter/u_density_splash_strength = 10.0
 shader_parameter/u_density_dissipation_rate = 0.05
-shader_parameter/u_density_source_1_toggle = 1
-shader_parameter/u_density_source_2_toggle = 1
-shader_parameter/u_density_source_3_toggle = 1
-shader_parameter/u_density_source_4_toggle = 1
-shader_parameter/u_density_source_5_toggle = 1
-shader_parameter/u_density_source_6_toggle = 1
-shader_parameter/u_density_source_7_toggle = 1
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rr1vq"]
 viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
@@ -69,10 +72,14 @@ viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_fcd3f"]
 viewport_path = NodePath("ObstaclesRawViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_kid1v"]
+viewport_path = NodePath("SplashMaskViewport")
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7mbn0"]
 resource_local_to_scene = true
 shader = ExtResource("6_1pbsg")
 shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_rr1vq")
+shader_parameter/u_splash_mask = SubResource("ViewportTexture_kid1v")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_fcd3f")
 shader_parameter/u_init_state = true
 shader_parameter/u_timestep = 0.0
@@ -81,22 +88,7 @@ shader_parameter/u_fire_temp_burn = 2000.0
 shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_smoke_temp_ambient = 300.0
 shader_parameter/u_smoke_temp_max = 500.0
-shader_parameter/u_smoke_temp_heating_mouse_position = Vector2(-1, -1)
-shader_parameter/u_smoke_temp_heating_splash_radius = 0.05
-shader_parameter/u_smoke_temp_heating_splash_strength = 10.0
-shader_parameter/u_smoke_temp_cooling_mouse_position = Vector2(-1, -1)
-shader_parameter/u_smoke_temp_cooling_splash_radius = 0.2
-shader_parameter/u_smoke_temp_cooling_splash_strength = 10.0
 shader_parameter/u_smoke_temp_dissipation_rate = 0.05
-shader_parameter/u_smoke_temp_heating_source_1_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_2_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_3_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_4_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_5_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_6_toggle = 1
-shader_parameter/u_smoke_temp_heating_source_7_toggle = 1
-shader_parameter/u_smoke_temp_cooling_source_1_toggle = 1
-shader_parameter/u_smoke_temp_cooling_source_2_toggle = 1
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jd5mo"]
 shader = ExtResource("8_3bid5")
@@ -263,11 +255,10 @@ viewport_path = NodePath("PlancksLawViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cphy5"]
-resource_local_to_scene = true
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hbe1w"]
 shader = ExtResource("21_hbe1w")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_hbe1w"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_cphy5"]
 viewport_path = NodePath("ParticlesToGridViewport")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b2345"]
@@ -357,6 +348,35 @@ texture_filter = 1
 texture_repeat = 1
 material = SubResource("ShaderMaterial_h2yge")
 texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="SplashMaskViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="SplashMaskViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_cwdux")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="SplashMaskHelperViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="SplashMaskHelperViewport"]
+texture_filter = 1
+texture_repeat = 1
+texture = SubResource("ViewportTexture_1pbsg")
 centered = false
 
 [node name="FireFuelSmokeDensitySplashViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
@@ -579,16 +599,18 @@ texture = SubResource("ViewportTexture_8yd1n")
 disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
-size = Vector2i(1152, 648)
+size = Vector2i(256, 256)
 render_target_clear_mode = 1
 render_target_update_mode = 4
 
-[node name="Sprite2D" type="Sprite2D" parent="GridToParticlesViewport"]
+[node name="TextureRect" type="TextureRect" parent="GridToParticlesViewport"]
 texture_filter = 1
 texture_repeat = 1
-material = SubResource("ShaderMaterial_cphy5")
-texture = SubResource("ViewportTexture_hbe1w")
-centered = false
+material = SubResource("ShaderMaterial_hbe1w")
+offset_right = 256.0
+offset_bottom = 256.0
+texture = SubResource("ViewportTexture_cphy5")
+expand_mode = 1
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -962,129 +984,6 @@ theme_override_constants/margin_left = 10
 
 [node name="FireObstacleToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer/FireObstacleToggleMarginContainer" groups=["ParamToggle"]]
 layout_mode = 2
-
-[node name="FireSplashTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggles" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer"]
-layout_mode = 2
-text = "Splash"
-
-[node name="FireVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer"]
-layout_mode = 2
-
-[node name="FireTopHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="FireSplashToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle1" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer/FireSplashToggle1HBoxContainer"]
-layout_mode = 2
-text = "Source 1"
-
-[node name="FireSplashToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle1MarginContainer/FireSplashToggle1HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireSplashToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle2" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer/FireSplashToggle2HBoxContainer"]
-layout_mode = 2
-text = "Source 2"
-
-[node name="FireSplashToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle2MarginContainer/FireSplashToggle2HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireSplashToggle3MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle3HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle3" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer/FireSplashToggle3HBoxContainer"]
-layout_mode = 2
-text = "Source 3"
-
-[node name="FireSplashToggle3CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle3MarginContainer/FireSplashToggle3HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireSplashToggle4MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle4HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle4" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer/FireSplashToggle4HBoxContainer"]
-layout_mode = 2
-text = "Source 4"
-
-[node name="FireSplashToggle4CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireTopHBoxContainer/FireSplashToggle4MarginContainer/FireSplashToggle4HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireBottomHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="FireSplashToggle5MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle5HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle5" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer/FireSplashToggle5HBoxContainer"]
-layout_mode = 2
-text = "Source 5"
-
-[node name="FireSplashToggle5CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle5MarginContainer/FireSplashToggle5HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireSplashToggle6MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle6HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle6" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer/FireSplashToggle6HBoxContainer"]
-layout_mode = 2
-text = "Source 6"
-
-[node name="FireSplashToggle6CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle6MarginContainer/FireSplashToggle6HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="FireSplashToggle7MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="FireSplashToggle7HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer"]
-layout_mode = 2
-
-[node name="FireSplashToggle7" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer/FireSplashToggle7HBoxContainer"]
-layout_mode = 2
-text = "Source 7"
-
-[node name="FireSplashToggle7CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireSplashTogglesHBoxContainer/FireVBoxContainer/FireBottomHBoxContainer/FireSplashToggle7MarginContainer/FireSplashToggle7HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
 
 [node name="FireColorPickerHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
@@ -1544,167 +1443,6 @@ theme_override_constants/margin_left = 10
 
 [node name="SmokeObstacleToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeObstacleToggleHBoxContainer/SmokeObstacleToggleMarginContainer" groups=["ParamToggle"]]
 layout_mode = 2
-
-[node name="SmokeDensityAndHeatingTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggles" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer"]
-layout_mode = 2
-text = "Density/Heating"
-
-[node name="SmokeVBoxContainer" type="VBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer"]
-layout_mode = 2
-
-[node name="SmokeTopHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="SmokeDensityAndHeatingToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle1" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer/SmokeDensityAndHeatingToggle1HBoxContainer"]
-layout_mode = 2
-text = "Source 1"
-
-[node name="SmokeDensityAndHeatingToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle1MarginContainer/SmokeDensityAndHeatingToggle1HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeDensityAndHeatingToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle2" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer/SmokeDensityAndHeatingToggle2HBoxContainer"]
-layout_mode = 2
-text = "Source 2"
-
-[node name="SmokeDensityAndHeatingToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle2MarginContainer/SmokeDensityAndHeatingToggle2HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeDensityAndHeatingToggle3MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle3HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle3" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer/SmokeDensityAndHeatingToggle3HBoxContainer"]
-layout_mode = 2
-text = "Source 3"
-
-[node name="SmokeDensityAndHeatingToggle3CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle3MarginContainer/SmokeDensityAndHeatingToggle3HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeDensityAndHeatingToggle4MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle4HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle4" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer/SmokeDensityAndHeatingToggle4HBoxContainer"]
-layout_mode = 2
-text = "Source 4"
-
-[node name="SmokeDensityAndHeatingToggle4CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeTopHBoxContainer/SmokeDensityAndHeatingToggle4MarginContainer/SmokeDensityAndHeatingToggle4HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeBottomHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="SmokeDensityAndHeatingToggle5MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle5HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle5" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer/SmokeDensityAndHeatingToggle5HBoxContainer"]
-layout_mode = 2
-text = "Source 5"
-
-[node name="SmokeDensityAndHeatingToggle5CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle5MarginContainer/SmokeDensityAndHeatingToggle5HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeDensityAndHeatingToggle6MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle6HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle6" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer/SmokeDensityAndHeatingToggle6HBoxContainer"]
-layout_mode = 2
-text = "Source 6"
-
-[node name="SmokeDensityAndHeatingToggle6CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle6MarginContainer/SmokeDensityAndHeatingToggle6HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeDensityAndHeatingToggle7MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeDensityAndHeatingToggle7HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeDensityAndHeatingToggle7" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer/SmokeDensityAndHeatingToggle7HBoxContainer"]
-layout_mode = 2
-text = "Source 7"
-
-[node name="SmokeDensityAndHeatingToggle7CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingTogglesHBoxContainer/SmokeVBoxContainer/SmokeBottomHBoxContainer/SmokeDensityAndHeatingToggle7MarginContainer/SmokeDensityAndHeatingToggle7HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeCoolingTogglesHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
-layout_mode = 2
-
-[node name="SmokeCoolingToggles" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "Cooling"
-
-[node name="SmokeCoolingToggle1MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeCoolingToggle1HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeCoolingToggle1" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer/SmokeCoolingToggle1HBoxContainer"]
-layout_mode = 2
-text = "Source 1"
-
-[node name="SmokeCoolingToggle1CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle1MarginContainer/SmokeCoolingToggle1HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
-
-[node name="SmokeCoolingToggle2MarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="SmokeCoolingToggle2HBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer"]
-layout_mode = 2
-
-[node name="SmokeCoolingToggle2" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer/SmokeCoolingToggle2HBoxContainer"]
-layout_mode = 2
-text = "Source 2"
-
-[node name="SmokeCoolingToggle2CheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingTogglesHBoxContainer/SmokeCoolingToggle2MarginContainer/SmokeCoolingToggle2HBoxContainer" groups=["ParamToggle"]]
-layout_mode = 2
-button_pressed = true
 
 [node name="SmokeColorPickerHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2
