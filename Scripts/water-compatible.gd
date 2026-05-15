@@ -89,6 +89,16 @@ extends Node2D
 ## Upper bound for random lifetime of mortal particles.
 @export var mortal_particle_lifetime_max: float = 3.0
 
+## [K]
+## Default (initial) temperature.
+@export var particle_temp_ambient: float = 300.0
+
+## [K]
+## Maximum (boiling) temperature.
+@export var particle_temp_max: float = 373.0
+
+## Size of particles->grid and grid->particles viewports.
+@export var pg_gp_size: Vector2i = Vector2i(256, 256)
 #endregion
 
 #region real-time tweakables
@@ -109,7 +119,7 @@ var adhesion_scale: float = 0.3
 var gravity_multiplier: float = 1.0
 var damping: float = 0.9999
 var bounds_damping: float = 0.5
-var vel_clamp: float = 20.0
+var vel_clamp: float = 3.0
 var mouse_interaction_radius: float = 0.25
 var mouse_interaction_strength: float = 25.0
 var glass_movement_speed: float = 200.0    # px / s
@@ -203,6 +213,10 @@ var compute_forces_workgroup_size_x: int
 var compute_forces_workgroups_x: int
 var integrate_motion_workgroup_size_x: int
 var integrate_motion_workgroups_x: int
+var store_particle_info_workgroup_size_x: int
+var store_particle_info_workgroups_x: int
+var store_particle_info_workgroup_size_y: int
+var store_particle_info_workgroups_y: int
 var store_neighbors_workgroup_size_x: int
 var store_neighbors_workgroups_x: int
 var mark_neighbors_workgroup_size_x: int
@@ -447,6 +461,7 @@ var compute_pressures_shader_rid: RID
 var compute_vorticities_shader_rid: RID
 var compute_forces_shader_rid: RID
 var integrate_motion_shader_rid: RID
+var store_particle_info_shader_rid: RID
 var store_neighbors_shader_rid: RID
 var mark_neighbors_shader_rid: RID
 #endregion
@@ -570,6 +585,12 @@ var integrate_motion_start_indices_uniform: RDUniform
 var integrate_motion_end_indices_uniform: RDUniform
 var integrate_motion_is_alive_uniform: RDUniform
 var integrate_motion_temperatures_uniform: RDUniform
+var store_particle_info_positions_uniform: RDUniform
+var store_particle_info_sorted_particle_indices_uniform: RDUniform
+var store_particle_info_start_indices_uniform: RDUniform
+var store_particle_info_end_indices_uniform: RDUniform
+var store_particle_info_densities_uniform: RDUniform
+var store_particle_info_temperatures_uniform: RDUniform
 var store_neighbors_positions_uniform: RDUniform
 var store_neighbors_sorted_particle_indices_uniform: RDUniform
 var store_neighbors_start_indices_uniform: RDUniform
@@ -609,10 +630,17 @@ var grid_to_particles_img_ren_texture_rid: RID
 var grid_to_particles_img_texture_rid: RID
 var grid_to_particles_img_texture_2drd: Texture2DRD
 
+var particles_to_grid_img_texture_view: RDTextureView
+var particles_to_grid_img_texture_format: RDTextureFormat
+var particles_to_grid_img_ren_texture_rid: RID
+var particles_to_grid_img_texture_rid: RID
+var particles_to_grid_img_texture_2drd: Texture2DRD
+
 var kill_particles_grid_to_particles_img_uniform: RDUniform
 var integrate_motion_particle_pos_temp_img_uniform: RDUniform
 var integrate_motion_glass_sdf_img_uniform: RDUniform
 var integrate_motion_glass_sdf_gradient_img_uniform: RDUniform
+var store_particle_info_particles_to_grid_img_uniform: RDUniform
 var store_neighbors_particle_pos_temp_img_uniform: RDUniform
 var mark_neighbors_particle_pos_temp_img_uniform: RDUniform
 #endregion
@@ -638,6 +666,7 @@ var compute_pressures_uniform_set_rid: RID
 var compute_vorticities_uniform_set_rid: RID
 var compute_forces_uniform_set_rid: RID
 var integrate_motion_uniform_set_rid: RID
+var store_particle_info_uniform_set_rid: RID
 var store_neighbors_uniform_set_rid: RID
 var mark_neighbors_uniform_set_rid: RID
 #endregion
@@ -661,6 +690,7 @@ var compute_pressures_pipeline_rid: RID
 var compute_vorticities_pipeline_rid: RID
 var compute_forces_pipeline_rid: RID
 var integrate_motion_pipeline_rid: RID
+var store_particle_info_pipeline_rid: RID
 var store_neighbors_pipeline_rid: RID
 var mark_neighbors_pipeline_rid: RID
 #endregion
@@ -725,6 +755,9 @@ func water_ready() -> void:
 	another_background_sprite_2d.texture = ImageTexture.create_from_image(another_background_img)
 	another_background_sprite_2d.scale = Vector2(viewport_size.x, viewport_size.y)
 	
+	particle_pos_temp_img_texture_2drd = Texture2DRD.new()
+	particle_pos_temp_img_texture_2drd.texture_rd_rid = particle_pos_temp_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
+	
 	glass_sdf_img_texture_2drd = Texture2DRD.new()
 	glass_sdf_img_texture_2drd.texture_rd_rid = glass_sdf_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
 	glass_sdf_sprite_2d.texture = glass_sdf_img_texture_2drd
@@ -733,17 +766,20 @@ func water_ready() -> void:
 	glass_sdf_gradient_img_texture_2drd.texture_rd_rid = glass_sdf_gradient_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
 	glass_sdf_gradient_sprite_2d.texture = glass_sdf_gradient_img_texture_2drd
 	
-	particle_pos_temp_img_texture_2drd = Texture2DRD.new()
-	particle_pos_temp_img_texture_2drd.texture_rd_rid = particle_pos_temp_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
-	
 	grid_to_particles_img_texture_2drd = Texture2DRD.new()
 	grid_to_particles_img_texture_2drd.texture_rd_rid = grid_to_particles_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
 	#tmp_display.texture = grid_to_particles_img_texture_2drd
+	
+	particles_to_grid_img_texture_2drd = Texture2DRD.new()
+	particles_to_grid_img_texture_2drd.texture_rd_rid = particles_to_grid_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
+	#tmp_display.texture = particles_to_grid_img_texture_2drd
 	
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_pos_temp_img", particle_pos_temp_img_texture_2drd)
 	gpu_particles_2d.process_material.set_shader_parameter("u_verbose_particle_color", Vector4(verbose_particle_color.r, verbose_particle_color.g, verbose_particle_color.b, verbose_particle_color.a))
 	gpu_particles_2d.process_material.set_shader_parameter("u_neighbor_particle_color", Vector4(neighbor_particle_color.r, neighbor_particle_color.g, neighbor_particle_color.b, neighbor_particle_color.a))
 	gpu_particles_2d.process_material.set_shader_parameter("u_n_to_v_scale_factor", normalized_to_viewport_scale_factor)
+	gpu_particles_2d.process_material.set_shader_parameter("u_particle_temp_ambient", particle_temp_ambient)
+	gpu_particles_2d.process_material.set_shader_parameter("u_particle_temp_max", particle_temp_max)
 	gpu_particles_2d.amount = particle_count
 	
 	top_margin_container.visible = true
@@ -892,11 +928,11 @@ func _input(event: InputEvent) -> void:
 			#
 			#print("Positions: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(positions_buffer_rid)).slice(0, 10))
 			#print("Velocities: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(velocities_buffer_rid)).slice(0, 10))
-			#
-			#var temperatures_gpu: PackedFloat32Array = rd.buffer_get_data(temperatures_buffer_rid).to_float32_array()
-			#print("Temperatures avg: ", average(temperatures_gpu))
-			#print("Temperatures: ", temperatures_gpu.slice(0, 10))
-			#
+			
+			var temperatures_gpu: PackedFloat32Array = rd.buffer_get_data(temperatures_buffer_rid).to_float32_array()
+			print("Temperatures avg: ", average(temperatures_gpu))
+			print("Temperatures: ", temperatures_gpu.slice(0, 10))
+			
 			#print("Lifetimes: ", rd.buffer_get_data(lifetimes_buffer_rid).to_float32_array())
 			#print("Ages: ", rd.buffer_get_data(ages_buffer_rid).to_float32_array())
 			#print("Is alive: ", get_uint_arr(rd.buffer_get_data(is_alive_buffer_rid)))
@@ -1013,6 +1049,10 @@ func init_general_predefined_variables() -> void:
 	compute_forces_workgroups_x = kill_particles_workgroups_x
 	integrate_motion_workgroup_size_x = kill_particles_workgroup_size_x
 	integrate_motion_workgroups_x = kill_particles_workgroups_x
+	store_particle_info_workgroup_size_x = 16    # should match local_size_x in the corresponding shader
+	store_particle_info_workgroups_x = int(ceil(pg_gp_size.x / float(store_particle_info_workgroup_size_x)))
+	store_particle_info_workgroup_size_y = 16    # should match local_size_y in the corresponding shader
+	store_particle_info_workgroups_y = int(ceil(pg_gp_size.y / float(store_particle_info_workgroup_size_y)))
 	store_neighbors_workgroup_size_x = kill_particles_workgroup_size_x
 	store_neighbors_workgroups_x = kill_particles_workgroups_x
 	mark_neighbors_workgroup_size_x = kill_particles_workgroup_size_x
@@ -1208,6 +1248,10 @@ func init_gpu() -> void:
 	var integrate_motion_shader_spirv = integrate_motion_shader_file.get_spirv()
 	integrate_motion_shader_rid = rd.shader_create_from_spirv(integrate_motion_shader_spirv)
 	
+	var store_particle_info_shader_file = load("res://Compute Shaders/Water/store-particle-info.glsl")
+	var store_particle_info_shader_spirv = store_particle_info_shader_file.get_spirv()
+	store_particle_info_shader_rid = rd.shader_create_from_spirv(store_particle_info_shader_spirv)
+	
 	var store_neighbors_shader_file = load("res://Compute Shaders/Water/store-neighbors.glsl")
 	var store_neighbors_shader_spirv = store_neighbors_shader_file.get_spirv()
 	store_neighbors_shader_rid = rd.shader_create_from_spirv(store_neighbors_shader_spirv)
@@ -1234,7 +1278,7 @@ func init_gpu() -> void:
 	
 	var temperatures: PackedFloat32Array = PackedFloat32Array()
 	temperatures.resize(temperatures_size)
-	temperatures.fill(0.0)
+	temperatures.fill(particle_temp_ambient)
 	var temperatures_bytes: PackedByteArray = temperatures.to_byte_array()
 	
 	var lifetimes: PackedFloat32Array = PackedFloat32Array()
@@ -1757,6 +1801,31 @@ func init_gpu() -> void:
 	integrate_motion_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	integrate_motion_temperatures_uniform.binding = 8
 	integrate_motion_temperatures_uniform.add_id(temperatures_buffer_rid)
+	
+	store_particle_info_positions_uniform = RDUniform.new()
+	store_particle_info_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_positions_uniform.binding = 0
+	store_particle_info_positions_uniform.add_id(positions_buffer_rid)
+	store_particle_info_sorted_particle_indices_uniform = RDUniform.new()
+	store_particle_info_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_sorted_particle_indices_uniform.binding = 1
+	store_particle_info_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	store_particle_info_start_indices_uniform = RDUniform.new()
+	store_particle_info_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_start_indices_uniform.binding = 2
+	store_particle_info_start_indices_uniform.add_id(start_indices_buffer_rid)
+	store_particle_info_end_indices_uniform = RDUniform.new()
+	store_particle_info_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_end_indices_uniform.binding = 3
+	store_particle_info_end_indices_uniform.add_id(end_indices_buffer_rid)
+	store_particle_info_densities_uniform = RDUniform.new()
+	store_particle_info_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_densities_uniform.binding = 4
+	store_particle_info_densities_uniform.add_id(densities_buffer_rid)
+	store_particle_info_temperatures_uniform = RDUniform.new()
+	store_particle_info_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_temperatures_uniform.binding = 5
+	store_particle_info_temperatures_uniform.add_id(temperatures_buffer_rid)
 	store_neighbors_positions_uniform = RDUniform.new()
 	store_neighbors_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_positions_uniform.binding = 0
@@ -1909,6 +1978,30 @@ func init_gpu() -> void:
 		grid_to_particles_img_texture_format.array_layers
 	)
 	
+	assert(pg_gp_size.x == grid_viewport_texture_format.width and pg_gp_size.y == grid_viewport_texture_format.height, "Sizes should match")
+	
+	particles_to_grid_img_texture_view = RDTextureView.new()
+	particles_to_grid_img_texture_format = RDTextureFormat.new()
+	particles_to_grid_img_texture_format.width = pg_gp_size.x
+	particles_to_grid_img_texture_format.height = pg_gp_size.y
+	particles_to_grid_img_texture_format.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT    # matches FORMAT_RGBAF
+	particles_to_grid_img_texture_format.usage_bits = (
+		RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT + 
+		RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
+	)
+	particles_to_grid_img_ren_texture_rid = ren_rd.texture_create(particles_to_grid_img_texture_format, particles_to_grid_img_texture_view)
+	particles_to_grid_img_texture_rid = rd.texture_create_from_extension(
+		RenderingDevice.TEXTURE_TYPE_2D,
+		particles_to_grid_img_texture_format.format,
+		particles_to_grid_img_texture_format.samples,
+		particles_to_grid_img_texture_format.usage_bits,
+		ren_rd.get_driver_resource(RenderingDevice.DRIVER_RESOURCE_TEXTURE, particles_to_grid_img_ren_texture_rid, 0),
+		particles_to_grid_img_texture_format.width,
+		particles_to_grid_img_texture_format.height,
+		particles_to_grid_img_texture_format.depth,
+		particles_to_grid_img_texture_format.array_layers
+	)
+	
 	kill_particles_grid_to_particles_img_uniform = RDUniform.new()
 	kill_particles_grid_to_particles_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	kill_particles_grid_to_particles_img_uniform.binding = 8
@@ -1925,6 +2018,10 @@ func init_gpu() -> void:
 	integrate_motion_glass_sdf_gradient_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	integrate_motion_glass_sdf_gradient_img_uniform.binding = 11
 	integrate_motion_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
+	store_particle_info_particles_to_grid_img_uniform = RDUniform.new()
+	store_particle_info_particles_to_grid_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	store_particle_info_particles_to_grid_img_uniform.binding = 6
+	store_particle_info_particles_to_grid_img_uniform.add_id(particles_to_grid_img_texture_rid)
 	store_neighbors_particle_pos_temp_img_uniform = RDUniform.new()
 	store_neighbors_particle_pos_temp_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	store_neighbors_particle_pos_temp_img_uniform.binding = 5
@@ -1957,6 +2054,7 @@ func init_gpu() -> void:
 	compute_vorticities_uniform_set_rid = rd.uniform_set_create([compute_vorticities_positions_uniform, compute_vorticities_sorted_particle_indices_uniform, compute_vorticities_start_indices_uniform, compute_vorticities_end_indices_uniform, compute_vorticities_densities_uniform, compute_vorticities_velocities_uniform, compute_vorticities_vorticities_uniform, compute_vorticities_is_alive_uniform], compute_vorticities_shader_rid, 0)
 	compute_forces_uniform_set_rid = rd.uniform_set_create([compute_forces_positions_uniform, compute_forces_velocities_uniform, compute_forces_sorted_particle_indices_uniform, compute_forces_start_indices_uniform, compute_forces_end_indices_uniform, compute_forces_densities_uniform, compute_forces_pressures_uniform, compute_forces_near_densities_uniform, compute_forces_near_pressures_uniform, compute_forces_vorticities_uniform, compute_forces_forces_uniform, compute_forces_is_alive_uniform], compute_forces_shader_rid, 0)
 	integrate_motion_uniform_set_rid = rd.uniform_set_create([integrate_motion_positions_uniform, integrate_motion_velocities_uniform, integrate_motion_densities_uniform, integrate_motion_forces_uniform, integrate_motion_sorted_particle_indices_uniform, integrate_motion_start_indices_uniform, integrate_motion_end_indices_uniform, integrate_motion_is_alive_uniform, integrate_motion_temperatures_uniform, integrate_motion_particle_pos_temp_img_uniform, integrate_motion_glass_sdf_img_uniform, integrate_motion_glass_sdf_gradient_img_uniform], integrate_motion_shader_rid, 0)
+	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	store_neighbors_uniform_set_rid = rd.uniform_set_create([store_neighbors_positions_uniform, store_neighbors_sorted_particle_indices_uniform, store_neighbors_start_indices_uniform, store_neighbors_end_indices_uniform, store_neighbors_neighbor_flags_uniform, store_neighbors_particle_pos_temp_img_uniform], store_neighbors_shader_rid, 0)
 	mark_neighbors_uniform_set_rid = rd.uniform_set_create([mark_neighbors_neighbor_flags_uniform, mark_neighbors_particle_pos_temp_img_uniform], mark_neighbors_shader_rid, 0)
 	#endregion
@@ -1981,6 +2079,7 @@ func init_gpu() -> void:
 	compute_vorticities_pipeline_rid = rd.compute_pipeline_create(compute_vorticities_shader_rid)
 	compute_forces_pipeline_rid = rd.compute_pipeline_create(compute_forces_shader_rid)
 	integrate_motion_pipeline_rid = rd.compute_pipeline_create(integrate_motion_shader_rid)
+	store_particle_info_pipeline_rid = rd.compute_pipeline_create(store_particle_info_shader_rid)
 	store_neighbors_pipeline_rid = rd.compute_pipeline_create(store_neighbors_shader_rid)
 	mark_neighbors_pipeline_rid = rd.compute_pipeline_create(mark_neighbors_shader_rid)
 	#endregion
@@ -2000,12 +2099,14 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		#region kill particles pass
 		rd.compute_list_bind_compute_pipeline(compute_list, kill_particles_pipeline_rid)
 		rd.compute_list_bind_uniform_set(compute_list, kill_particles_uniform_set_rid, 0)
-		params.resize(16)
+		params.resize(32)
 		params.fill(0)
 		params.encode_u32(0, particle_count)
 		params.encode_float(4, delta)
 		params.encode_float(8, grid_to_particles_img_size_f.x)
 		params.encode_float(12, grid_to_particles_img_size_f.y)
+		params.encode_float(16, particle_temp_ambient)
+		params.encode_float(20, particle_temp_max)
 		rd.compute_list_set_push_constant(compute_list, params, params.size())
 		rd.compute_list_add_barrier(compute_list)
 		rd.compute_list_dispatch(compute_list, kill_particles_workgroups_x, 1, 1)
@@ -2050,6 +2151,7 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 			params.encode_float(32, particle_spacing)
 			params.encode_s32(36, spawn_random_offset.x)
 			params.encode_s32(40, spawn_random_offset.y)
+			params.encode_float(44, particle_temp_ambient)
 			rd.compute_list_set_push_constant(compute_list, params, params.size())
 			rd.compute_list_add_barrier(compute_list)
 			rd.compute_list_dispatch(compute_list, spawn_particles_workgroups_x, 1, 1)
@@ -2282,33 +2384,48 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		rd.compute_list_dispatch(compute_list, integrate_motion_workgroups_x, 1, 1)
 		#endregion
 		
-		if rt_vis_neighborhood_search:
-			
-			#region store neighbors pass
-			rd.compute_list_bind_compute_pipeline(compute_list, store_neighbors_pipeline_rid)
-			rd.compute_list_bind_uniform_set(compute_list, store_neighbors_uniform_set_rid, 0)
-			params.resize(16)
-			params.fill(0)
-			params.encode_u32(0, particle_count)
-			params.encode_float(4, smoothing_radius)
-			params.encode_float(8, particle_pos_temp_img_size_f)
-			params.encode_u32(12, verbose_particle_idx)
-			rd.compute_list_set_push_constant(compute_list, params, params.size())
-			rd.compute_list_add_barrier(compute_list)
-			rd.compute_list_dispatch(compute_list, store_neighbors_workgroups_x, 1, 1)
-			#endregion
-			
-			#region mark neighbors pass
-			rd.compute_list_bind_compute_pipeline(compute_list, mark_neighbors_pipeline_rid)
-			rd.compute_list_bind_uniform_set(compute_list, mark_neighbors_uniform_set_rid, 0)
-			params.resize(16)
-			params.fill(0)
-			params.encode_u32(0, particle_count)
-			params.encode_float(4, particle_pos_temp_img_size_f)
-			rd.compute_list_set_push_constant(compute_list, params, params.size())
-			rd.compute_list_add_barrier(compute_list)
-			rd.compute_list_dispatch(compute_list, mark_neighbors_workgroups_x, 1, 1)
-			#endregion
+		#region store particle info pass
+		rd.compute_list_bind_compute_pipeline(compute_list, store_particle_info_pipeline_rid)
+		rd.compute_list_bind_uniform_set(compute_list, store_particle_info_uniform_set_rid, 0)
+		params.resize(32)
+		params.fill(0)
+		params.encode_u32(0, particle_count)
+		params.encode_float(4, smoothing_radius)
+		params.encode_float(8, poly6_2d_constant)
+		params.encode_float(12, mass)
+		params.encode_float(16, particle_temp_max)
+		rd.compute_list_set_push_constant(compute_list, params, params.size())
+		rd.compute_list_add_barrier(compute_list)
+		rd.compute_list_dispatch(compute_list, store_particle_info_workgroups_x, store_particle_info_workgroups_y, 1)
+		#endregion
+		
+		#if rt_vis_neighborhood_search:
+			#
+			##region store neighbors pass
+			#rd.compute_list_bind_compute_pipeline(compute_list, store_neighbors_pipeline_rid)
+			#rd.compute_list_bind_uniform_set(compute_list, store_neighbors_uniform_set_rid, 0)
+			#params.resize(16)
+			#params.fill(0)
+			#params.encode_u32(0, particle_count)
+			#params.encode_float(4, smoothing_radius)
+			#params.encode_float(8, particle_pos_temp_img_size_f)
+			#params.encode_u32(12, verbose_particle_idx)
+			#rd.compute_list_set_push_constant(compute_list, params, params.size())
+			#rd.compute_list_add_barrier(compute_list)
+			#rd.compute_list_dispatch(compute_list, store_neighbors_workgroups_x, 1, 1)
+			##endregion
+			#
+			##region mark neighbors pass
+			#rd.compute_list_bind_compute_pipeline(compute_list, mark_neighbors_pipeline_rid)
+			#rd.compute_list_bind_uniform_set(compute_list, mark_neighbors_uniform_set_rid, 0)
+			#params.resize(16)
+			#params.fill(0)
+			#params.encode_u32(0, particle_count)
+			#params.encode_float(4, particle_pos_temp_img_size_f)
+			#rd.compute_list_set_push_constant(compute_list, params, params.size())
+			#rd.compute_list_add_barrier(compute_list)
+			#rd.compute_list_dispatch(compute_list, mark_neighbors_workgroups_x, 1, 1)
+			##endregion
 		
 	# end the list of instructions
 	rd.compute_list_end()
@@ -2344,6 +2461,7 @@ func free_gpu() -> void:
 	rd.free_rid(compute_vorticities_pipeline_rid)
 	rd.free_rid(compute_forces_pipeline_rid)
 	rd.free_rid(integrate_motion_pipeline_rid)
+	rd.free_rid(store_particle_info_pipeline_rid)
 	rd.free_rid(store_neighbors_pipeline_rid)
 	rd.free_rid(mark_neighbors_pipeline_rid)
 	#endregion
@@ -2368,6 +2486,7 @@ func free_gpu() -> void:
 	rd.free_rid(compute_vorticities_uniform_set_rid)
 	rd.free_rid(compute_forces_uniform_set_rid)
 	rd.free_rid(integrate_motion_uniform_set_rid)
+	rd.free_rid(store_particle_info_uniform_set_rid)
 	rd.free_rid(store_neighbors_uniform_set_rid)
 	rd.free_rid(mark_neighbors_uniform_set_rid)
 	#endregion
@@ -2421,6 +2540,7 @@ func free_gpu() -> void:
 	rd.free_rid(compute_vorticities_shader_rid)
 	rd.free_rid(compute_forces_shader_rid)
 	rd.free_rid(integrate_motion_shader_rid)
+	rd.free_rid(store_particle_info_shader_rid)
 	rd.free_rid(store_neighbors_shader_rid)
 	rd.free_rid(mark_neighbors_shader_rid)
 	#endregion
@@ -2430,6 +2550,7 @@ func free_gpu() -> void:
 	rd.free_rid(glass_sdf_img_texture_rid)
 	rd.free_rid(glass_sdf_gradient_img_texture_rid)
 	rd.free_rid(grid_to_particles_img_texture_rid)
+	rd.free_rid(particles_to_grid_img_texture_rid)
 	#endregion
 	
 	rd.free()
@@ -3109,8 +3230,8 @@ func average(numbers: Array) -> float:
 func set_grid_to_particles_connection(grid_texture: ViewportTexture) -> void:
 	grid_viewport_texture = grid_texture
 
-func get_particles_to_grid_connection() -> ViewportTexture:
-	return low_res_water_density_temperature_sub_viewport.get_texture()
+func get_particles_to_grid_connection() -> Texture2DRD:
+	return particles_to_grid_img_texture_2drd
 
 func get_grid_data() -> void:
 	var error = ren_rd.texture_copy(grid_viewport_texture_rid, grid_to_particles_img_ren_texture_rid, Vector3.ZERO, Vector3.ZERO, grid_viewport_copying_size, 0, 0, 0, 0)

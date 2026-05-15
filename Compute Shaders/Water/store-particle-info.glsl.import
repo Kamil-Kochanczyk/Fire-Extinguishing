@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bhjod5ifteprc"
+path="res://.godot/imported/store-particle-info.glsl-4aadff823381a504d4e00c829226fc69.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/store-particle-info.glsl"
+dest_files=["res://.godot/imported/store-particle-info.glsl-4aadff823381a504d4e00c829226fc69.res"]
+
+[params]
+

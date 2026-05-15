@@ -80,6 +80,7 @@ layout(push_constant) uniform Parameters {
     float particle_spacing;
     int spawn_random_offset_x;
     int spawn_random_offset_y;
+    float ambient_temperature;
 } params;
 
 // deterministic pseudo-random generation of uints
@@ -131,7 +132,7 @@ void main() {
         // spawn the particle and mark it as alive
         positions[dead_particle_id] = spawn_pos;
         velocities[dead_particle_id] = vec2(params.spawn_init_vel_x, params.spawn_init_vel_y);
-        temperatures[dead_particle_id] = 0.0;
+        temperatures[dead_particle_id] = params.ambient_temperature;
         ages[dead_particle_id] = 0.0;
         is_alive[dead_particle_id] = 1u;
     } else {

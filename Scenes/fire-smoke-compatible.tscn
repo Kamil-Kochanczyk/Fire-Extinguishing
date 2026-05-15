@@ -1,6 +1,7 @@
-[gd_scene load_steps=78 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=83 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
+[ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
 [ext_resource type="Texture2D" uid="uid://0r0k7y2n07an" path="res://Images/black.png" id="2_hbe1w"]
 [ext_resource type="Shader" uid="uid://51v7cpfotmx6" path="res://Fragment Shaders/obstacles_edges.gdshader" id="3_cphy5"]
 [ext_resource type="Shader" uid="uid://c4j7cvfvpxur8" path="res://Fragment Shaders/velocity.gdshader" id="4_cwdux"]
@@ -23,6 +24,13 @@
 [ext_resource type="Shader" uid="uid://dmpf8bdla1axa" path="res://Fragment Shaders/fire_smoke_together.gdshader" id="20_w6xmb"]
 [ext_resource type="PackedScene" uid="uid://8ytan70082j4" path="res://Scenes/gradient-editor.tscn" id="21_5kuns"]
 [ext_resource type="Shader" uid="uid://hl1nakw6w7o1" path="res://Fragment Shaders/modify_particle_temperature.gdshader" id="21_hbe1w"]
+[ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="24_kid1v"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kid1v"]
+shader = ExtResource("2_cwdux")
+shader_parameter/u_init_state = true
+shader_parameter/u_particle_temp_ambient = 300.0
+shader_parameter/u_particle_temp_max = 373.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0aj0r"]
 shader = ExtResource("3_cphy5")
@@ -252,13 +260,27 @@ shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture
 [sub_resource type="ViewportTexture" id="ViewportTexture_5u06a"]
 viewport_path = NodePath("PlancksLawViewport")
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hbe1w"]
+shader = ExtResource("21_hbe1w")
+shader_parameter/u_particle_temp_ambient = 300.0
+shader_parameter/u_particle_temp_max = 373.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_cphy5"]
+viewport_path = NodePath("ParticlesToGridViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_hbe1w"]
-shader = ExtResource("21_hbe1w")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1pbsg"]
+shader = ExtResource("24_kid1v")
+shader_parameter/u_use_r = true
+shader_parameter/u_use_g = false
+shader_parameter/u_use_b = false
+shader_parameter/u_use_a = false
+shader_parameter/u_min_value = 300.0
+shader_parameter/u_max_value = 373.0
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_cphy5"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_xnvxc"]
 viewport_path = NodePath("ParticlesToGridViewport")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b2345"]
@@ -292,14 +314,18 @@ script = ExtResource("1_lak56")
 disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
-size = Vector2i(1152, 648)
+size = Vector2i(256, 256)
 render_target_clear_mode = 1
 render_target_update_mode = 4
 
-[node name="Sprite2D" type="Sprite2D" parent="ParticlesToGridViewport"]
+[node name="TextureRect" type="TextureRect" parent="ParticlesToGridViewport"]
 texture_filter = 1
 texture_repeat = 1
-centered = false
+material = SubResource("ShaderMaterial_kid1v")
+offset_right = 256.0
+offset_bottom = 256.0
+texture = ExtResource("7_xnvxc")
+expand_mode = 1
 
 [node name="ObstaclesRawViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
@@ -589,12 +615,6 @@ material = SubResource("ShaderMaterial_fcd3f")
 texture = SubResource("ViewportTexture_5u06a")
 centered = false
 
-[node name="Display" type="Sprite2D" parent="."]
-texture_filter = 1
-texture_repeat = 1
-position = Vector2(576, 324)
-texture = SubResource("ViewportTexture_8yd1n")
-
 [node name="GridToParticlesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
 transparent_bg = true
@@ -611,6 +631,19 @@ offset_right = 256.0
 offset_bottom = 256.0
 texture = SubResource("ViewportTexture_cphy5")
 expand_mode = 1
+
+[node name="Display" type="Sprite2D" parent="."]
+texture_filter = 1
+texture_repeat = 1
+texture = SubResource("ViewportTexture_8yd1n")
+centered = false
+
+[node name="TmpDisplay" type="Sprite2D" parent="."]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_1pbsg")
+texture = SubResource("ViewportTexture_xnvxc")
+centered = false
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

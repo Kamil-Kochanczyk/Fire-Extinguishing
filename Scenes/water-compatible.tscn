@@ -37,10 +37,10 @@ shader_parameter/u_max_value = 1.0
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rqihb"]
 shader = ExtResource("3_qq3op")
 shader_parameter/u_particle_color = Vector4(0, 0, 0, 0)
-shader_parameter/u_verbose_particle_color = Vector4(0, 0, 0, 0)
-shader_parameter/u_neighbor_particle_color = Vector4(0, 0, 0, 0)
 shader_parameter/u_n_to_v_scale_factor = Vector2(0, 0)
 shader_parameter/u_particle_vis_size = 0.0
+shader_parameter/u_particle_temp_ambient = 0.0
+shader_parameter/u_particle_temp_max = 0.0
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_bjixy"]
 viewport_path = NodePath("ParticlesSubViewport")
@@ -653,12 +653,12 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 20.0
 step = 0.1
-value = 20.0
+value = 3.0
 
 [node name="VelClampValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "20.0"
+text = "3.0"
 
 [node name="MouseInteractionRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

@@ -2,12 +2,14 @@ shader_type particles;
 
 uniform highp sampler2D u_particle_pos_temp_img : filter_nearest, repeat_disable;
 uniform vec4 u_particle_color;
-uniform vec4 u_verbose_particle_color;
-uniform vec4 u_neighbor_particle_color;
+//uniform vec4 u_verbose_particle_color;
+//uniform vec4 u_neighbor_particle_color;
 uniform vec2 u_n_to_v_scale_factor;
 uniform highp float u_particle_vis_size;
+uniform float u_particle_temp_ambient;
+uniform float u_particle_temp_max;
 
-const float THRESHOLD = 0.5;
+//const float THRESHOLD = 0.5;
 
 void start() {
 	// called when a particle is spawned
@@ -26,7 +28,7 @@ void process() {
 	ivec2 texel_pos = ivec2(int(mod(idx, size)), int(idx / size));
 	
 	// positions in normalized coordinates (viewport independent)
-	// temperatures also in normalized coordinates (0 - default temperature, 1 - maximum possible temperature)
+	// temperatures in unnormalized coordinates
 	vec4 particle_pos_temp = texelFetch(u_particle_pos_temp_img, texel_pos, 0);
 	vec2 particle_pos = particle_pos_temp.rg;
 	float particle_temp = particle_pos_temp.b;
@@ -75,7 +77,7 @@ void process() {
 	
 	// R channel -> density
 	// G channel -> temperature
-	vec4 final_color = vec4(u_particle_color.r, particle_temp, 0.0, 1.0);
+	vec4 final_color = vec4(u_particle_color.r, (particle_temp - u_particle_temp_ambient) / (u_particle_temp_max - u_particle_temp_ambient), 0.0, 1.0);
 	
 	COLOR = final_color;
 }

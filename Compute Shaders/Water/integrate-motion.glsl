@@ -411,7 +411,7 @@ void main() {
         velocities[id] = vel;
     }
 
-    // if we don't visualize neighborhood search, this pass is the last pass
+    // if we don't visualize neighborhood search, this pass is the last pass where we can write to the rendering texture
     if (params.vis_neighborhood_search == 0u) {
         ivec2 pixel_pos = ivec2(int(mod(id, params.particle_pos_temp_img_size)), int(id / params.particle_pos_temp_img_size));
         imageStore(particle_pos_temp_img, pixel_pos, vec4(positions[id].x, positions[id].y, temperatures[id], 0.0));

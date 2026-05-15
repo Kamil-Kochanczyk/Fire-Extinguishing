@@ -42,6 +42,8 @@ layout(push_constant) uniform Parameters {
     float delta;
     float grid_to_particles_img_size_x;
     float grid_to_particles_img_size_y;
+    float ambient_temperature;
+    float max_temperature;
 } params;
 
 // Wang hash function for generating random numbers on the GPU
@@ -73,6 +75,29 @@ void main() {
             float age = ages[id];
             age += params.delta;
 
+            // // get the temperature of the particle from the grid_to_particles_img using its position
+            // // perform bilinear interpolation manually using four texel reads
+            // vec2 pos = positions[id];
+            // vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
+            // vec2 grid_space_pos = clamped_pos * vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0);
+            // vec2 base_f = floor(grid_space_pos);
+            // ivec2 base = ivec2(base_f);
+            // vec2 frac = grid_space_pos - base_f;
+            // ivec2 max_pixel = ivec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0);
+            // ivec2 p00 = clamp(base, ivec2(0), max_pixel);
+            // ivec2 p10 = clamp(base + ivec2(1, 0), ivec2(0), max_pixel);
+            // ivec2 p01 = clamp(base + ivec2(0, 1), ivec2(0), max_pixel);
+            // ivec2 p11 = clamp(base + ivec2(1, 1), ivec2(0), max_pixel);
+            // vec4 c00 = imageLoad(grid_to_particles_img, p00);
+            // vec4 c10 = imageLoad(grid_to_particles_img, p10);
+            // vec4 c01 = imageLoad(grid_to_particles_img, p01);
+            // vec4 c11 = imageLoad(grid_to_particles_img, p11);
+            // vec4 pixel = mix(mix(c00, c10, frac.x), mix(c01, c11, frac.x), frac.y);
+            // float delta_temperature = pixel.r;
+            // float modified_temperature = pixel.g;
+            // // float new_temperature = temperatures[id] + delta_temperature;
+            // float new_temperature = modified_temperature;
+
             // get the temperature of the particle from the grid_to_particles_img using its position
             // for simplicity we don't do any bilinear interpolation
             vec2 pos = positions[id];
@@ -80,15 +105,15 @@ void main() {
             vec2 grid_space_pos = vec2(clamped_pos.x * params.grid_to_particles_img_size_x, clamped_pos.y * params.grid_to_particles_img_size_y);
             ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
             vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
-            float delta_temperature = pixel.g;
-            float modified_temperature = pixel.b;
-            float new_temperature = temperatures[id] + delta_temperature;
-            // float new_temperature = modified_temperature;
+            float delta_temperature = pixel.r;
+            float modified_temperature = pixel.g;
+            // float new_temperature = temperatures[id] + delta_temperature;
+            float new_temperature = modified_temperature;
             
             // if age exceeds lifetime of a mortal particle or the particle reaches its maximum possible temperature, this particle is killed (becomes dead)
-            if ((age > lifetime) || (new_temperature > 1.0)) {
+            if ((age > lifetime) || (new_temperature > params.max_temperature)) {
                 ages[id] = 0.0;
-                temperatures[id] = 0.0;
+                temperatures[id] = params.ambient_temperature;
                 is_alive[id] = 0u;
 
                 // move the killed particle to a random position outside the simulation domain [0,1]x[0,1] using positive coordinates between 2.0 and 12.0

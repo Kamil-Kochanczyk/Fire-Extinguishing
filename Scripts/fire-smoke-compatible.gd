@@ -1,7 +1,9 @@
 class_name FireSmokeCompatible
 extends Node2D
 
-@onready var particles_to_grid_sprite: Sprite2D = $ParticlesToGridViewport/Sprite2D
+@onready var tmp_display: Sprite2D = $TmpDisplay
+
+@onready var particles_to_grid_texture_rect: TextureRect = $ParticlesToGridViewport/TextureRect
 @onready var velocity_sprite: Sprite2D = $VelocityViewport/Sprite2D
 @onready var splash_mask_sprite: Sprite2D = $SplashMaskViewport/Sprite2D
 @onready var fire_fuel_smoke_density_splash_sprite: Sprite2D = $FireFuelSmokeDensitySplashViewport/Sprite2D
@@ -110,12 +112,14 @@ extends Node2D
 
 @export var pressure_jacobi_iterations: int = 25
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
-@export var grid_to_particles_size: Vector2i = Vector2i(256, 256)
-@export var fire_temp_ambient: float = 500.0
+@export var pg_gp_size: Vector2i = Vector2i(256, 256)
+@export var fire_temp_ambient: float = 300.0
 @export var fire_temp_burn: float = 2000.0
 @export var fire_temp_max: float = 2000.0
 @export var smoke_temp_ambient: float = 300.0
 @export var smoke_temp_max: float = 500.0
+@export var particle_temp_ambient: float = 300.0
+@export var particle_temp_max: float = 373.0
 
 var empty_shader: Shader = load("res://Fragment Shaders/empty.gdshader")
 var clamp_shader: Shader = load("res://Fragment Shaders/clamp.gdshader")
@@ -277,8 +281,10 @@ func fire_smoke_ready() -> void:
 		# this line affects only the viewports created manually, not the ones created in this script
 		vp.size = viewport_size
 	
-	grid_to_particles_viewport.size = grid_to_particles_size
-	grid_to_particles_texture_rect.size = grid_to_particles_size
+	particles_to_grid_viewport.size = pg_gp_size
+	particles_to_grid_texture_rect.size = pg_gp_size
+	grid_to_particles_viewport.size = pg_gp_size
+	grid_to_particles_texture_rect.size = pg_gp_size
 	
 	#set_up_pressure_jacobi()
 	set_up_pressure_jacobi_faster()
@@ -291,6 +297,8 @@ func fire_smoke_ready() -> void:
 	pressure_init_sprite.texture = pressure_boundary_last.get_texture()
 	velocity_div_free_sprite.texture = pressure_boundary_last.get_texture()
 	
+	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
+	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_init_state", false)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_burn", fire_temp_burn)
@@ -310,6 +318,8 @@ func fire_smoke_ready() -> void:
 	plancks_law_sprite.material.set("shader_parameter/u_custom_fire_temp", fire_gradient_editor.gradient_texture)
 	plancks_law_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	plancks_law_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	
 	top_margin_container.visible = true
 	fire_bottom_margin_container.visible = false
@@ -715,9 +725,7 @@ func reset_params() -> void:
 
 func screen_to_uv(sprite: Sprite2D) -> Vector2:
 	# convert from screen coords to UV coords for a given Sprite2D
-	# local coordinate system of a Sprite2D: [-w/2, -h/2] -> top-left, [w/2, h/2] -> bottom-right, [0, 0] -> center
-	# all of this is valid assuming Sprite2D isn't centered
-	return (sprite.get_local_mouse_position() + (sprite.get_rect().size / 2.0)) / sprite.get_rect().size
+	return sprite.get_local_mouse_position() / sprite.get_rect().size
 
 func disturb_fire_velocity(disturbance_origin: Vector2, disturbance_vector: Vector2) -> void:
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_disturbance_origin", disturbance_origin)
@@ -1251,8 +1259,9 @@ func swap_curr_params_panel() -> void:
 	elif curr_params_panel == smoke_bottom_margin_container:
 		curr_params_panel = fire_bottom_margin_container
 
-func set_particles_to_grid_connection(particles_texture: ViewportTexture) -> void:
-	particles_to_grid_sprite.texture = particles_texture
+func set_particles_to_grid_connection(particles_texture: Texture2DRD) -> void:
+	particles_to_grid_texture_rect.texture = particles_texture
+	particles_to_grid_texture_rect.material.set("shader_parameter/u_init_state", false)
 
 func get_grid_to_particles_connection() -> ViewportTexture:
 	return grid_to_particles_viewport.get_texture()

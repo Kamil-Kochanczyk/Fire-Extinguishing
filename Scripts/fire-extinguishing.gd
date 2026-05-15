@@ -8,6 +8,8 @@ extends Node
 
 func _ready() -> void:
 	assert(water.viewport_size.x == fire_smoke.viewport_size.x and water.viewport_size.y == fire_smoke.viewport_size.y, "Fire, Smoke and Water must have the same viewport size")
+	assert(water.pg_gp_size == fire_smoke.pg_gp_size, "Fire, Smoke and Water must have the same particles->grid and grid->particles viewports sizes")
+	assert(water.particle_temp_ambient == fire_smoke.particle_temp_ambient and water.particle_temp_max == fire_smoke.particle_temp_max, "Fire, Smoke and Water must have matching particle temperatures")
 	
 	fire_smoke.fire_smoke_ready()
 	water.set_grid_to_particles_connection(fire_smoke.get_grid_to_particles_connection())
@@ -17,8 +19,9 @@ func _ready() -> void:
 	water.canvas_layer.visible = false
 	
 	#tmp_display.texture = fire_smoke.particles_to_grid_viewport.get_texture()
-	#tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
-	tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
+	tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
+	#tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
+	#tmp_display.texture = fire_smoke.tmp_display.texture
 
 func _process(delta: float) -> void:
 	fire_smoke.fire_smoke_process(delta)
