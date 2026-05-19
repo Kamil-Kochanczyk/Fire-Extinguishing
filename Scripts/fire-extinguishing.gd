@@ -18,8 +18,8 @@ func _ready() -> void:
 	
 	water.canvas_layer.visible = false
 	
-	#tmp_display.texture = fire_smoke.particles_to_grid_viewport.get_texture()
-	tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
+	tmp_display.texture = fire_smoke.particles_to_grid_viewport.get_texture()
+	#tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
 	#tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
 	#tmp_display.texture = fire_smoke.tmp_display.texture
 

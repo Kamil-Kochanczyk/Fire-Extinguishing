@@ -1,4 +1,4 @@
-[gd_scene load_steps=83 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=85 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -63,15 +63,20 @@ viewport_path = NodePath("SplashMaskViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_b2345"]
 viewport_path = NodePath("ObstaclesRawViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_jj6as"]
+viewport_path = NodePath("ParticlesToGridViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_cwdux"]
 viewport_path = NodePath("SplashMaskViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_6pvs2"]
 resource_local_to_scene = true
 shader = ExtResource("5_kid1v")
+shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_jj6as")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_cwdux")
 shader_parameter/u_timestep = 0.0
+shader_parameter/u_vapor_splash_strength = 1.0
 shader_parameter/u_density_dissipation_rate = 0.05
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rr1vq"]
@@ -260,8 +265,16 @@ shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture
 [sub_resource type="ViewportTexture" id="ViewportTexture_5u06a"]
 viewport_path = NodePath("PlancksLawViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_3bid5"]
+viewport_path = NodePath("FireTemperatureCoolViewport")
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hbe1w"]
+resource_local_to_scene = true
 shader = ExtResource("21_hbe1w")
+shader_parameter/u_fire_temperature_cool = SubResource("ViewportTexture_3bid5")
+shader_parameter/u_timestep = 0.0
+shader_parameter/emissivity = 1.0
+shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_particle_temp_ambient = 300.0
 shader_parameter/u_particle_temp_max = 373.0
 
@@ -639,6 +652,7 @@ texture = SubResource("ViewportTexture_8yd1n")
 centered = false
 
 [node name="TmpDisplay" type="Sprite2D" parent="."]
+visible = false
 texture_filter = 1
 texture_repeat = 1
 material = SubResource("ShaderMaterial_1pbsg")
@@ -1407,6 +1421,32 @@ step = 0.01
 value = 1.0
 
 [node name="SmokeVelAbsValLimitValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "1.0"
+
+[node name="SmokeVaporSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeVaporSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Smoke-Vapor Splash Strength"
+
+[node name="SmokeVaporSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeVaporSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer/SmokeVaporSplashStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 10.0
+step = 0.1
+value = 1.0
+
+[node name="SmokeVaporSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
 text = "1.0"

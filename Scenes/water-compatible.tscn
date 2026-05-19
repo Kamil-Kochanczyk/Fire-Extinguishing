@@ -916,6 +916,58 @@ layout_mode = 2
 size_flags_vertical = 1
 text = "0.0"
 
+[node name="HeatingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HeatingSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Heating Speed"
+
+[node name="HeatingSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="HeatingSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1000.0
+step = 0.1
+value = 250.0
+
+[node name="HeatingSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "250.0"
+
+[node name="VaporizationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VaporizationSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vaporization Speed"
+
+[node name="VaporizationSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="VaporizationSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1000.0
+step = 0.1
+value = 250.0
+
+[node name="VaporizationSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "250.0"
+
 [node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 

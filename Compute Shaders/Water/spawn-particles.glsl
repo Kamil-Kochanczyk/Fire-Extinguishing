@@ -68,6 +68,10 @@ layout(set = 0, binding = 6, std430) restrict writeonly buffer Temperatures {
     float temperatures[];
 };
 
+layout(set = 0, binding = 7, std430) restrict writeonly buffer LatentHeats {
+    float latent_heats[];
+};
+
 layout(push_constant) uniform Parameters {
     uint particle_count;
     uint spawn_count;
@@ -133,6 +137,7 @@ void main() {
         positions[dead_particle_id] = spawn_pos;
         velocities[dead_particle_id] = vec2(params.spawn_init_vel_x, params.spawn_init_vel_y);
         temperatures[dead_particle_id] = params.ambient_temperature;
+        latent_heats[dead_particle_id] = 0.0;
         ages[dead_particle_id] = 0.0;
         is_alive[dead_particle_id] = 1u;
     } else {

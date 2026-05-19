@@ -128,6 +128,8 @@ var glass_scaling_speed: Vector2 = Vector2(3.0, 3.0)    # px / s
 var spawn_rate: float = 32000.0     # particles / s
 var spawn_random_offset_range: int = 16    # in particle_spacing units
 var spawn_init_vel: Vector2 = Vector2(0.0, 0.0)
+var heating_speed: float = 250.0
+var vaporization_speed: float = 250.0
 var blur_amount: float = 0.9
 var water_density_threshold: float = 0.2
 var edge_softness: float = 0.05
@@ -160,6 +162,10 @@ var spiky_2d_gradient_constant: float
 var visc_2d_laplacian_constant: float
 
 var gravity: Vector2
+
+var specific_heat_capacity: float
+var specific_latent_heat_vaporization: float
+var latent_heat_vaporization: float
 
 var particle_count: int
 
@@ -225,6 +231,7 @@ var mark_neighbors_workgroups_x: int
 var positions_size: int
 var velocities_size: int
 var temperatures_size: int
+var latent_heats_size: int
 var lifetimes_size: int
 var ages_size: int
 var is_alive_size: int
@@ -300,6 +307,8 @@ var rt_glass_scaling_speed: Vector2
 var rt_spawn_rate: float
 var rt_spawn_random_offset_range: int
 var rt_spawn_init_vel: Vector2
+var rt_heating_speed: float
+var rt_vaporization_speed: float
 var rt_blur_amount: float
 var rt_water_density_threshold: float
 var rt_edge_softness: float
@@ -359,6 +368,8 @@ var curr_display_idx: int
 @onready var spawn_random_offset_range_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeValue
 @onready var spawn_init_vel_x_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXValue
 @onready var spawn_init_vel_y_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYValue
+@onready var heating_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedValue
+@onready var vaporization_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedValue
 @onready var blur_amount_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountValue
 @onready var water_density_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdValue
 @onready var edge_softness_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessValue
@@ -394,6 +405,8 @@ var curr_display_idx: int
 @onready var spawn_random_offset_range_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeMarginContainer/SpawnRandomOffsetRangeHSlider
 @onready var spawn_init_vel_x_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXMarginContainer/SpawnInitVelXHSlider
 @onready var spawn_init_vel_y_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYMarginContainer/SpawnInitVelYHSlider
+@onready var heating_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedMarginContainer/HeatingSpeedHSlider
+@onready var vaporization_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedMarginContainer/VaporizationSpeedHSlider
 @onready var blur_amount_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountMarginContainer/BlurAmountHSlider
 @onready var water_density_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdMarginContainer/WaterDensityThresholdHSlider
 @onready var edge_softness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessMarginContainer/EdgeSoftnessHSlider
@@ -471,6 +484,7 @@ var mark_neighbors_shader_rid: RID
 var positions_buffer_rid: RID
 var velocities_buffer_rid: RID
 var temperatures_buffer_rid: RID
+var latent_heats_buffer_rid: RID
 var lifetimes_buffer_rid: RID
 var ages_buffer_rid: RID
 var is_alive_buffer_rid: RID
@@ -508,6 +522,7 @@ var kill_particles_is_alive_uniform: RDUniform
 var kill_particles_dead_stack_uniform: RDUniform
 var kill_particles_dead_count_uniform: RDUniform
 var kill_particles_temperatures_uniform: RDUniform
+var kill_particles_latent_heats_uniform: RDUniform
 var spawn_particles_positions_uniform: RDUniform
 var spawn_particles_velocities_uniform: RDUniform
 var spawn_particles_ages_uniform: RDUniform
@@ -515,6 +530,7 @@ var spawn_particles_is_alive_uniform: RDUniform
 var spawn_particles_dead_stack_uniform: RDUniform
 var spawn_particles_dead_count_uniform: RDUniform
 var spawn_particles_temperatures_uniform: RDUniform
+var spawn_particles_latent_heats_uniform: RDUniform
 var compute_hashes_positions_uniform: RDUniform
 var compute_hashes_hashes_uniform: RDUniform
 var compute_hashes_particle_indices_uniform: RDUniform
@@ -591,6 +607,7 @@ var store_particle_info_start_indices_uniform: RDUniform
 var store_particle_info_end_indices_uniform: RDUniform
 var store_particle_info_densities_uniform: RDUniform
 var store_particle_info_temperatures_uniform: RDUniform
+var store_particle_info_latent_heats_uniform: RDUniform
 var store_neighbors_positions_uniform: RDUniform
 var store_neighbors_sorted_particle_indices_uniform: RDUniform
 var store_neighbors_start_indices_uniform: RDUniform
@@ -933,6 +950,10 @@ func _input(event: InputEvent) -> void:
 			print("Temperatures avg: ", average(temperatures_gpu))
 			print("Temperatures: ", temperatures_gpu.slice(0, 10))
 			
+			var latent_heats_gpu: PackedFloat32Array = rd.buffer_get_data(latent_heats_buffer_rid).to_float32_array()
+			print("Latent heats avg: ", average(latent_heats_gpu))
+			print("Latent heats: ", latent_heats_gpu.slice(0, 10))
+			
 			#print("Lifetimes: ", rd.buffer_get_data(lifetimes_buffer_rid).to_float32_array())
 			#print("Ages: ", rd.buffer_get_data(ages_buffer_rid).to_float32_array())
 			#print("Is alive: ", get_uint_arr(rd.buffer_get_data(is_alive_buffer_rid)))
@@ -996,6 +1017,10 @@ func init_general_predefined_variables() -> void:
 	visc_2d_laplacian_constant = 40.0 / (PI * pow(smoothing_radius, 5.0))
 	
 	gravity = Vector2(0.0, 9.81)
+	
+	specific_heat_capacity = 4184.0    # J / kg / K
+	specific_latent_heat_vaporization = 2264705.0    # J / kg
+	latent_heat_vaporization = specific_latent_heat_vaporization * mass
 	
 	particle_count = particle_grid_size.x * particle_grid_size.y
 	
@@ -1061,6 +1086,7 @@ func init_general_predefined_variables() -> void:
 	positions_size = particle_count
 	velocities_size = positions_size
 	temperatures_size = positions_size
+	latent_heats_size = positions_size
 	lifetimes_size = positions_size
 	ages_size = positions_size
 	is_alive_size = positions_size
@@ -1136,6 +1162,8 @@ func init_general_predefined_variables() -> void:
 	rt_spawn_rate = spawn_rate
 	rt_spawn_random_offset_range = spawn_random_offset_range
 	rt_spawn_init_vel = spawn_init_vel
+	rt_heating_speed = heating_speed
+	rt_vaporization_speed = vaporization_speed
 	rt_blur_amount = blur_amount
 	rt_water_density_threshold = water_density_threshold
 	rt_edge_softness = edge_softness
@@ -1280,6 +1308,11 @@ func init_gpu() -> void:
 	temperatures.resize(temperatures_size)
 	temperatures.fill(particle_temp_ambient)
 	var temperatures_bytes: PackedByteArray = temperatures.to_byte_array()
+	
+	var latent_heats: PackedFloat32Array = PackedFloat32Array()
+	latent_heats.resize(latent_heats_size)
+	latent_heats.fill(0.0)
+	var latent_heats_bytes: PackedByteArray = latent_heats.to_byte_array()
 	
 	var lifetimes: PackedFloat32Array = PackedFloat32Array()
 	for i in lifetimes_size:
@@ -1435,6 +1468,7 @@ func init_gpu() -> void:
 	positions_buffer_rid = rd.storage_buffer_create(positions_bytes.size(), positions_bytes)
 	velocities_buffer_rid = rd.storage_buffer_create(velocities_bytes.size(), velocities_bytes)
 	temperatures_buffer_rid = rd.storage_buffer_create(temperatures_bytes.size(), temperatures_bytes)
+	latent_heats_buffer_rid = rd.storage_buffer_create(latent_heats_bytes.size(), latent_heats_bytes)
 	lifetimes_buffer_rid = rd.storage_buffer_create(lifetimes_bytes.size(), lifetimes_bytes)
 	ages_buffer_rid = rd.storage_buffer_create(ages_bytes.size(), ages_bytes)
 	is_alive_buffer_rid = rd.storage_buffer_create(is_alive_bytes.size(), is_alive_bytes)
@@ -1497,6 +1531,10 @@ func init_gpu() -> void:
 	kill_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_temperatures_uniform.binding = 7
 	kill_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
+	kill_particles_latent_heats_uniform = RDUniform.new()
+	kill_particles_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	kill_particles_latent_heats_uniform.binding = 8
+	kill_particles_latent_heats_uniform.add_id(latent_heats_buffer_rid)
 	spawn_particles_positions_uniform = RDUniform.new()
 	spawn_particles_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_positions_uniform.binding = 0
@@ -1525,6 +1563,10 @@ func init_gpu() -> void:
 	spawn_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_temperatures_uniform.binding = 6
 	spawn_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
+	spawn_particles_latent_heats_uniform = RDUniform.new()
+	spawn_particles_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	spawn_particles_latent_heats_uniform.binding = 7
+	spawn_particles_latent_heats_uniform.add_id(latent_heats_buffer_rid)
 	compute_hashes_positions_uniform = RDUniform.new()
 	compute_hashes_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_positions_uniform.binding = 0
@@ -1801,7 +1843,6 @@ func init_gpu() -> void:
 	integrate_motion_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	integrate_motion_temperatures_uniform.binding = 8
 	integrate_motion_temperatures_uniform.add_id(temperatures_buffer_rid)
-	
 	store_particle_info_positions_uniform = RDUniform.new()
 	store_particle_info_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_positions_uniform.binding = 0
@@ -1826,6 +1867,10 @@ func init_gpu() -> void:
 	store_particle_info_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_temperatures_uniform.binding = 5
 	store_particle_info_temperatures_uniform.add_id(temperatures_buffer_rid)
+	store_particle_info_latent_heats_uniform = RDUniform.new()
+	store_particle_info_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_latent_heats_uniform.binding = 6
+	store_particle_info_latent_heats_uniform.add_id(latent_heats_buffer_rid)
 	store_neighbors_positions_uniform = RDUniform.new()
 	store_neighbors_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_positions_uniform.binding = 0
@@ -2004,7 +2049,7 @@ func init_gpu() -> void:
 	
 	kill_particles_grid_to_particles_img_uniform = RDUniform.new()
 	kill_particles_grid_to_particles_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	kill_particles_grid_to_particles_img_uniform.binding = 8
+	kill_particles_grid_to_particles_img_uniform.binding = 9
 	kill_particles_grid_to_particles_img_uniform.add_id(grid_to_particles_img_texture_rid)
 	integrate_motion_particle_pos_temp_img_uniform = RDUniform.new()
 	integrate_motion_particle_pos_temp_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -2020,7 +2065,7 @@ func init_gpu() -> void:
 	integrate_motion_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
 	store_particle_info_particles_to_grid_img_uniform = RDUniform.new()
 	store_particle_info_particles_to_grid_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	store_particle_info_particles_to_grid_img_uniform.binding = 6
+	store_particle_info_particles_to_grid_img_uniform.binding = 7
 	store_particle_info_particles_to_grid_img_uniform.add_id(particles_to_grid_img_texture_rid)
 	store_neighbors_particle_pos_temp_img_uniform = RDUniform.new()
 	store_neighbors_particle_pos_temp_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -2033,8 +2078,8 @@ func init_gpu() -> void:
 	#endregion
 	
 	#region uniform sets
-	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_temperatures_uniform, kill_particles_grid_to_particles_img_uniform], kill_particles_shader_rid, 0)
-	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_temperatures_uniform], spawn_particles_shader_rid, 0)
+	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_temperatures_uniform, kill_particles_latent_heats_uniform, kill_particles_grid_to_particles_img_uniform], kill_particles_shader_rid, 0)
+	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_temperatures_uniform, spawn_particles_latent_heats_uniform], spawn_particles_shader_rid, 0)
 	compute_hashes_uniform_set_rid = rd.uniform_set_create([compute_hashes_positions_uniform, compute_hashes_hashes_uniform, compute_hashes_particle_indices_uniform], compute_hashes_shader_rid, 0)
 	
 	#region parallel radix sort uniform sets
@@ -2054,7 +2099,7 @@ func init_gpu() -> void:
 	compute_vorticities_uniform_set_rid = rd.uniform_set_create([compute_vorticities_positions_uniform, compute_vorticities_sorted_particle_indices_uniform, compute_vorticities_start_indices_uniform, compute_vorticities_end_indices_uniform, compute_vorticities_densities_uniform, compute_vorticities_velocities_uniform, compute_vorticities_vorticities_uniform, compute_vorticities_is_alive_uniform], compute_vorticities_shader_rid, 0)
 	compute_forces_uniform_set_rid = rd.uniform_set_create([compute_forces_positions_uniform, compute_forces_velocities_uniform, compute_forces_sorted_particle_indices_uniform, compute_forces_start_indices_uniform, compute_forces_end_indices_uniform, compute_forces_densities_uniform, compute_forces_pressures_uniform, compute_forces_near_densities_uniform, compute_forces_near_pressures_uniform, compute_forces_vorticities_uniform, compute_forces_forces_uniform, compute_forces_is_alive_uniform], compute_forces_shader_rid, 0)
 	integrate_motion_uniform_set_rid = rd.uniform_set_create([integrate_motion_positions_uniform, integrate_motion_velocities_uniform, integrate_motion_densities_uniform, integrate_motion_forces_uniform, integrate_motion_sorted_particle_indices_uniform, integrate_motion_start_indices_uniform, integrate_motion_end_indices_uniform, integrate_motion_is_alive_uniform, integrate_motion_temperatures_uniform, integrate_motion_particle_pos_temp_img_uniform, integrate_motion_glass_sdf_img_uniform, integrate_motion_glass_sdf_gradient_img_uniform], integrate_motion_shader_rid, 0)
-	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
+	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_latent_heats_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	store_neighbors_uniform_set_rid = rd.uniform_set_create([store_neighbors_positions_uniform, store_neighbors_sorted_particle_indices_uniform, store_neighbors_start_indices_uniform, store_neighbors_end_indices_uniform, store_neighbors_neighbor_flags_uniform, store_neighbors_particle_pos_temp_img_uniform], store_neighbors_shader_rid, 0)
 	mark_neighbors_uniform_set_rid = rd.uniform_set_create([mark_neighbors_neighbor_flags_uniform, mark_neighbors_particle_pos_temp_img_uniform], mark_neighbors_shader_rid, 0)
 	#endregion
@@ -2099,7 +2144,7 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		#region kill particles pass
 		rd.compute_list_bind_compute_pipeline(compute_list, kill_particles_pipeline_rid)
 		rd.compute_list_bind_uniform_set(compute_list, kill_particles_uniform_set_rid, 0)
-		params.resize(32)
+		params.resize(48)
 		params.fill(0)
 		params.encode_u32(0, particle_count)
 		params.encode_float(4, delta)
@@ -2107,6 +2152,11 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		params.encode_float(12, grid_to_particles_img_size_f.y)
 		params.encode_float(16, particle_temp_ambient)
 		params.encode_float(20, particle_temp_max)
+		params.encode_float(24, latent_heat_vaporization)
+		params.encode_float(28, mass)
+		params.encode_float(32, specific_heat_capacity)
+		params.encode_float(36, rt_heating_speed)
+		params.encode_float(40, rt_vaporization_speed)
 		rd.compute_list_set_push_constant(compute_list, params, params.size())
 		rd.compute_list_add_barrier(compute_list)
 		rd.compute_list_dispatch(compute_list, kill_particles_workgroups_x, 1, 1)
@@ -2394,6 +2444,7 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		params.encode_float(8, poly6_2d_constant)
 		params.encode_float(12, mass)
 		params.encode_float(16, particle_temp_max)
+		params.encode_float(20, latent_heat_vaporization)
 		rd.compute_list_set_push_constant(compute_list, params, params.size())
 		rd.compute_list_add_barrier(compute_list)
 		rd.compute_list_dispatch(compute_list, store_particle_info_workgroups_x, store_particle_info_workgroups_y, 1)
@@ -2495,6 +2546,7 @@ func free_gpu() -> void:
 	rd.free_rid(positions_buffer_rid)
 	rd.free_rid(velocities_buffer_rid)
 	rd.free_rid(temperatures_buffer_rid)
+	rd.free_rid(latent_heats_buffer_rid)
 	rd.free_rid(lifetimes_buffer_rid)
 	rd.free_rid(ages_buffer_rid)
 	rd.free_rid(is_alive_buffer_rid)
@@ -2797,6 +2849,16 @@ func init_slider_callbacks() -> void:
 		spawn_init_vel_y_h_slider.value = new_value
 		rt_spawn_init_vel.y = new_value
 	
+	slider_callbacks_dict["HeatingSpeedHSlider"] = func(new_value: float) -> void:
+		heating_speed_value.text = str(new_value)
+		heating_speed_h_slider.value = new_value
+		rt_heating_speed = new_value
+	
+	slider_callbacks_dict["VaporizationSpeedHSlider"] = func(new_value: float) -> void:
+		vaporization_speed_value.text = str(new_value)
+		vaporization_speed_h_slider.value = new_value
+		rt_vaporization_speed = new_value
+	
 	slider_callbacks_dict["BlurAmountHSlider"] = func(new_value: float) -> void:
 		blur_amount_value.text = str(new_value)
 		blur_amount_h_slider.value = new_value
@@ -2863,6 +2925,8 @@ func reset_params() -> void:
 	slider_callbacks_dict["SpawnRandomOffsetRangeHSlider"].call(spawn_random_offset_range)
 	slider_callbacks_dict["SpawnInitVelXHSlider"].call(spawn_init_vel.x)
 	slider_callbacks_dict["SpawnInitVelYHSlider"].call(spawn_init_vel.y)
+	slider_callbacks_dict["HeatingSpeedHSlider"].call(heating_speed)
+	slider_callbacks_dict["VaporizationSpeedHSlider"].call(vaporization_speed)
 	slider_callbacks_dict["BlurAmountHSlider"].call(blur_amount)
 	slider_callbacks_dict["WaterDensityThresholdHSlider"].call(water_density_threshold)
 	slider_callbacks_dict["EdgeSoftnessHSlider"].call(edge_softness)

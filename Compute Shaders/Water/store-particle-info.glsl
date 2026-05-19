@@ -29,7 +29,11 @@ layout(set = 0, binding = 5, std430) restrict readonly buffer Temperatures {
     float temperatures[];
 };
 
-layout(set = 0, binding = 6, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
+layout(set = 0, binding = 6, std430) restrict readonly buffer LatentHeats {
+    float latent_heats[];
+};
+
+layout(set = 0, binding = 7, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
 
 layout(push_constant) uniform Parameters {
     uint particle_count;
@@ -37,6 +41,7 @@ layout(push_constant) uniform Parameters {
     float poly6_2d_constant;    // 4 / (π * h^8)
     float mass;
     float max_temperature;
+    float latent_heat_vaporization;
 } params;
 
 uint hash_cell(ivec2 cell) {
@@ -51,10 +56,14 @@ void main() {
         return;
     }
 
+    float density = 0.0;
+
     // float temperature_sum = 0.0;
     // float weight_sum = 0.0;
     float temperature = 0.0;
     // float count = 0.0;
+
+    float latent_heat = 0.0;
 
     vec2 uv = (vec2(pixel_coords) + 0.5) / vec2(img_size);
 
@@ -84,8 +93,10 @@ void main() {
                 float r2 = dot(diff, diff);
 
                 if (r2 < h2) {
-                    // float term = h2 - r2;
-                    // float w = params.poly6_2d_constant * term * term * term;    // (h^2 - r^2)^3
+                    float term = h2 - r2;
+                    float w = params.poly6_2d_constant * term * term * term;    // (h^2 - r^2)^3
+                    density += w * params.mass;    // accumulate density contribution from neighboring particles
+
                     // float weight = params.mass * (1.0 / max(densities[neighbor_idx], 1e-6)) * w;
                     // temperature_sum += weight * temperatures[neighbor_idx];
                     // weight_sum += weight;
@@ -98,6 +109,8 @@ void main() {
 
                     // temperature += temperatures[neighbor_idx];
                     // count += 1.0;
+
+                    latent_heat = max(latent_heat, latent_heats[neighbor_idx]);    // take the maximum latent heat among the particles in the neighboring cells
                 }
             }
         }
@@ -111,5 +124,5 @@ void main() {
 
     // temperature = (weight_sum > 0.0) ? (temperature_sum / weight_sum) : 0.0;    // weighted average temperature of the particles in the neighboring cells
 
-    imageStore(particles_to_grid_img, pixel_coords, vec4(min(temperature, params.max_temperature), 0.0, 0.0, 0.33));
+    imageStore(particles_to_grid_img, pixel_coords, vec4(density, min(temperature, params.max_temperature), min(latent_heat, params.latent_heat_vaporization), 0.33));
 }

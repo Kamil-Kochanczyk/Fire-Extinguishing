@@ -27,6 +27,7 @@ void fragment() {
 	
 	highp float advected_fire_fuel;
 	highp float advected_smoke_density;
+	highp float advected_is_vapor;
 	
 	if (fire_previous_uv.x >= 0.0 && fire_previous_uv.x <= 1.0 && fire_previous_uv.y >= 0.0 && fire_previous_uv.y <= 1.0) {
 		advected_fire_fuel = bilerp(TEXTURE, fire_previous_uv, TEXTURE_PIXEL_SIZE).r;
@@ -37,12 +38,17 @@ void fragment() {
 	}
 	
 	if (smoke_previous_uv.x >= 0.0 && smoke_previous_uv.x <= 1.0 && smoke_previous_uv.y >= 0.0 && smoke_previous_uv.y <= 1.0) {
-		advected_smoke_density = bilerp(TEXTURE, smoke_previous_uv, TEXTURE_PIXEL_SIZE).g;
+		highp vec2 asdiv = bilerp(TEXTURE, smoke_previous_uv, TEXTURE_PIXEL_SIZE).gb;
+		
+		advected_smoke_density = asdiv.x;
 		advected_smoke_density = clamp(advected_smoke_density, 0.0, 1.0);
+		
+		advected_is_vapor = asdiv.y;
+		advected_is_vapor = clamp(advected_is_vapor, 0.0, 1.0);
 	}
 	else {
 		advected_smoke_density = 0.0;
 	}
 	
-	COLOR = vec4(advected_fire_fuel, advected_smoke_density, 0.0, 1.0);
+	COLOR = vec4(advected_fire_fuel, advected_smoke_density, advected_is_vapor, 1.0);
 }

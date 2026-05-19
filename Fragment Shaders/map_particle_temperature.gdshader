@@ -6,7 +6,7 @@ uniform float u_particle_temp_ambient = 300.0;
 uniform float u_particle_temp_max = 373.0;
 
 void fragment() {
-	//highp float particle_temperature = texture(TEXTURE, UV).r;
+	//highp float particle_temperature = texture(TEXTURE, UV).g;
 	//highp float normalized_temperature = (particle_temperature - u_particle_temp_ambient) / (u_particle_temp_max - u_particle_temp_ambient);
 	//highp vec4 final_color = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -24,7 +24,7 @@ void fragment() {
 	//COLOR = final_color;
 
 	if (u_init_state) {
-		COLOR = vec4(u_particle_temp_ambient, 0.0, 0.0, 0.33);
+		COLOR = vec4(0.0, 0.0, 0.0, 0.33);
 	}
 	else {
 		COLOR = texture(TEXTURE, UV);
