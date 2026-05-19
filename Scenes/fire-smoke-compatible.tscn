@@ -1,4 +1,4 @@
-[gd_scene load_steps=85 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=87 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -76,8 +76,11 @@ shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_jj6as")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_cwdux")
 shader_parameter/u_timestep = 0.0
-shader_parameter/u_vapor_splash_strength = 1.0
+shader_parameter/u_vapor_density_splash_strength = 1.0
 shader_parameter/u_density_dissipation_rate = 0.05
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_v6dpt"]
+viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rr1vq"]
 viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
@@ -85,15 +88,20 @@ viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_fcd3f"]
 viewport_path = NodePath("ObstaclesRawViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_c4pv6"]
+viewport_path = NodePath("ParticlesToGridViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_kid1v"]
 viewport_path = NodePath("SplashMaskViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7mbn0"]
 resource_local_to_scene = true
 shader = ExtResource("6_1pbsg")
+shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_c4pv6")
 shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_rr1vq")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_kid1v")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_fcd3f")
+shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture_v6dpt")
 shader_parameter/u_init_state = true
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_fire_temp_ambient = 500.0
@@ -102,6 +110,7 @@ shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_smoke_temp_ambient = 300.0
 shader_parameter/u_smoke_temp_max = 500.0
 shader_parameter/u_smoke_temp_dissipation_rate = 0.05
+shader_parameter/u_vapor_heating_splash_strength = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jd5mo"]
 shader = ExtResource("8_3bid5")
@@ -1425,31 +1434,57 @@ layout_mode = 2
 size_flags_vertical = 1
 text = "1.0"
 
-[node name="SmokeVaporSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+[node name="SmokeVaporDensitySplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2
 
-[node name="SmokeVaporSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
+[node name="SmokeVaporDensitySplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "Smoke-Vapor Splash Strength"
+text = "Vapor Density Splash Strength"
 
-[node name="SmokeVaporSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
+[node name="SmokeVaporDensitySplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_right = 5
 
-[node name="SmokeVaporSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer/SmokeVaporSplashStrengthMarginContainer" groups=["ParamSlider"]]
+[node name="SmokeVaporDensitySplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer/SmokeVaporDensitySplashStrengthMarginContainer" groups=["ParamSlider"]]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
 max_value = 10.0
 step = 0.1
-value = 1.0
+value = 10.0
 
-[node name="SmokeVaporSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer"]
+[node name="SmokeVaporDensitySplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "1.0"
+text = "10.0"
+
+[node name="SmokeVaporHeatingSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
+layout_mode = 2
+
+[node name="SmokeVaporHeatingSplashStrength" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Vapor Heating Splash Strength"
+
+[node name="SmokeVaporHeatingSplashStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="SmokeVaporHeatingSplashStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer/SmokeVaporHeatingSplashStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 10.0
+step = 0.1
+value = 10.0
+
+[node name="SmokeVaporHeatingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "10.0"
 
 [node name="SmokeMinAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2

@@ -84,7 +84,8 @@ extends Node2D
 @onready var smoke_dense_down_force_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer/SmokeDenseDownForceValue
 @onready var smoke_hot_up_force_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer/SmokeHotUpForceValue
 @onready var smoke_vel_abs_val_limit_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer/SmokeVelAbsValLimitValue
-@onready var smoke_vapor_splash_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer/SmokeVaporSplashStrengthValue
+@onready var smoke_vapor_density_splash_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer/SmokeVaporDensitySplashStrengthValue
+@onready var smoke_vapor_heating_splash_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer/SmokeVaporHeatingSplashStrengthValue
 @onready var smoke_min_albedo_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer/SmokeMinAlbedoValue
 @onready var smoke_max_albedo_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer/SmokeMaxAlbedoValue
 
@@ -100,7 +101,8 @@ extends Node2D
 @onready var smoke_dense_down_force_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDenseDownForceHBoxContainer/SmokeDenseDownForceMarginContainer/SmokeDenseDownForceHSlider
 @onready var smoke_hot_up_force_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeHotUpForceHBoxContainer/SmokeHotUpForceMarginContainer/SmokeHotUpForceHSlider
 @onready var smoke_vel_abs_val_limit_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVelAbsValLimitHBoxContainer/SmokeVelAbsValLimitMarginContainer/SmokeVelAbsValLimitHSlider
-@onready var smoke_vapor_splash_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporSplashStrengthHBoxContainer/SmokeVaporSplashStrengthMarginContainer/SmokeVaporSplashStrengthHSlider
+@onready var smoke_vapor_density_splash_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer/SmokeVaporDensitySplashStrengthMarginContainer/SmokeVaporDensitySplashStrengthHSlider
+@onready var smoke_vapor_heating_splash_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer/SmokeVaporHeatingSplashStrengthMarginContainer/SmokeVaporHeatingSplashStrengthHSlider
 @onready var smoke_min_albedo_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMinAlbedoHBoxContainer/SmokeMinAlbedoMarginContainer/SmokeMinAlbedoHSlider
 @onready var smoke_max_albedo_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeMaxAlbedoHBoxContainer/SmokeMaxAlbedoMarginContainer/SmokeMaxAlbedoHSlider
 
@@ -240,7 +242,8 @@ var smoke_default_vorticity_scale: float = 5.0
 var smoke_default_dense_down_force: float = 0.1
 var smoke_default_hot_up_force: float = 2.0
 var smoke_default_vel_abs_val_limit: float = 1.0
-var smoke_default_vapor_splash_strength: float = 1.0
+var smoke_default_vapor_density_splash_strength: float = 10.0
+var smoke_default_vapor_heating_splash_strength: float = 10.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 
@@ -262,7 +265,8 @@ var smoke_curr_vorticity_scale: float = smoke_default_vorticity_scale
 var smoke_curr_dense_down_force: float = smoke_default_dense_down_force
 var smoke_curr_hot_up_force: float = smoke_default_hot_up_force
 var smoke_curr_vel_abs_val_limit: float = smoke_default_vel_abs_val_limit
-var smoke_curr_vapor_splash_strength: float = smoke_default_vapor_splash_strength
+var smoke_curr_vapor_density_splash_strength: float = smoke_default_vapor_density_splash_strength
+var smoke_curr_vapor_heating_splash_strength: float = smoke_default_vapor_heating_splash_strength
 var smoke_curr_min_albedo: float = smoke_default_min_albedo
 var smoke_curr_max_albedo: float = smoke_default_max_albedo
 
@@ -389,9 +393,10 @@ func fire_smoke_process(delta: float) -> void:
 	splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_strength", smoke_curr_density_and_heating_splash_strength)
 	splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_radius", smoke_curr_cooling_splash_radius)
 	splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_strength", smoke_curr_cooling_splash_strength)
-	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_vapor_splash_strength", smoke_curr_vapor_splash_strength)
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_vapor_density_splash_strength", smoke_curr_vapor_density_splash_strength)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_density_dissipation_rate", smoke_curr_density_dissipation)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_dissipation_rate", smoke_curr_temperature_dissipation)
+	fire_smoke_temperature_sprite.material.set("shader_parameter/u_vapor_heating_splash_strength", smoke_curr_vapor_heating_splash_strength)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_gamma_fuel", fire_curr_fuel_dissipation)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_burn_strength", fire_curr_fuel_burn_strength)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_sigma_cool", fire_curr_temperature_dissipation)
@@ -638,10 +643,15 @@ func init_slider_callbacks() -> void:
 		smoke_vel_abs_val_limit_h_slider.value = new_value
 		smoke_curr_vel_abs_val_limit = new_value
 	
-	slider_callbacks_dict["SmokeVaporSplashStrengthHSlider"] = func(new_value: float) -> void:
-		smoke_vapor_splash_strength_value.text = str(new_value)
-		smoke_vapor_splash_strength_h_slider.value = new_value
-		smoke_curr_vapor_splash_strength = new_value
+	slider_callbacks_dict["SmokeVaporDensitySplashStrengthHSlider"] = func(new_value: float) -> void:
+		smoke_vapor_density_splash_strength_value.text = str(new_value)
+		smoke_vapor_density_splash_strength_h_slider.value = new_value
+		smoke_curr_vapor_density_splash_strength = new_value
+	
+	slider_callbacks_dict["SmokeVaporHeatingSplashStrengthHSlider"] = func(new_value: float) -> void:
+		smoke_vapor_heating_splash_strength_value.text = str(new_value)
+		smoke_vapor_heating_splash_strength_h_slider.value = new_value
+		smoke_curr_vapor_heating_splash_strength = new_value
 	
 	slider_callbacks_dict["SmokeMinAlbedoHSlider"] = func(new_value: float) -> void:
 		var new_val: float = min(new_value, smoke_curr_max_albedo)
@@ -726,7 +736,8 @@ func reset_params() -> void:
 	slider_callbacks_dict["SmokeDenseDownForceHSlider"].call(smoke_default_dense_down_force)
 	slider_callbacks_dict["SmokeHotUpForceHSlider"].call(smoke_default_hot_up_force)
 	slider_callbacks_dict["SmokeVelAbsValLimitHSlider"].call(smoke_default_vel_abs_val_limit)
-	slider_callbacks_dict["SmokeVaporSplashStrengthHSlider"].call(smoke_default_vapor_splash_strength)
+	slider_callbacks_dict["SmokeVaporDensitySplashStrengthHSlider"].call(smoke_default_vapor_density_splash_strength)
+	slider_callbacks_dict["SmokeVaporHeatingSplashStrengthHSlider"].call(smoke_default_vapor_heating_splash_strength)
 	slider_callbacks_dict["SmokeMinAlbedoHSlider"].call(smoke_default_min_albedo)
 	slider_callbacks_dict["SmokeMaxAlbedoHSlider"].call(smoke_default_max_albedo)
 	

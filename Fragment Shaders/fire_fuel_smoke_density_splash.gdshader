@@ -5,7 +5,7 @@ uniform highp sampler2D u_particles_to_grid : filter_linear, repeat_disable;
 uniform highp sampler2D u_obstacles_raw : filter_nearest, repeat_disable;
 uniform highp sampler2D u_splash_mask : filter_nearest, repeat_disable;
 uniform float u_timestep;
-uniform float u_vapor_splash_strength = 1.0;
+uniform float u_vapor_density_splash_strength = 1.0;
 uniform float u_density_dissipation_rate = 0.05;
 
 void fragment() {
@@ -24,13 +24,13 @@ void fragment() {
 
 		highp vec4 splash_mask = texture(u_splash_mask, UV);
 		highp float particles_latent_heat = texture(u_particles_to_grid, UV).b;
-		highp float is_vapor_new = (particles_latent_heat > 0.0 && rho_fuel > 0.0) ? 1.0 : 0.0;
+		highp float is_vapor_new = (particles_latent_heat > 0.0 && rho_fuel > 0.0 && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
 
 		rho_fuel += splash_mask.r * u_timestep;
 		rho_fuel = clamp(rho_fuel, 0.0, 1.0);
 
 		rho_density += splash_mask.g * u_timestep;
-		rho_density += is_vapor_new * u_vapor_splash_strength * u_timestep;
+		rho_density += is_vapor_new * u_vapor_density_splash_strength * u_timestep;
 		rho_density -= u_density_dissipation_rate * u_timestep;
 		rho_density = clamp(rho_density, 0.0, 1.0);
 
