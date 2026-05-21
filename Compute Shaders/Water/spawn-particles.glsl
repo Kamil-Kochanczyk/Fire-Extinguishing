@@ -64,12 +64,16 @@ layout(set = 0, binding = 5, std430) restrict buffer DeadCount {
     int dead_count;
 };
 
-layout(set = 0, binding = 6, std430) restrict writeonly buffer Temperatures {
-    float temperatures[];
-};
+// layout(set = 0, binding = 6, std430) restrict writeonly buffer Temperatures {
+//     float temperatures[];
+// };
 
-layout(set = 0, binding = 7, std430) restrict writeonly buffer LatentHeats {
-    float latent_heats[];
+// layout(set = 0, binding = 7, std430) restrict writeonly buffer LatentHeats {
+//     float latent_heats[];
+// };
+
+layout(set = 0, binding = 6, std430) restrict writeonly buffer Energies {
+    float energies[];
 };
 
 layout(push_constant) uniform Parameters {
@@ -84,7 +88,7 @@ layout(push_constant) uniform Parameters {
     float particle_spacing;
     int spawn_random_offset_x;
     int spawn_random_offset_y;
-    float ambient_temperature;
+    // float ambient_temperature;
 } params;
 
 // deterministic pseudo-random generation of uints
@@ -136,8 +140,9 @@ void main() {
         // spawn the particle and mark it as alive
         positions[dead_particle_id] = spawn_pos;
         velocities[dead_particle_id] = vec2(params.spawn_init_vel_x, params.spawn_init_vel_y);
-        temperatures[dead_particle_id] = params.ambient_temperature;
-        latent_heats[dead_particle_id] = 0.0;
+        // temperatures[dead_particle_id] = params.ambient_temperature;
+        // latent_heats[dead_particle_id] = 0.0;
+        energies[dead_particle_id] = 0.0;
         ages[dead_particle_id] = 0.0;
         is_alive[dead_particle_id] = 1u;
     } else {

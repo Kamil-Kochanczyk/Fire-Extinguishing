@@ -1,7 +1,7 @@
 class_name FireSmokeCompatible
 extends Node2D
 
-@onready var tmp_display: Sprite2D = $TmpDisplay
+@onready var tmp_display_viewport: SubViewport = $TmpDisplayViewport
 
 @onready var particles_to_grid_texture_rect: TextureRect = $ParticlesToGridViewport/TextureRect
 @onready var velocity_sprite: Sprite2D = $VelocityViewport/Sprite2D
@@ -53,6 +53,8 @@ extends Node2D
 @onready var fire_vorticity_scale_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer/FireVorticityScaleValue
 @onready var fire_buoyancy_strength_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer/FireBuoyancyStrengthValue
 @onready var fire_vel_abs_val_limit_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitValue
+@onready var fire_water_heating_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedValue
+@onready var fire_water_vaporization_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedValue
 
 @onready var fire_disturbance_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer/FireDisturbanceRadiusMarginContainer/FireDisturbanceRadiusHSlider
 @onready var fire_disturbance_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer/FireDisturbanceStrengthMarginContainer/FireDisturbanceStrengthHSlider
@@ -65,6 +67,8 @@ extends Node2D
 @onready var fire_vorticity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVorticityScaleHBoxContainer/FireVorticityScaleMarginContainer/FireVorticityScaleHSlider
 @onready var fire_buoyancy_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer/FireBuoyancyStrengthMarginContainer/FireBuoyancyStrengthHSlider
 @onready var fire_vel_abs_val_limit_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitMarginContainer/FireVelAbsValLimitHSlider
+@onready var fire_water_heating_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedMarginContainer/FireWaterHeatingSpeedHSlider
+@onready var fire_water_vaporization_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedMarginContainer/FireWaterVaporizationSpeedHSlider
 
 @onready var fire_obstacle_toggle_check_box: CheckBox = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer/FireObstacleToggleMarginContainer/FireObstacleToggleCheckBox
 @onready var fire_baked_toggle_check_box: CheckBox = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireBakedToggleMarginContainer/FireBakedToggleHBoxContainer/FireBakedToggleCheckBox
@@ -209,6 +213,8 @@ var fire_default_temperature_cool_exponent: float = 1.0
 var fire_default_vorticity_scale: float = 5.0
 var fire_default_buoyancy_strength: float = 10.0
 var fire_default_vel_abs_val_limit: float = 1.0
+var fire_default_water_heating_speed: float = 100.0
+var fire_default_water_vaporization_speed: float = 250.0
 
 var fire_default_obstacle_toggled_on: bool = false
 var fire_default_baked_color_toggled_on: bool = true
@@ -225,6 +231,8 @@ var fire_curr_temperature_cool_exponent: float = fire_default_temperature_cool_e
 var fire_curr_vorticity_scale: float = fire_default_vorticity_scale
 var fire_curr_buoyancy_strength: float = fire_default_buoyancy_strength
 var fire_curr_vel_abs_val_limit: float = fire_default_vel_abs_val_limit
+var fire_curr_water_heating_speed = fire_default_water_heating_speed
+var fire_curr_water_vaporization_speed = fire_default_water_vaporization_speed
 
 var fire_curr_obstacle_toggled_on: bool = fire_default_obstacle_toggled_on
 var fire_curr_baked_color_toggled_on: bool = fire_default_baked_color_toggled_on
@@ -280,6 +288,13 @@ var slider_callbacks_dict: Dictionary = {}
 var toggle_callbacks_dict: Dictionary = {}
 var color_picker_button_callbacks_dict: Dictionary = {}
 
+var particle_mass: float
+var particle_specific_heat_capacity: float
+var particle_specific_latent_heat_vaporization: float
+var particle_heating_energy_cost: float
+var particle_vaporization_energy_cost: float
+var particle_total_energy_cost: float
+
 func fire_smoke_ready() -> void:
 	Engine.max_fps = 120
 	
@@ -307,6 +322,7 @@ func fire_smoke_ready() -> void:
 	
 	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
 	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_init_state", false)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_burn", fire_temp_burn)
@@ -315,6 +331,9 @@ func fire_smoke_ready() -> void:
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_max", smoke_temp_max)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	velocity_forces_sprite.material.set("shader_parameter/u_smoke_temp_ambient", smoke_temp_ambient)
@@ -326,9 +345,6 @@ func fire_smoke_ready() -> void:
 	plancks_law_sprite.material.set("shader_parameter/u_custom_fire_temp", fire_gradient_editor.gradient_texture)
 	plancks_law_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	plancks_law_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	
 	top_margin_container.visible = true
 	fire_bottom_margin_container.visible = false
@@ -373,11 +389,13 @@ func fire_smoke_process(delta: float) -> void:
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_timestep", delta)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_timestep", delta)
 	velocity_forces_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_smoke_temperature_advect_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_fuel_smoke_density_advect_sprite.material.set("shader_parameter/u_timestep", delta)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_timestep", delta)
 	
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_heating_speed", fire_curr_water_heating_speed)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_vaporization_speed", fire_curr_water_vaporization_speed)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_disturbance_radius", fire_curr_disturbance_radius)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_disturbance_strength", fire_curr_disturbance_strength)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_vorticity_scale", fire_curr_vorticity_scale)
@@ -583,6 +601,16 @@ func init_slider_callbacks() -> void:
 		fire_vel_abs_val_limit_h_slider.value = new_value
 		fire_curr_vel_abs_val_limit = new_value
 	
+	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"] = func(new_value: float) -> void:
+		fire_water_heating_speed_value.text = str(new_value)
+		fire_water_heating_speed_h_slider.value = new_value
+		fire_curr_water_heating_speed = new_value
+	
+	slider_callbacks_dict["FireWaterVaporizationSpeedHSlider"] = func(new_value: float) -> void:
+		fire_water_vaporization_speed_value.text = str(new_value)
+		fire_water_vaporization_speed_h_slider.value = new_value
+		fire_curr_water_vaporization_speed = new_value
+	
 	slider_callbacks_dict["SmokeDisturbanceRadiusHSlider"] = func(new_value: float) -> void:
 		smoke_disturbance_radius_value.text = str(new_value)
 		smoke_disturbance_radius_h_slider.value = new_value
@@ -719,6 +747,8 @@ func reset_params() -> void:
 	slider_callbacks_dict["FireVorticityScaleHSlider"].call(fire_default_vorticity_scale)
 	slider_callbacks_dict["FireBuoyancyStrengthHSlider"].call(fire_default_buoyancy_strength)
 	slider_callbacks_dict["FireVelAbsValLimitHSlider"].call(fire_default_vel_abs_val_limit)
+	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"].call(fire_default_water_heating_speed)
+	slider_callbacks_dict["FireWaterVaporizationSpeedHSlider"].call(fire_default_water_vaporization_speed)
 	
 	toggle_callbacks_dict["FireObstacleToggleCheckBox"].call(fire_default_obstacle_toggled_on)
 	toggle_callbacks_dict["FireBakedToggleCheckBox"].call(fire_default_baked_color_toggled_on)
@@ -1289,3 +1319,20 @@ func set_particles_to_grid_connection(particles_texture: Texture2DRD) -> void:
 
 func get_grid_to_particles_connection() -> ViewportTexture:
 	return grid_to_particles_viewport.get_texture()
+
+func set_extinguishing_data(extinguishing_data: Array[float]) -> void:
+	particle_mass = extinguishing_data[0]
+	particle_specific_heat_capacity = extinguishing_data[1]
+	particle_specific_latent_heat_vaporization = extinguishing_data[2]
+	particle_heating_energy_cost = extinguishing_data[3]
+	particle_vaporization_energy_cost = extinguishing_data[4]
+	particle_total_energy_cost = extinguishing_data[5]
+	
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
+	fire_smoke_temperature_sprite.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_mass", particle_mass)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_specific_heat_capacity", particle_specific_heat_capacity)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_specific_latent_heat_vaporization", particle_specific_latent_heat_vaporization)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_vaporization_energy_cost", particle_vaporization_energy_cost)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_total_energy_cost", particle_total_energy_cost)

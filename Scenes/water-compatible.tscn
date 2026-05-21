@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://bs31tu7ihq6ph"]
+[gd_scene load_steps=22 format=3 uid="uid://bs31tu7ihq6ph"]
 
 [ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
 [ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
@@ -41,6 +41,10 @@ shader_parameter/u_n_to_v_scale_factor = Vector2(0, 0)
 shader_parameter/u_particle_vis_size = 0.0
 shader_parameter/u_particle_temp_ambient = 0.0
 shader_parameter/u_particle_temp_max = 0.0
+shader_parameter/u_heating_energy_cost = 0.0
+shader_parameter/u_vaporization_energy_cost = 0.0
+shader_parameter/u_mass = 0.0
+shader_parameter/u_specific_heat_capacity = 0.0
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_bjixy"]
 viewport_path = NodePath("ParticlesSubViewport")
@@ -73,6 +77,12 @@ corner_radius_top_left = 5
 corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
+
+[sub_resource type="LabelSettings" id="LabelSettings_wojkn"]
+font_size = 10
+
+[sub_resource type="LabelSettings" id="LabelSettings_2i0ow"]
+font_size = 10
 
 [node name="WaterCompatible" type="Node2D"]
 script = ExtResource("1_slmpt")
@@ -366,12 +376,12 @@ size_flags_vertical = 1
 min_value = -2.0
 max_value = 10.0
 step = 0.01
-value = 1.0
+value = 2.0
 
 [node name="StiffnessNearValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "1.0"
+text = "2.0"
 
 [node name="ViscosityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -933,14 +943,13 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 1000.0
 step = 0.1
-value = 250.0
+value = 100.0
 
 [node name="HeatingSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "250.0"
+text = "100.0"
 
 [node name="VaporizationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -959,7 +968,7 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 1000.0
+max_value = 250.0
 step = 0.1
 value = 250.0
 
@@ -967,6 +976,44 @@ value = 250.0
 layout_mode = 2
 size_flags_vertical = 1
 text = "250.0"
+
+[node name="LerpFactorHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LerpFactor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Lerp Factor"
+
+[node name="LerpFactorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="HSliderHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer"]
+layout_mode = 2
+
+[node name="Grainier" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer"]
+layout_mode = 2
+text = "Grainier"
+label_settings = SubResource("LabelSettings_wojkn")
+
+[node name="LerpFactorHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1.0
+step = 0.001
+
+[node name="Smoother" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer"]
+layout_mode = 2
+text = "Smoother"
+label_settings = SubResource("LabelSettings_2i0ow")
+
+[node name="LerpFactorValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.0"
 
 [node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

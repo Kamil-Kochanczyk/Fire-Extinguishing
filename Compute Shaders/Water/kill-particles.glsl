@@ -31,28 +31,35 @@ layout(set = 0, binding = 6, std430) restrict buffer DeadCount {
     int dead_count;
 };
 
-layout(set = 0, binding = 7, std430) restrict buffer Temperatures {
-    float temperatures[];
+// layout(set = 0, binding = 7, std430) restrict buffer Temperatures {
+//     float temperatures[];
+// };
+
+// layout(set = 0, binding = 8, std430) restrict buffer LatentHeats {
+//     float latent_heats[];
+// };
+
+layout(set = 0, binding = 7, std430) restrict buffer Energies {
+    float energies[];
 };
 
-layout(set = 0, binding = 8, std430) restrict buffer LatentHeats {
-    float latent_heats[];
-};
-
-layout(set = 0, binding = 9, rgba16f) uniform restrict readonly image2D grid_to_particles_img;
+layout(set = 0, binding = 8, rgba16f) uniform restrict readonly image2D grid_to_particles_img;
 
 layout(push_constant) uniform Parameters {
     uint particle_count;
     float delta;
     float grid_to_particles_img_size_x;
     float grid_to_particles_img_size_y;
+    float mass;
     float ambient_temperature;
     float max_temperature;
-    float latent_heat_vaporization;
-    float mass;
     float specific_heat_capacity;
+    float heating_energy_cost;
+    float vaporization_energy_cost;
+    float total_energy_cost;    // heating_energy_cost + vaporization_energy_cost
     float heating_speed;
     float vaporization_speed;
+    float lerp_factor;
 } params;
 
 // Wang hash function for generating random numbers on the GPU
@@ -64,6 +71,18 @@ float random(uint x) {
     x *= 0x27d4eb2du;
     x = x ^ (x >> 15u);
     return float(x) / 4294967295.0;
+}
+
+float get_temperature(float energy) {
+    return params.ambient_temperature + (min(energy, params.heating_energy_cost) / (params.mass * params.specific_heat_capacity));
+}
+
+float get_latent_heat(float energy) {
+    return max(energy - params.heating_energy_cost, 0.0);
+}
+
+float get_energy(float temperature, float latent_heat) {
+    return (params.mass * params.specific_heat_capacity * (temperature - params.ambient_temperature)) + latent_heat;
 }
 
 void main() {
@@ -128,15 +147,15 @@ void main() {
             // float lerp_factor = 0.005;
             // float new_temperature = max(mix(temperatures[id] + delta_temperature, modified_temperature, lerp_factor), params.ambient_temperature); // ensure temperature doesn't go below ambient
             
-            // nearest neighbor sampling
-            vec2 pos = positions[id];
-            vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
-            vec2 grid_space_pos = vec2(clamped_pos.x * params.grid_to_particles_img_size_x, clamped_pos.y * params.grid_to_particles_img_size_y);
-            ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
-            vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
-            float fire_energy = pixel.r;
-            float modified_temperature = pixel.g;
-            float modified_latent_heat = pixel.b;
+            // // nearest neighbor sampling
+            // vec2 pos = positions[id];
+            // vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
+            // vec2 grid_space_pos = vec2(clamped_pos.x * params.grid_to_particles_img_size_x, clamped_pos.y * params.grid_to_particles_img_size_y);
+            // ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
+            // vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
+            // float fire_energy = pixel.r;
+            // float modified_temperature = pixel.g;
+            // float modified_latent_heat = pixel.b;
 
             // // bilinear interpolation sampling
             // vec2 pos = positions[id];
@@ -159,24 +178,68 @@ void main() {
             // float modified_temperature = pixel.g;
             // float modified_latent_heat = pixel.b;
 
-            float temperature = temperatures[id];
-            float latent_heat = latent_heats[id];
+            // nearest neighbor sampling
+            vec2 pos = positions[id];
+            vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
+            vec2 grid_space_pos = vec2(clamped_pos.x * params.grid_to_particles_img_size_x, clamped_pos.y * params.grid_to_particles_img_size_y);
+            ivec2 pixel_pos = ivec2(clamp(round(grid_space_pos), vec2(0.0), vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0)));
+            vec4 pixel = imageLoad(grid_to_particles_img, pixel_pos);
+            float fire_energy = pixel.r;
+            float modified_energy = pixel.g;
 
-            float heating_energy_desirable = params.mass * params.specific_heat_capacity * (params.max_temperature - temperature);
+            // // bilinear interpolation sampling
+            // vec2 pos = positions[id];
+            // vec2 clamped_pos = clamp(pos, vec2(0.0), vec2(1.0));
+            // vec2 grid_space_pos = clamped_pos * vec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0);
+            // vec2 base_f = floor(grid_space_pos);
+            // ivec2 base = ivec2(base_f);
+            // vec2 frac = grid_space_pos - base_f;
+            // ivec2 max_pixel = ivec2(params.grid_to_particles_img_size_x - 1.0, params.grid_to_particles_img_size_y - 1.0);
+            // ivec2 p00 = clamp(base, ivec2(0), max_pixel);
+            // ivec2 p10 = clamp(base + ivec2(1, 0), ivec2(0), max_pixel);
+            // ivec2 p01 = clamp(base + ivec2(0, 1), ivec2(0), max_pixel);
+            // ivec2 p11 = clamp(base + ivec2(1, 1), ivec2(0), max_pixel);
+            // vec4 c00 = imageLoad(grid_to_particles_img, p00);
+            // vec4 c10 = imageLoad(grid_to_particles_img, p10);
+            // vec4 c01 = imageLoad(grid_to_particles_img, p01);
+            // vec4 c11 = imageLoad(grid_to_particles_img, p11);
+            // vec4 pixel = mix(mix(c00, c10, frac.x), mix(c01, c11, frac.x), frac.y);
+            // float fire_energy = pixel.r;
+            // float modified_energy = pixel.g;
+
+            float energy = energies[id];
+            float temperature = get_temperature(energy);
+            float latent_heat = get_latent_heat(energy);
+
+            float current_heating_energy = min(energy, params.heating_energy_cost);
+            float heating_energy_desirable = params.heating_energy_cost - current_heating_energy;
             float heating_energy_used = min(fire_energy, heating_energy_desirable);
             temperature += (params.heating_speed * (heating_energy_used / (params.mass * params.specific_heat_capacity)));
-            temperature = max(min(temperature, params.max_temperature), params.ambient_temperature); // ensure temperature stays within [ambient, max]
-            float fire_energy_left = fire_energy - heating_energy_used;
-            float vaporization_energy_desirable = params.latent_heat_vaporization - latent_heat;
-            float vaporization_energy_used = min(fire_energy_left, vaporization_energy_desirable);
-            latent_heat += (params.vaporization_speed * vaporization_energy_used);
-            latent_heat = max(min(latent_heat, params.latent_heat_vaporization), 0.0); // ensure latent heat stays within [0, latent_heat_vaporization]
+            temperature = mix(temperature, get_temperature(modified_energy), params.lerp_factor);    // 0 -> temp computed here based on the fire energy (FLIP-like, grainy), 1 -> temp precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
+            temperature = clamp(temperature, params.ambient_temperature, params.max_temperature);    // ensure temperature stays within [ambient, max]
+
+            // only when the particle reaches the max temperature, it can start vaporizing and thus gain latent heat
+            if (temperature >= params.max_temperature) {
+                float fire_energy_left = fire_energy - heating_energy_used;
+                float vaporization_energy_desirable = params.vaporization_energy_cost - latent_heat;
+                float vaporization_energy_used = min(fire_energy_left, vaporization_energy_desirable);
+                latent_heat += (params.vaporization_speed * vaporization_energy_used);
+                latent_heat = mix(latent_heat, get_latent_heat(modified_energy), params.lerp_factor);    // 0 -> latent heat computed here based on the fire energy (FLIP-like, grainy), 1 -> latent heat precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
+                latent_heat = clamp(latent_heat, 0.0, params.vaporization_energy_cost);    // ensure latent heat stays within [0, vaporization_energy_cost]
+            }
+
+            float new_energy = clamp(get_energy(temperature, latent_heat), 0.0, params.total_energy_cost);
+
+            // relative errors seem to be small near fire, usually < 1%, sometimes up to 10%
+            // occasionally we get very, very, very high errors and it's probably due to big difference between the particle's energy and the max energy stored in the corresponding grid cell in store-particle-info.glsl
+            // tmp[id] = (new_energy - modified_energy) / abs(max(1e-6, new_energy));
 
             // if age exceeds lifetime of a mortal particle or latent heat reaches vaporization threshold, this particle is killed (becomes dead)
-            if ((age > lifetime) || (latent_heat >= params.latent_heat_vaporization)) {
+            if ((age > lifetime) || (new_energy >= params.total_energy_cost)) {
                 ages[id] = 0.0;
-                temperatures[id] = params.ambient_temperature;
-                latent_heats[id] = 0.0;
+                // temperatures[id] = params.ambient_temperature;
+                // latent_heats[id] = 0.0;
+                energies[id] = 0.0;
                 is_alive[id] = 0u;
 
                 // move the killed particle to a random position outside the simulation domain [0,1]x[0,1] using positive coordinates between 2.0 and 12.0
@@ -195,8 +258,9 @@ void main() {
             else {
                 // the particle stays alive but its age is increased and its temperature is updated
                 ages[id] = age;
-                temperatures[id] = temperature;
-                latent_heats[id] = latent_heat;
+                // temperatures[id] = temperature;
+                // latent_heats[id] = latent_heat;
+                energies[id] = new_energy;
             }
         }
     }

@@ -4,7 +4,7 @@
 // compute shader used to visualize that the neighborhood search actually works
 // it calculates 0/1 flags for all particles
 // those flags mark whether a given particle is a neighbor of some chosen, verbose particle, or not
-// this compute shader isoutdated and shouldn't be used anymore due to the fact that the texture used here is now used to store the temperatures of the particles
+// this compute shader isoutdated and shouldn't be used anymore due to the fact that the texture used here is now used to store the energies of the particles
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 

@@ -17,6 +17,7 @@ uniform highp float u_smoke_temp_max = 500.0;    // Kelvin
 uniform float u_smoke_temp_dissipation_rate = 0.05;
 
 uniform float u_vapor_heating_splash_strength = 1.0;
+uniform float u_heating_energy_cost;    // J
 
 void fragment() {
 	if (u_init_state) {
@@ -31,9 +32,11 @@ void fragment() {
 		//highp float rho_fuel = rho_fuel_is_vapor.x;
 		
 		// mimick the vapor density splash logic here
-		highp float rho_fuel_previous = texture(u_fire_fuel_smoke_density_advect, UV).r;
-		highp float particles_latent_heat = texture(u_particles_to_grid, UV).b;
-		highp float is_vapor_previous = (particles_latent_heat > 0.0 && rho_fuel_previous > 0.0) ? 1.0 : 0.0;
+		//highp float rho_fuel_previous = texture(u_fire_fuel_smoke_density_advect, UV).r;
+		highp float particles_energy = texture(u_particles_to_grid, UV).g;
+		highp float particles_latent_heat = max(particles_energy - u_heating_energy_cost, 0.0);
+		//highp float is_vapor_previous = (particles_latent_heat > 0.0 && rho_fuel_previous > 0.0) ? 1.0 : 0.0;
+		highp float is_vapor_previous = (particles_latent_heat > 0.0 && fire_temp_previous > u_fire_temp_ambient) ? 1.0 : 0.0;
 		
 		highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
 		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);

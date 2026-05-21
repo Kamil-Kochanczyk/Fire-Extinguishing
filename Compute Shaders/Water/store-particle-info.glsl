@@ -25,23 +25,30 @@ layout(set = 0, binding = 4, std430) restrict readonly buffer Densities {
     float densities[];
 };
 
-layout(set = 0, binding = 5, std430) restrict readonly buffer Temperatures {
-    float temperatures[];
+// layout(set = 0, binding = 5, std430) restrict readonly buffer Temperatures {
+//     float temperatures[];
+// };
+
+// layout(set = 0, binding = 6, std430) restrict readonly buffer LatentHeats {
+//     float latent_heats[];
+// };
+
+layout(set = 0, binding = 5, std430) restrict readonly buffer Energies {
+    float energies[];
 };
 
-layout(set = 0, binding = 6, std430) restrict readonly buffer LatentHeats {
-    float latent_heats[];
-};
-
-layout(set = 0, binding = 7, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
+layout(set = 0, binding = 6, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
 
 layout(push_constant) uniform Parameters {
     uint particle_count;
     float smoothing_radius;    // cell size
     float poly6_2d_constant;    // 4 / (π * h^8)
     float mass;
-    float max_temperature;
-    float latent_heat_vaporization;
+    // float ambient_temperature;
+    // float max_temperature;
+    // float latent_heat_vaporization;
+    // float specific_heat_capacity;
+    float total_energy_cost;
 } params;
 
 uint hash_cell(ivec2 cell) {
@@ -60,10 +67,12 @@ void main() {
 
     // float temperature_sum = 0.0;
     // float weight_sum = 0.0;
-    float temperature = 0.0;
+    // float temperature = 0.0;
     // float count = 0.0;
 
-    float latent_heat = 0.0;
+    // float latent_heat = 0.0;
+
+    float energy = 0.0;
 
     vec2 uv = (vec2(pixel_coords) + 0.5) / vec2(img_size);
 
@@ -105,12 +114,14 @@ void main() {
                     // temperature_sum += w * params.mass * temperatures[neighbor_idx];
                     // weight_sum += w * params.mass;
 
-                    temperature = max(temperature, temperatures[neighbor_idx]);    // take the maximum temperature among the particles in the neighboring cells
+                    // temperature = max(temperature, temperatures[neighbor_idx]);    // take the maximum temperature among the particles in the neighboring cells
 
                     // temperature += temperatures[neighbor_idx];
                     // count += 1.0;
 
-                    latent_heat = max(latent_heat, latent_heats[neighbor_idx]);    // take the maximum latent heat among the particles in the neighboring cells
+                    // latent_heat = max(latent_heat, latent_heats[neighbor_idx]);    // take the maximum latent heat among the particles in the neighboring cells
+
+                    energy = max(energy, energies[neighbor_idx]);    // take the maximum energy among the particles in the neighboring cells, maximum helps against numerical dissipation
                 }
             }
         }
@@ -124,5 +135,15 @@ void main() {
 
     // temperature = (weight_sum > 0.0) ? (temperature_sum / weight_sum) : 0.0;    // weighted average temperature of the particles in the neighboring cells
 
-    imageStore(particles_to_grid_img, pixel_coords, vec4(density, min(temperature, params.max_temperature), min(latent_heat, params.latent_heat_vaporization), 0.33));
+    // temperature = min(temperature, params.max_temperature);    // clamp temperature to the maximum allowed value
+    // latent_heat = min(latent_heat, params.latent_heat_vaporization);    // clamp latent heat to the maximum allowed value
+
+    // vec2 texel_size = 1.0 / vec2(img_size);
+    // float mass = density * (texel_size.x * texel_size.y);    // mass = density * volume (in 2D, volume is area)
+    // float heating_contribution = mass * params.specific_heat_capacity * (temperature - params.ambient_temperature);
+    // float vaporization_contribution = mass * latent_heat;
+    // float total_contribution = heating_contribution + vaporization_contribution;
+
+    // imageStore(particles_to_grid_img, pixel_coords, vec4(density, temperature, latent_heat, total_contribution));
+    imageStore(particles_to_grid_img, pixel_coords, vec4(density, energy, 0.0, 0.33));
 }

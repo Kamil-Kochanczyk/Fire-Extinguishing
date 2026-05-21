@@ -35,11 +35,15 @@ layout(set = 0, binding = 7, std430) restrict readonly buffer IsAlive {
     uint is_alive[];
 };
 
-layout(set = 0, binding = 8, std430) restrict readonly buffer Temperatures {
-    float temperatures[];
+// layout(set = 0, binding = 8, std430) restrict readonly buffer Temperatures {
+//     float temperatures[];
+// };
+
+layout(set = 0, binding = 8, std430) restrict readonly buffer Energies {
+    float energies[];
 };
 
-layout(set = 0, binding = 9, rgba32f) uniform restrict writeonly image2D particle_pos_temp_img;
+layout(set = 0, binding = 9, rgba32f) uniform restrict writeonly image2D particle_pos_ener_img;
 
 layout(set = 0, binding = 10, r32f) uniform restrict readonly image2D glass_sdf_img;
 
@@ -51,7 +55,7 @@ layout(push_constant) uniform Parameters {
     float damping;    // e.g. 0.999
     float bounds_damping;    // e.g. 0.5
     float vel_clamp;    // e.g. 1.0
-    float particle_pos_temp_img_size;    // assuming square image, width = height
+    float particle_pos_ener_img_size;    // assuming square image, width = height
     float sdf_imgs_size_x;    // both SDF-related images have the same size
     float sdf_imgs_size_y;    // like above
     float adhesion_scale;
@@ -413,7 +417,7 @@ void main() {
 
     // if we don't visualize neighborhood search, this pass is the last pass where we can write to the rendering texture
     if (params.vis_neighborhood_search == 0u) {
-        ivec2 pixel_pos = ivec2(int(mod(id, params.particle_pos_temp_img_size)), int(id / params.particle_pos_temp_img_size));
-        imageStore(particle_pos_temp_img, pixel_pos, vec4(positions[id].x, positions[id].y, temperatures[id], 0.0));
+        ivec2 pixel_pos = ivec2(int(mod(id, params.particle_pos_ener_img_size)), int(id / params.particle_pos_ener_img_size));
+        imageStore(particle_pos_ener_img, pixel_pos, vec4(positions[id].x, positions[id].y, energies[id], 0.0));
     }
 }

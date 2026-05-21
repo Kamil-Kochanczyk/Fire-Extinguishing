@@ -1,6 +1,6 @@
 shader_type particles;
 
-uniform highp sampler2D u_particle_pos_temp_img : filter_nearest, repeat_disable;
+uniform highp sampler2D u_particle_pos_ener_img : filter_nearest, repeat_disable;
 uniform vec4 u_particle_color;
 //uniform vec4 u_verbose_particle_color;
 //uniform vec4 u_neighbor_particle_color;
@@ -8,6 +8,10 @@ uniform vec2 u_n_to_v_scale_factor;
 uniform highp float u_particle_vis_size;
 uniform float u_particle_temp_ambient;
 uniform float u_particle_temp_max;
+uniform float u_heating_energy_cost;
+uniform float u_vaporization_energy_cost;
+uniform float u_mass;
+uniform float u_specific_heat_capacity;
 
 //const float THRESHOLD = 0.5;
 
@@ -20,8 +24,8 @@ void process() {
 	// called every frame on existing particles (according to the Fixed FPS property)
 	
 	// we assume a square image
-	ivec2 particle_pos_img_size = textureSize(u_particle_pos_temp_img, 0);
-	float size = float(particle_pos_img_size.x);
+	ivec2 particle_pos_ener_img_size = textureSize(u_particle_pos_ener_img, 0);
+	float size = float(particle_pos_ener_img_size.x);
 	
 	// INDEX - particle index (from total particles)
 	float idx = float(INDEX);
@@ -29,9 +33,10 @@ void process() {
 	
 	// positions in normalized coordinates (viewport independent)
 	// temperatures in unnormalized coordinates
-	vec4 particle_pos_temp = texelFetch(u_particle_pos_temp_img, texel_pos, 0);
-	vec2 particle_pos = particle_pos_temp.rg;
-	float particle_temp = particle_pos_temp.b;
+	vec4 particle_pos_ener = texelFetch(u_particle_pos_ener_img, texel_pos, 0);
+	vec2 particle_pos = particle_pos_ener.rg;
+	//float particle_temp = particle_pos_temp.b;
+	float particle_ener = particle_pos_ener.b;
 	
 	/*
 	TRANSFORM matrix (4x4, homogenous coordinates)
@@ -77,7 +82,12 @@ void process() {
 	
 	// R channel -> density
 	// G channel -> temperature
-	vec4 final_color = vec4(u_particle_color.r, (particle_temp - u_particle_temp_ambient) / (u_particle_temp_max - u_particle_temp_ambient), 0.0, 1.0);
+	// B channel -> latent heat
+	float temperature = u_particle_temp_ambient + (min(particle_ener, u_heating_energy_cost) / (u_mass * u_specific_heat_capacity));
+	float normalized_temperature = (temperature - u_particle_temp_ambient) / (u_particle_temp_max - u_particle_temp_ambient);
+	float latent_heat = max(particle_ener - u_heating_energy_cost, 0.0);
+	float normalized_latent_heat = latent_heat / u_vaporization_energy_cost;
+	vec4 final_color = vec4(u_particle_color.r, normalized_temperature, normalized_latent_heat, 1.0);
 	
 	COLOR = final_color;
 }

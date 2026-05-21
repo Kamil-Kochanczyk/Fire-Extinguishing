@@ -17,11 +17,13 @@ viewport_path = NodePath("WaterSubViewport")
 script = ExtResource("1_wcyfl")
 
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("3_rq2oy")]
+visible = false
 pressure_jacobi_iterations = 20
 viewport_size = Vector2i(512, 512)
 pg_gp_size = Vector2i(512, 512)
 
 [node name="WaterCompatible" parent="." instance=ExtResource("2_wcyfl")]
+visible = false
 viewport_size = Vector2i(512, 512)
 low_res_size = Vector2i(512, 512)
 sim_steps_per_frame = 3
@@ -33,5 +35,4 @@ pg_gp_size = Vector2i(512, 512)
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_wcyfl"), SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu")])
 
 [node name="TmpDisplay" type="Sprite2D" parent="."]
-visible = false
 centered = false
