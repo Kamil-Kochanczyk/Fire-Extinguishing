@@ -2,7 +2,7 @@ shader_type canvas_item;
 render_mode blend_disabled;
 
 uniform highp sampler2D u_fire_fuel_smoke_density_splash : filter_nearest, repeat_disable;
-uniform highp sampler2D u_fire_temperature_cool : filter_nearest, repeat_disable;
+uniform highp sampler2D u_fire_temperature_extinguish : filter_nearest, repeat_disable;
 
 uniform highp float u_timestep;
 
@@ -159,8 +159,8 @@ void fragment() {
 	vec2 fire_vorticity = fire_vort(TEXTURE, UV, TEXTURE_PIXEL_SIZE, u_fire_vorticity_scale);
 	vec2 smoke_vorticity = smoke_vort(TEXTURE, UV, TEXTURE_PIXEL_SIZE, u_smoke_vorticity_scale);
 	
-	vec2 fire_buoyancy = fire_buoy(u_fire_temperature_cool, UV);
-	vec2 smoke_buoyancy = smoke_buoy(u_fire_fuel_smoke_density_splash, u_fire_temperature_cool, UV);
+	vec2 fire_buoyancy = fire_buoy(u_fire_temperature_extinguish, UV);
+	vec2 smoke_buoyancy = smoke_buoy(u_fire_fuel_smoke_density_splash, u_fire_temperature_extinguish, UV);
 	
 	vec2 fire_velocity_final = fire_velocity + fire_disturbance + fire_vorticity + fire_buoyancy;
 	vec2 smoke_velocity_final = smoke_velocity + smoke_disturbance + smoke_vorticity + smoke_buoyancy;

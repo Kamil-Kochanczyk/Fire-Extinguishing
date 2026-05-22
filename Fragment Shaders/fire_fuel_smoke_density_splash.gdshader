@@ -4,6 +4,7 @@ render_mode blend_disabled;
 uniform highp sampler2D u_particles_to_grid : filter_linear, repeat_disable;
 uniform highp sampler2D u_obstacles_raw : filter_nearest, repeat_disable;
 uniform highp sampler2D u_splash_mask : filter_nearest, repeat_disable;
+uniform highp sampler2D u_extinguish_mask : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_smoke_temperature_advect : filter_nearest, repeat_disable;
 uniform float u_timestep;
 uniform float u_vapor_density_splash_strength = 1.0;
@@ -32,9 +33,16 @@ void fragment() {
 		highp float particles_latent_heat = max(particles_energy - u_heating_energy_cost, 0.0);
 		//highp float is_vapor_new = (particles_latent_heat > 0.0 && rho_fuel > 0.0 && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
 		highp float is_vapor_new = (particles_latent_heat > 0.0 && fire_temp > u_fire_temp_ambient && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
-
-		rho_fuel += splash_mask.r * u_timestep;
-		rho_fuel = clamp(rho_fuel, 0.0, 1.0);
+		
+		float extinguish_mask = texture(u_extinguish_mask, UV).r;
+		
+		if (extinguish_mask > 0.5) {
+			rho_fuel = 0.0;
+		}
+		else {
+			rho_fuel += splash_mask.r * u_timestep;
+			rho_fuel = clamp(rho_fuel, 0.0, 1.0);
+		}
 
 		rho_density += splash_mask.g * u_timestep;
 		rho_density += is_vapor_new * u_vapor_density_splash_strength * u_timestep;

@@ -6,6 +6,7 @@ uniform highp float u_timestep;
 uniform highp float u_water_heating_speed = 250.0;
 uniform highp float u_water_vaporization_speed = 250.0;
 uniform float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform float u_fire_temp_max = 2000.0;    // Kelvin
 uniform float u_particle_temp_ambient = 300.0;    // Kelvin
 uniform float u_particle_temp_max = 373.0;    // Kelvin
 uniform highp float u_mass;
@@ -32,6 +33,8 @@ void fragment() {
 	// probably due to numerical issues without allowing slightly bigger values, the thresholds will never be reached
 	const float OVERESTIMATE = 1.001;
 	
+	highp float area = TEXTURE_PIXEL_SIZE.x * TEXTURE_PIXEL_SIZE.y;
+	
 	highp vec4 orig = texture(TEXTURE, UV);
 	highp float particles_density = orig.r;
 	highp float particle_energy = orig.g;
@@ -44,10 +47,15 @@ void fragment() {
 	highp float modified_particle_latent_heat = particle_latent_heat;
 	
 	// Stefan-Boltzmann law (radiative heat transfer, very simple)
+	// assuming uniform energy distribution, so the energy is proportional to area
 	highp float emissivity = 1.0;
 	highp float fire_temperature = texture(u_fire_temperature_cool, UV).r;
-	highp float fire_energy = (fire_temperature * fire_temperature * fire_temperature * fire_temperature) * emissivity * 0.00000005670374419 * (TEXTURE_PIXEL_SIZE.x * TEXTURE_PIXEL_SIZE.y) * u_timestep;
+	highp float fire_energy = (fire_temperature * fire_temperature * fire_temperature * fire_temperature) * emissivity * 0.00000005670374419 * area * u_timestep;
 	fire_energy = (fire_temperature > u_fire_temp_ambient) ? fire_energy : 0.0;
+	highp float fire_energy_ambient = (u_fire_temp_ambient * u_fire_temp_ambient * u_fire_temp_ambient * u_fire_temp_ambient) * emissivity * 0.00000005670374419 * area * u_timestep;
+	fire_energy_ambient = (fire_energy > 0.0) ? fire_energy_ambient : 0.0;
+	highp float fire_energy_max = (u_fire_temp_max * u_fire_temp_max * u_fire_temp_max * u_fire_temp_max) * emissivity * 0.00000005670374419 * area * u_timestep;
+	fire_energy_max = (fire_energy > 0.0) ? fire_energy_max : 0.0;
 	
 	highp float fire_energy_lost = 0.0;
 	
@@ -78,9 +86,9 @@ void fragment() {
 		modified_particle_energy = clamp(get_energy(modified_particle_temperature, modified_particle_latent_heat), 0.0, OVERESTIMATE * u_total_energy_cost);
 	}
 	
-	fire_energy_lost *= particles_density;
+	highp float cooling_factor = -(particles_density * (fire_energy_lost / fire_energy));
 	
-	COLOR = vec4(fire_energy, modified_particle_energy, fire_energy_lost, orig.a);
+	COLOR = vec4(fire_energy, modified_particle_energy, cooling_factor, orig.a);
 	
 	//highp float delta_temperature;
 	//highp float modified_temperature;

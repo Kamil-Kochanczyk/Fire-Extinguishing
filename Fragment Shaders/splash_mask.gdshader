@@ -20,7 +20,10 @@ void fragment() {
 	// R - fire fuel mask
 	// G - smoke density/heating mask
 	// B - smoke cooling mask
-	vec3 previous_mask = texture(TEXTURE, UV).rgb;
+	// A - extinguish mask
+	vec4 previous = texture(TEXTURE, UV);
+
+	vec3 previous_mask = previous.rgb;
 	vec3 new_mask = previous_mask;
 
 	bool x_pos_ok = u_fuel_splash_position.x >= 0.0 && u_fuel_splash_position.x <= 1.0;
@@ -74,5 +77,5 @@ void fragment() {
 		}
 	}
 
-	COLOR = vec4(new_mask, 0.5);
+	COLOR = vec4(new_mask.r, new_mask.g, new_mask.b, 0.5);
 }

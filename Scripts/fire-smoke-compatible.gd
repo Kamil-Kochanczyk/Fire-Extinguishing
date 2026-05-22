@@ -10,6 +10,8 @@ extends Node2D
 @onready var fire_smoke_temperature_sprite: Sprite2D = $FireSmokeTemperatureViewport/Sprite2D
 @onready var fire_fuel_burn_sprite: Sprite2D = $FireFuelBurnViewport/Sprite2D
 @onready var fire_temperature_cool_sprite: Sprite2D = $FireTemperatureCoolViewport/Sprite2D
+@onready var fire_temperature_extinguish_sprite: Sprite2D = $FireTemperatureExtinguishViewport/Sprite2D
+@onready var extinguish_mask_sprite: Sprite2D = $ExtinguishMaskViewport/Sprite2D
 @onready var velocity_forces_sprite: Sprite2D = $VelocityForcesViewport/Sprite2D
 @onready var pressure_init_sprite: Sprite2D = $PressureInitViewport/Sprite2D
 @onready var velocity_div_free_sprite: Sprite2D = $VelocityDivFreeViewport/Sprite2D
@@ -23,6 +25,7 @@ extends Node2D
 @onready var obstacles_raw_viewport: SubViewport = $ObstaclesRawViewport
 @onready var obstacles_edges_viewport: SubViewport = $ObstaclesEdgesViewport
 @onready var splash_mask_helper_viewport: SubViewport = $SplashMaskHelperViewport
+@onready var extinguish_mask_helper_viewport: SubViewport = $ExtinguishMaskHelperViewport
 @onready var divergence_viewport: SubViewport = $DivergenceViewport
 @onready var pressure_init_viewport: SubViewport = $PressureInitViewport
 @onready var velocity_div_free_viewport: SubViewport = $VelocityDivFreeViewport
@@ -122,8 +125,9 @@ extends Node2D
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
 @export var pg_gp_size: Vector2i = Vector2i(256, 256)
 @export var fire_temp_ambient: float = 300.0
-@export var fire_temp_burn: float = 2000.0
 @export var fire_temp_max: float = 2000.0
+@export var fire_temp_burn: float = 2000.0
+@export var fire_temp_extinguish: float = 300.0
 @export var smoke_temp_ambient: float = 300.0
 @export var smoke_temp_max: float = 500.0
 @export var particle_temp_ambient: float = 300.0
@@ -317,6 +321,7 @@ func fire_smoke_ready() -> void:
 	splash_mask_sprite.texture = splash_mask_helper_viewport.get_texture()
 	fire_fuel_smoke_density_splash_sprite.texture = fire_fuel_smoke_density_advect_viewport.get_texture()
 	fire_smoke_temperature_sprite.texture = fire_smoke_temperature_advect_viewport.get_texture()
+	extinguish_mask_sprite.texture = extinguish_mask_helper_viewport.get_texture()
 	pressure_init_sprite.texture = pressure_boundary_last.get_texture()
 	velocity_div_free_sprite.texture = pressure_boundary_last.get_texture()
 	
@@ -332,8 +337,12 @@ func fire_smoke_ready() -> void:
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
+	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
+	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
+	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	velocity_forces_sprite.material.set("shader_parameter/u_smoke_temp_ambient", smoke_temp_ambient)
@@ -389,6 +398,7 @@ func fire_smoke_process(delta: float) -> void:
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_timestep", delta)
+	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_timestep", delta)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_timestep", delta)
 	velocity_forces_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_smoke_temperature_advect_sprite.material.set("shader_parameter/u_timestep", delta)

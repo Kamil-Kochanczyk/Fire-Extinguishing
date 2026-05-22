@@ -1,4 +1,4 @@
-[gd_scene load_steps=88 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=99 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -14,8 +14,10 @@
 [ext_resource type="Shader" uid="uid://xwynpsffae4g" path="res://Fragment Shaders/velocity_forces_for_fire_smoke.gdshader" id="10_v6dpt"]
 [ext_resource type="Shader" uid="uid://ddxpkklgkfr02" path="res://Fragment Shaders/velocity_outflow_boundary.gdshader" id="11_c4pv6"]
 [ext_resource type="Shader" uid="uid://bwixeg1bgldft" path="res://Fragment Shaders/divergence.gdshader" id="12_y6upe"]
+[ext_resource type="Shader" uid="uid://byjhuc0btbecy" path="res://Fragment Shaders/fire_temperature_extinguish.gdshader" id="13_1pbsg"]
 [ext_resource type="Shader" uid="uid://bysm6j852u00b" path="res://Fragment Shaders/pressure_init.gdshader" id="13_lp386"]
 [ext_resource type="Shader" uid="uid://catifx2o5n3hb" path="res://Fragment Shaders/velocity_div_free.gdshader" id="14_11fkg"]
+[ext_resource type="Shader" uid="uid://dore7ne65hki0" path="res://Fragment Shaders/extinguish_mask.gdshader" id="14_xnvxc"]
 [ext_resource type="Shader" uid="uid://b3jybqmncimd2" path="res://Fragment Shaders/fire_smoke_temperature_advect.gdshader" id="15_kb7fg"]
 [ext_resource type="Shader" uid="uid://c0g0k8pj4cyvc" path="res://Fragment Shaders/fire_fuel_smoke_density_advect.gdshader" id="16_oj18q"]
 [ext_resource type="Shader" uid="uid://dgidqstkgc4fr" path="res://Fragment Shaders/plancks_law.gdshader" id="17_t424u"]
@@ -43,6 +45,7 @@ shader = ExtResource("4_cwdux")
 shader_parameter/u_timestep = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cwdux"]
+resource_local_to_scene = true
 shader = ExtResource("5_cphy5")
 shader_parameter/u_fuel_splash_position = Vector2(-1, -1)
 shader_parameter/u_fuel_splash_radius = 0.1
@@ -59,6 +62,9 @@ shader_parameter/u_cooling_eraser_off = 1
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_1pbsg"]
 viewport_path = NodePath("SplashMaskViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_w6xmb"]
+viewport_path = NodePath("ExtinguishMaskViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_v6dpt"]
 viewport_path = NodePath("FireSmokeTemperatureAdvectViewport")
@@ -78,6 +84,7 @@ shader = ExtResource("5_kid1v")
 shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_jj6as")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_cwdux")
+shader_parameter/u_extinguish_mask = SubResource("ViewportTexture_w6xmb")
 shader_parameter/u_fire_smoke_temperature_advect = SubResource("ViewportTexture_v6dpt")
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_vapor_density_splash_strength = 1.0
@@ -150,6 +157,7 @@ shader_parameter/u_timestep = 0.0
 shader_parameter/u_water_heating_speed = 250.0
 shader_parameter/u_water_vaporization_speed = 250.0
 shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_particle_temp_ambient = 300.0
 shader_parameter/u_particle_temp_max = 373.0
 shader_parameter/u_mass = 0.0
@@ -162,17 +170,51 @@ shader_parameter/u_total_energy_cost = 0.0
 [sub_resource type="ViewportTexture" id="ViewportTexture_cphy5"]
 viewport_path = NodePath("ParticlesToGridViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_11fkg"]
+viewport_path = NodePath("GridToParticlesViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3bid5"]
+resource_local_to_scene = true
+shader = ExtResource("13_1pbsg")
+shader_parameter/u_grid_to_particles = SubResource("ViewportTexture_11fkg")
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_lp386"]
+viewport_path = NodePath("FireTemperatureCoolViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_oj18q"]
+viewport_path = NodePath("FireTemperatureExtinguishViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_5kuns"]
+viewport_path = NodePath("ParticlesToGridViewport")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_kb7fg"]
+viewport_path = NodePath("SplashMaskViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jj6as"]
+resource_local_to_scene = true
+shader = ExtResource("14_xnvxc")
+shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_5kuns")
+shader_parameter/u_splash_mask = SubResource("ViewportTexture_kb7fg")
+shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj18q")
+shader_parameter/u_fire_temp_extinguish = 500.0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_gujhc"]
+viewport_path = NodePath("ExtinguishMaskViewport")
+
 [sub_resource type="ViewportTexture" id="ViewportTexture_2cr0e"]
 viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_sr856"]
-viewport_path = NodePath("FireTemperatureCoolViewport")
+[sub_resource type="ViewportTexture" id="ViewportTexture_t424u"]
+viewport_path = NodePath("FireTemperatureExtinguishViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_uult5"]
 resource_local_to_scene = true
 shader = ExtResource("10_v6dpt")
 shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_2cr0e")
-shader_parameter/u_fire_temperature_cool = SubResource("ViewportTexture_sr856")
+shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_t424u")
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_fire_disturbance_origin = Vector2(-1, -1)
 shader_parameter/u_fire_disturbance_vector = Vector2(0, 0)
@@ -244,8 +286,8 @@ shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_smoke_temp_ambient = 300.0
 shader_parameter/u_smoke_temp_max = 500.0
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_cyaav"]
-viewport_path = NodePath("FireTemperatureCoolViewport")
+[sub_resource type="ViewportTexture" id="ViewportTexture_shihg"]
+viewport_path = NodePath("FireTemperatureExtinguishViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_2r3ol"]
 viewport_path = NodePath("VelocityDivFreeViewport")
@@ -308,7 +350,7 @@ viewport_path = NodePath("PlancksLawViewport")
 shader = ExtResource("24_kid1v")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_xnvxc"]
-viewport_path = NodePath("GridToParticlesViewport")
+viewport_path = NodePath("ExtinguishMaskViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
@@ -512,6 +554,50 @@ offset_bottom = 256.0
 texture = SubResource("ViewportTexture_cphy5")
 expand_mode = 1
 
+[node name="FireTemperatureExtinguishViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="FireTemperatureExtinguishViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_3bid5")
+texture = SubResource("ViewportTexture_lp386")
+centered = false
+
+[node name="ExtinguishMaskViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="ExtinguishMaskViewport"]
+texture_filter = 1
+texture_repeat = 1
+material = SubResource("ShaderMaterial_jj6as")
+texture = ExtResource("2_hbe1w")
+centered = false
+
+[node name="ExtinguishMaskHelperViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+disable_3d = true
+transparent_bg = true
+use_hdr_2d = true
+size = Vector2i(1152, 648)
+render_target_clear_mode = 1
+render_target_update_mode = 4
+
+[node name="Sprite2D" type="Sprite2D" parent="ExtinguishMaskHelperViewport"]
+texture_filter = 1
+texture_repeat = 1
+texture = SubResource("ViewportTexture_gujhc")
+centered = false
+
 [node name="VelocityForcesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
 transparent_bg = true
@@ -599,7 +685,7 @@ render_target_update_mode = 4
 texture_filter = 1
 texture_repeat = 1
 material = SubResource("ShaderMaterial_1tdn5")
-texture = SubResource("ViewportTexture_cyaav")
+texture = SubResource("ViewportTexture_shihg")
 centered = false
 
 [node name="FireFuelSmokeDensityAdvectViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
