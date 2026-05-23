@@ -86,7 +86,7 @@ void fragment() {
 		modified_particle_energy = clamp(get_energy(modified_particle_temperature, modified_particle_latent_heat), 0.0, OVERESTIMATE * u_total_energy_cost);
 	}
 	
-	highp float cooling_factor = -(particles_density * (fire_energy_lost / fire_energy));
+	highp float cooling_factor = particles_density * (fire_energy_lost / fire_energy) * (fire_temperature - u_fire_temp_ambient);
 	
 	COLOR = vec4(fire_energy, modified_particle_energy, cooling_factor, orig.a);
 	

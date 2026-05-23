@@ -18,18 +18,15 @@ script = ExtResource("1_wcyfl")
 
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("3_rq2oy")]
 pressure_jacobi_iterations = 20
-viewport_size = Vector2i(512, 512)
-pg_gp_size = Vector2i(512, 512)
+pg_gp_size = Vector2i(1152, 648)
 
 [node name="WaterCompatible" parent="." instance=ExtResource("2_wcyfl")]
-viewport_size = Vector2i(512, 512)
-low_res_size = Vector2i(512, 512)
 sim_steps_per_frame = 3
 desired_waiting_frames = 0
 particle_grid_size = Vector2i(100, 100)
 mortal_particle_lifetime_min = 10.0
 mortal_particle_lifetime_max = 11.0
-pg_gp_size = Vector2i(512, 512)
+pg_gp_size = Vector2i(1152, 648)
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_wcyfl"), SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu")])
 
 [node name="TmpDisplay" type="Sprite2D" parent="."]

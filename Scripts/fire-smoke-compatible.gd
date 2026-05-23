@@ -58,6 +58,7 @@ extends Node2D
 @onready var fire_vel_abs_val_limit_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitValue
 @onready var fire_water_heating_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedValue
 @onready var fire_water_vaporization_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedValue
+@onready var fire_extinguish_strength_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer/FireExtinguishStrengthValue
 
 @onready var fire_disturbance_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceRadiusHBoxContainer/FireDisturbanceRadiusMarginContainer/FireDisturbanceRadiusHSlider
 @onready var fire_disturbance_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireDisturbanceStrengthHBoxContainer/FireDisturbanceStrengthMarginContainer/FireDisturbanceStrengthHSlider
@@ -72,6 +73,7 @@ extends Node2D
 @onready var fire_vel_abs_val_limit_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitMarginContainer/FireVelAbsValLimitHSlider
 @onready var fire_water_heating_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedMarginContainer/FireWaterHeatingSpeedHSlider
 @onready var fire_water_vaporization_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedMarginContainer/FireWaterVaporizationSpeedHSlider
+@onready var fire_extinguish_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer/FireExtinguishStrengthMarginContainer/FireExtinguishStrengthHSlider
 
 @onready var fire_obstacle_toggle_check_box: CheckBox = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireObstacleToggleHBoxContainer/FireObstacleToggleMarginContainer/FireObstacleToggleCheckBox
 @onready var fire_baked_toggle_check_box: CheckBox = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireColorPickerHBoxContainer/FireBakedToggleMarginContainer/FireBakedToggleHBoxContainer/FireBakedToggleCheckBox
@@ -219,6 +221,7 @@ var fire_default_buoyancy_strength: float = 10.0
 var fire_default_vel_abs_val_limit: float = 1.0
 var fire_default_water_heating_speed: float = 100.0
 var fire_default_water_vaporization_speed: float = 250.0
+var fire_default_extinguish_strength: float = 100.0
 
 var fire_default_obstacle_toggled_on: bool = false
 var fire_default_baked_color_toggled_on: bool = true
@@ -235,8 +238,9 @@ var fire_curr_temperature_cool_exponent: float = fire_default_temperature_cool_e
 var fire_curr_vorticity_scale: float = fire_default_vorticity_scale
 var fire_curr_buoyancy_strength: float = fire_default_buoyancy_strength
 var fire_curr_vel_abs_val_limit: float = fire_default_vel_abs_val_limit
-var fire_curr_water_heating_speed = fire_default_water_heating_speed
-var fire_curr_water_vaporization_speed = fire_default_water_vaporization_speed
+var fire_curr_water_heating_speed: float = fire_default_water_heating_speed
+var fire_curr_water_vaporization_speed: float = fire_default_water_vaporization_speed
+var fire_curr_extinguish_strength: float = fire_default_extinguish_strength
 
 var fire_curr_obstacle_toggled_on: bool = fire_default_obstacle_toggled_on
 var fire_curr_baked_color_toggled_on: bool = fire_default_baked_color_toggled_on
@@ -343,6 +347,7 @@ func fire_smoke_ready() -> void:
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
+	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	velocity_forces_sprite.material.set("shader_parameter/u_smoke_temp_ambient", smoke_temp_ambient)
@@ -429,6 +434,8 @@ func fire_smoke_process(delta: float) -> void:
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_burn_strength", fire_curr_fuel_burn_strength)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_sigma_cool", fire_curr_temperature_dissipation)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_exponent", fire_curr_temperature_cool_exponent)
+	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_extinguish_strength", fire_curr_extinguish_strength)
+	extinguish_mask_sprite.material.set("shader_parameter/u_extinguish_strength", fire_curr_extinguish_strength)
 	velocity_div_free_sprite.material.set("shader_parameter/fire_vel_abs_val_limit", fire_curr_vel_abs_val_limit)
 	velocity_div_free_sprite.material.set("shader_parameter/smoke_vel_abs_val_limit", smoke_curr_vel_abs_val_limit)
 	plancks_law_sprite.material.set("shader_parameter/u_use_custom_fire_temp", int(fire_curr_custom_color_toggled_on))
@@ -533,6 +540,8 @@ func _input(event: InputEvent) -> void:
 			set_params_panel()
 		elif event.keycode == KEY_R:
 			reset_params()
+		elif event.keycode == KEY_E:
+			clear_extinguish_mask()
 		elif event.keycode == KEY_P:
 			print()
 			for _i in self.get_children():
@@ -620,6 +629,11 @@ func init_slider_callbacks() -> void:
 		fire_water_vaporization_speed_value.text = str(new_value)
 		fire_water_vaporization_speed_h_slider.value = new_value
 		fire_curr_water_vaporization_speed = new_value
+	
+	slider_callbacks_dict["FireExtinguishStrengthHSlider"] = func(new_value: float) -> void:
+		fire_extinguish_strength_value.text = str(new_value)
+		fire_extinguish_strength_h_slider.value = new_value
+		fire_curr_extinguish_strength = new_value
 	
 	slider_callbacks_dict["SmokeDisturbanceRadiusHSlider"] = func(new_value: float) -> void:
 		smoke_disturbance_radius_value.text = str(new_value)
@@ -759,6 +773,7 @@ func reset_params() -> void:
 	slider_callbacks_dict["FireVelAbsValLimitHSlider"].call(fire_default_vel_abs_val_limit)
 	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"].call(fire_default_water_heating_speed)
 	slider_callbacks_dict["FireWaterVaporizationSpeedHSlider"].call(fire_default_water_vaporization_speed)
+	slider_callbacks_dict["FireExtinguishStrengthHSlider"].call(fire_default_extinguish_strength)
 	
 	toggle_callbacks_dict["FireObstacleToggleCheckBox"].call(fire_default_obstacle_toggled_on)
 	toggle_callbacks_dict["FireBakedToggleCheckBox"].call(fire_default_baked_color_toggled_on)
@@ -1346,3 +1361,8 @@ func set_extinguishing_data(extinguishing_data: Array[float]) -> void:
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_vaporization_energy_cost", particle_vaporization_energy_cost)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_total_energy_cost", particle_total_energy_cost)
+
+func clear_extinguish_mask() -> void:
+	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", true)
+	await RenderingServer.frame_post_draw
+	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)

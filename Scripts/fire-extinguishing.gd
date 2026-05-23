@@ -6,7 +6,7 @@ extends Node
 
 @onready var tmp_display: Sprite2D = $TmpDisplay
 
-func _ready() -> void:	
+func _ready() -> void:
 	fire_smoke.fire_smoke_ready()
 	water.set_grid_to_particles_connection(fire_smoke.get_grid_to_particles_connection())
 	water.water_ready()
@@ -23,8 +23,8 @@ func _ready() -> void:
 	
 	#tmp_display.texture = fire_smoke.particles_to_grid_viewport.get_texture()
 	#tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
-	tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
-	#tmp_display.texture = fire_smoke.tmp_display_viewport.get_texture()
+	#tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
+	tmp_display.texture = fire_smoke.tmp_display_viewport.get_texture()
 
 func _process(delta: float) -> void:
 	fire_smoke.fire_smoke_process(delta)

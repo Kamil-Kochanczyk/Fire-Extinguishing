@@ -1,4 +1,4 @@
-[gd_scene load_steps=99 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=100 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -178,6 +178,7 @@ resource_local_to_scene = true
 shader = ExtResource("13_1pbsg")
 shader_parameter/u_grid_to_particles = SubResource("ViewportTexture_11fkg")
 shader_parameter/u_timestep = 0.0
+shader_parameter/u_extinguish_strength = 100.0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
 
@@ -199,7 +200,9 @@ shader = ExtResource("14_xnvxc")
 shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_5kuns")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_kb7fg")
 shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj18q")
+shader_parameter/u_extinguish_strength = 100.0
 shader_parameter/u_fire_temp_extinguish = 500.0
+shader_parameter/u_init_state = true
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_gujhc"]
 viewport_path = NodePath("ExtinguishMaskViewport")
@@ -346,8 +349,13 @@ shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture
 [sub_resource type="ViewportTexture" id="ViewportTexture_5u06a"]
 viewport_path = NodePath("PlancksLawViewport")
 
+[sub_resource type="ViewportTexture" id="ViewportTexture_ccjs0"]
+viewport_path = NodePath("SplashMaskViewport")
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_xnvxc"]
+resource_local_to_scene = true
 shader = ExtResource("24_kid1v")
+shader_parameter/u_splash_mask = SubResource("ViewportTexture_ccjs0")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_xnvxc"]
 viewport_path = NodePath("ExtinguishMaskViewport")
@@ -1177,6 +1185,31 @@ value = 250.0
 layout_mode = 2
 size_flags_vertical = 1
 text = "250.0"
+
+[node name="FireExtinguishStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireExtinguishStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Extinguish Strength"
+
+[node name="FireExtinguishStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireExtinguishStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer/FireExtinguishStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 1000.0
+value = 100.0
+
+[node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "100.0"
 
 [node name="FireObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 visible = false
