@@ -37,9 +37,13 @@ layout(set = 0, binding = 5, std430) restrict readonly buffer Energies {
     float energies[];
 };
 
-layout(set = 0, binding = 6, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
+layout(set = 0, binding = 6, std430) restrict readonly buffer EvaporatedMasses {
+    float evaporated_masses[];
+};
 
-layout(set = 0, binding = 7, std430) restrict writeonly buffer Tmp {
+layout(set = 0, binding = 7, rgba32f) uniform restrict writeonly image2D particles_to_grid_img;
+
+layout(set = 0, binding = 8, std430) restrict writeonly buffer Tmp {
     float tmp[];
 };
 
@@ -177,6 +181,7 @@ void main() {
 
     float density_sum = 0.0;
     float energy_sum = 0.0;
+    float evaporated_mass_sum = 0.0;
     float weight_sum = 0.0;
 
     // float energy_max = 0.0;
@@ -211,8 +216,9 @@ void main() {
 
                 float w = (1.0 - d.x) * (1.0 - d.y);
 
-                density_sum += w * densities[pid];
+                density_sum += w;
                 energy_sum += w * energies[pid];
+                evaporated_mass_sum += w * evaporated_masses[pid];
                 weight_sum += w;
 
                 // energy_max = max(energy_max, energies[pid]);
@@ -222,13 +228,14 @@ void main() {
         }
     }
 
-    float density = (weight_sum > 0.0) ? (density_sum / weight_sum) : 0.0;
+    float density = density_sum;
     float energy = (weight_sum > 0.0) ? (energy_sum / weight_sum) : 0.0;
+    float evaporated_mass = (weight_sum > 0.0) ? (evaporated_mass_sum / weight_sum) : 0.0;
     // float energy = energy_max;
 
     // if (pixel_coords.x < 10 && pixel_coords.y == 5) {
-    //     tmp[pixel_coords.x] = density; // debug: store the number of cells covered by the 3x3 neighborhood
+    //     tmp[pixel_coords.x] = evaporated_mass;
     // }
 
-    imageStore(particles_to_grid_img, pixel_coords, vec4(density, energy, 0.0, 0.33));
+    imageStore(particles_to_grid_img, pixel_coords, vec4(density, energy, evaporated_mass, 0.33));
 }

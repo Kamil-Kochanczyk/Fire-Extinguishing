@@ -124,5 +124,5 @@ void fragment() {
 		delta_energy = modified_energy - orig_particle_energy;
 	}
 
-	COLOR = vec4(delta_energy, modified_energy, heat_transfer, orig.a);
+	COLOR = vec4(delta_energy, modified_energy, heat_transfer, orig_particle_density);
 }

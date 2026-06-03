@@ -1152,13 +1152,13 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 25.0
-value = 25.0
+max_value = 50.0
+value = 50.0
 
 [node name="FireWaterHeatingSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "25.0"
+text = "50.0"
 
 [node name="FireWaterVaporizationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
@@ -1177,13 +1177,13 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 250.0
-value = 250.0
+max_value = 500.0
+value = 500.0
 
 [node name="FireWaterVaporizationSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "250.0"
+text = "500.0"
 
 [node name="FireExtinguishStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
@@ -1202,14 +1202,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 2.0
+max_value = 1.0
 step = 0.01
-value = 1.0
+value = 0.1
 
 [node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "1.0"
+text = "0.1"
 
 [node name="FireObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 visible = false
@@ -1636,14 +1636,12 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 10.0
-step = 0.1
-value = 10.0
+value = 100.0
 
 [node name="SmokeVaporDensitySplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "10.0"
+text = "100.0"
 
 [node name="SmokeVaporHeatingSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2
@@ -1662,14 +1660,12 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 10.0
-step = 0.1
-value = 10.0
+value = 100.0
 
 [node name="SmokeVaporHeatingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "10.0"
+text = "100.0"
 
 [node name="SmokeMinAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2

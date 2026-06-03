@@ -219,9 +219,9 @@ var fire_default_temperature_cool_exponent: float = 1.0
 var fire_default_vorticity_scale: float = 5.0
 var fire_default_buoyancy_strength: float = 10.0
 var fire_default_vel_abs_val_limit: float = 1.0
-var fire_default_water_heating_speed: float = 25.0
-var fire_default_water_vaporization_speed: float = 250.0
-var fire_default_extinguish_strength: float = 1.0
+var fire_default_water_heating_speed: float = 50.0
+var fire_default_water_vaporization_speed: float = 500.0
+var fire_default_extinguish_strength: float = 0.1
 
 var fire_default_obstacle_toggled_on: bool = false
 var fire_default_baked_color_toggled_on: bool = true
@@ -258,8 +258,8 @@ var smoke_default_vorticity_scale: float = 5.0
 var smoke_default_dense_down_force: float = 0.1
 var smoke_default_hot_up_force: float = 2.0
 var smoke_default_vel_abs_val_limit: float = 1.0
-var smoke_default_vapor_density_splash_strength: float = 10.0
-var smoke_default_vapor_heating_splash_strength: float = 10.0
+var smoke_default_vapor_density_splash_strength: float = 100.0
+var smoke_default_vapor_heating_splash_strength: float = 100.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 

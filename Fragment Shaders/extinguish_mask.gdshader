@@ -14,14 +14,15 @@ void fragment() {
 	}
 	else {
 		highp float prev_extinguish_mask = texture(TEXTURE, UV).r;
-		highp float particle_density = texture(u_particles_to_grid, UV).r;
+		//highp float particle_density = texture(u_particles_to_grid, UV).r;
+		highp float evaporated_mass = texture(u_particles_to_grid, UV).b;
 		highp float fuel_mask = texture(u_splash_mask, UV).r;
 		highp float extinguished_temp = texture(u_fire_temperature_extinguish, UV).r;
 		
 		float new_extinguish_mask = prev_extinguish_mask;
 		
 		// product of mutliple numbers is non-zero iff each of these multiple numbers is non-zero
-		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * particle_density * fuel_mask > 0.0) && (prev_extinguish_mask < 1e-6)) {
+		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * evaporated_mass * fuel_mask > 0.0) && (prev_extinguish_mask < 1e-6)) {
 			new_extinguish_mask = 1.0;
 		}
 		

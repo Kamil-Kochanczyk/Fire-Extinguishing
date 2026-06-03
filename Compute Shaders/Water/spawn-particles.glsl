@@ -76,6 +76,10 @@ layout(set = 0, binding = 6, std430) restrict writeonly buffer Energies {
     float energies[];
 };
 
+layout(set = 0, binding = 7, std430) restrict writeonly buffer EvaporatedMasses {
+    float evaporated_masses[];
+};
+
 layout(push_constant) uniform Parameters {
     uint particle_count;
     uint spawn_count;
@@ -145,6 +149,7 @@ void main() {
         energies[dead_particle_id] = 0.0;
         ages[dead_particle_id] = 0.0;
         is_alive[dead_particle_id] = 1u;
+        evaporated_masses[dead_particle_id] = 0.0;
     } else {
         // restore the count if no dead particles found
         atomicAdd(dead_count, 1);

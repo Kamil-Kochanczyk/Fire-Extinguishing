@@ -19,15 +19,14 @@ void fragment() {
 		float orig_density_f = density_is_vapor.x;
 		float is_vapor = density_is_vapor.y;    // "fuzzy" boolean variable
 		vec3 orig_density = vec3(orig_density_f);
-		vec3 new_density = u_min_albedo + orig_density * (u_max_albedo - u_min_albedo);
-		//vec3 final_grayscale = is_vapor > 0.0 ? vec3(1.0, 1.0, 1.0) : new_density;
-		vec3 final_grayscale = mix(new_density, vec3(1.0, 1.0, 1.0), is_vapor);
+		vec3 adjusted_max_albedo = mix(u_max_albedo, vec3(1.0, 1.0, 1.0), is_vapor);
+		vec3 new_density = u_min_albedo + orig_density * (adjusted_max_albedo - u_min_albedo);
 
 		if (u_use_custom_density_color == 1) {
-			COLOR = vec4(u_density_color.r * final_grayscale.x, u_density_color.g * final_grayscale.y, u_density_color.b * final_grayscale.z, 1.0);
+			COLOR = vec4(u_density_color.r * new_density.x, u_density_color.g * new_density.y, u_density_color.b * new_density.z, 1.0);
 		}
 		else {
-			COLOR = vec4(final_grayscale.x, final_grayscale.y, final_grayscale.z, 1.0);
+			COLOR = vec4(new_density.x, new_density.y, new_density.z, 1.0);
 		}
 	}
 }

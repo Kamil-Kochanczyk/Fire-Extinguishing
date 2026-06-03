@@ -43,9 +43,13 @@ layout(set = 0, binding = 7, std430) restrict buffer Energies {
     float energies[];
 };
 
-layout(set = 0, binding = 8, rgba16f) uniform restrict readonly image2D grid_to_particles_img;
+layout(set = 0, binding = 8, std430) restrict writeonly buffer EvaporatedMasses {
+    float evaporated_masses[];
+};
 
-layout(set = 0, binding = 9, std430) restrict writeonly buffer Tmp {
+layout(set = 0, binding = 9, rgba16f) uniform restrict readonly image2D grid_to_particles_img;
+
+layout(set = 0, binding = 10, std430) restrict writeonly buffer Tmp {
     float tmp[];    // used for debugging to store intermediate values like relative error between particle energy and grid energy
 };
 
@@ -208,10 +212,10 @@ void main() {
         vec4 c10 = imageLoad(grid_to_particles_img, p10);
         vec4 c01 = imageLoad(grid_to_particles_img, p01);
         vec4 c11 = imageLoad(grid_to_particles_img, p11);
-        float w00 = ((c00.r > 0.0) ? ((1.0 - frac.x) * (1.0 - frac.y)) : 0.0);
-        float w10 = ((c10.r > 0.0) ? (frac.x * (1.0 - frac.y)) : 0.0);
-        float w01 = ((c01.r > 0.0) ? ((1.0 - frac.x) * frac.y) : 0.0);
-        float w11 = ((c11.r > 0.0) ? (frac.x * frac.y) : 0.0);
+        float w00 = ((c00.a > 0.0) ? ((1.0 - frac.x) * (1.0 - frac.y)) : 0.0);    // consider only cells with non-zero particle density
+        float w10 = ((c10.a > 0.0) ? (frac.x * (1.0 - frac.y)) : 0.0);    // consider only cells with non-zero particle density
+        float w01 = ((c01.a > 0.0) ? ((1.0 - frac.x) * frac.y) : 0.0);    // consider only cells with non-zero particle density
+        float w11 = ((c11.a > 0.0) ? (frac.x * frac.y) : 0.0);    // consider only cells with non-zero particle density
         float weight_sum = w00 + w10 + w01 + w11;
         vec4 pixel = vec4(0.0);
         if (weight_sum > 0.0) {
@@ -224,6 +228,7 @@ void main() {
         float energy = energies[id];
         float temperature = get_temperature(energy);
         float latent_heat = get_latent_heat(energy);
+        float evaporated_mass = 0.0;
 
         float current_heating_energy = min(energy, params.heating_energy_cost);
         float heating_energy_desirable = params.heating_energy_cost - current_heating_energy;
@@ -234,18 +239,20 @@ void main() {
 
         // only when the particle reaches the max temperature, it can start vaporizing and thus gain latent heat
         if (temperature >= params.max_temperature) {
+            float orig_latent_heat = latent_heat;
             float delta_energy_left = delta_energy - heating_energy_used;
             float vaporization_energy_desirable = params.vaporization_energy_cost - latent_heat;
             float vaporization_energy_used = min(delta_energy_left, vaporization_energy_desirable);
             latent_heat += (1.0 * vaporization_energy_used);
             latent_heat = mix(latent_heat, get_latent_heat(modified_energy), params.lerp_factor);    // 0 -> latent heat computed here based on the acquired energy (FLIP-like, grainy), 1 -> latent heat precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
             latent_heat = clamp(latent_heat, 0.0, params.vaporization_energy_cost);    // ensure latent heat stays within [0, vaporization_energy_cost]
+            evaporated_mass = max(0.0, (latent_heat - orig_latent_heat) / params.vaporization_energy_cost);    // compute the evaporated mass based on the change in latent heat, store % to avoid small numbers
         }
 
         float new_energy = clamp(get_energy(temperature, latent_heat), 0.0, params.total_energy_cost);
         // float new_energy = modified_energy;
 
-        tmp[id] = pixel.r;
+        tmp[id] = pixel.a;
 
         // if age exceeds lifetime of a mortal particle or latent heat reaches vaporization threshold, this particle is killed (becomes dead)
         if (((lifetime != (1.0 / 0.0)) && (age > lifetime)) || (new_energy >= params.total_energy_cost)) {
@@ -275,5 +282,7 @@ void main() {
             // latent_heats[id] = latent_heat;
             energies[id] = new_energy;
         }
+
+        evaporated_masses[id] = evaporated_mass;
     }
 }

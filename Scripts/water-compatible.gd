@@ -236,6 +236,7 @@ var velocities_size: int
 #var temperatures_size: int
 #var latent_heats_size: int
 var energies_size: int
+var evaporated_masses_size: int
 var lifetimes_size: int
 var ages_size: int
 var is_alive_size: int
@@ -493,6 +494,7 @@ var velocities_buffer_rid: RID
 #var temperatures_buffer_rid: RID
 #var latent_heats_buffer_rid: RID
 var energies_buffer_rid: RID
+var evaporated_masses_buffer_rid: RID
 var lifetimes_buffer_rid: RID
 var ages_buffer_rid: RID
 var is_alive_buffer_rid: RID
@@ -532,6 +534,7 @@ var kill_particles_dead_count_uniform: RDUniform
 #var kill_particles_temperatures_uniform: RDUniform
 #var kill_particles_latent_heats_uniform: RDUniform
 var kill_particles_energies_uniform: RDUniform
+var kill_particles_evaporated_masses_uniform: RDUniform
 var spawn_particles_positions_uniform: RDUniform
 var spawn_particles_velocities_uniform: RDUniform
 var spawn_particles_ages_uniform: RDUniform
@@ -541,6 +544,7 @@ var spawn_particles_dead_count_uniform: RDUniform
 #var spawn_particles_temperatures_uniform: RDUniform
 #var spawn_particles_latent_heats_uniform: RDUniform
 var spawn_particles_energies_uniform: RDUniform
+var spawn_particles_evaporated_masses_uniform: RDUniform
 var compute_hashes_positions_uniform: RDUniform
 var compute_hashes_hashes_uniform: RDUniform
 var compute_hashes_particle_indices_uniform: RDUniform
@@ -620,6 +624,7 @@ var store_particle_info_densities_uniform: RDUniform
 #var store_particle_info_temperatures_uniform: RDUniform
 #var store_particle_info_latent_heats_uniform: RDUniform
 var store_particle_info_energies_uniform: RDUniform
+var store_particle_info_evaporated_masses_uniform: RDUniform
 var store_neighbors_positions_uniform: RDUniform
 var store_neighbors_sorted_particle_indices_uniform: RDUniform
 var store_neighbors_start_indices_uniform: RDUniform
@@ -1119,6 +1124,7 @@ func init_general_predefined_variables() -> void:
 	#temperatures_size = positions_size
 	#latent_heats_size = positions_size
 	energies_size = positions_size
+	evaporated_masses_size = positions_size
 	lifetimes_size = positions_size
 	ages_size = positions_size
 	is_alive_size = positions_size
@@ -1352,6 +1358,11 @@ func init_gpu() -> void:
 	energies.fill(0.0)
 	var energies_bytes: PackedByteArray = energies.to_byte_array()
 	
+	var evaporated_masses: PackedFloat32Array = PackedFloat32Array()
+	evaporated_masses.resize(evaporated_masses_size)
+	evaporated_masses.fill(0.0)
+	var evaporated_masses_bytes: PackedByteArray = evaporated_masses.to_byte_array()
+	
 	var lifetimes: PackedFloat32Array = PackedFloat32Array()
 	for i in lifetimes_size:
 		if i < immortal_particle_count:
@@ -1513,6 +1524,7 @@ func init_gpu() -> void:
 	#temperatures_buffer_rid = rd.storage_buffer_create(temperatures_bytes.size(), temperatures_bytes)
 	#latent_heats_buffer_rid = rd.storage_buffer_create(latent_heats_bytes.size(), latent_heats_bytes)
 	energies_buffer_rid = rd.storage_buffer_create(energies_bytes.size(), energies_bytes)
+	evaporated_masses_buffer_rid = rd.storage_buffer_create(evaporated_masses_bytes.size(), evaporated_masses_bytes)
 	lifetimes_buffer_rid = rd.storage_buffer_create(lifetimes_bytes.size(), lifetimes_bytes)
 	ages_buffer_rid = rd.storage_buffer_create(ages_bytes.size(), ages_bytes)
 	is_alive_buffer_rid = rd.storage_buffer_create(is_alive_bytes.size(), is_alive_bytes)
@@ -1585,6 +1597,10 @@ func init_gpu() -> void:
 	kill_particles_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_energies_uniform.binding = 7
 	kill_particles_energies_uniform.add_id(energies_buffer_rid)
+	kill_particles_evaporated_masses_uniform = RDUniform.new()
+	kill_particles_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	kill_particles_evaporated_masses_uniform.binding = 8
+	kill_particles_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
 	spawn_particles_positions_uniform = RDUniform.new()
 	spawn_particles_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_positions_uniform.binding = 0
@@ -1621,6 +1637,10 @@ func init_gpu() -> void:
 	spawn_particles_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_energies_uniform.binding = 6
 	spawn_particles_energies_uniform.add_id(energies_buffer_rid)
+	spawn_particles_evaporated_masses_uniform = RDUniform.new()
+	spawn_particles_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	spawn_particles_evaporated_masses_uniform.binding = 7
+	spawn_particles_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
 	compute_hashes_positions_uniform = RDUniform.new()
 	compute_hashes_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_positions_uniform.binding = 0
@@ -1933,6 +1953,10 @@ func init_gpu() -> void:
 	store_particle_info_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_energies_uniform.binding = 5
 	store_particle_info_energies_uniform.add_id(energies_buffer_rid)
+	store_particle_info_evaporated_masses_uniform = RDUniform.new()
+	store_particle_info_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	store_particle_info_evaporated_masses_uniform.binding = 6
+	store_particle_info_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
 	store_neighbors_positions_uniform = RDUniform.new()
 	store_neighbors_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_positions_uniform.binding = 0
@@ -1961,11 +1985,11 @@ func init_gpu() -> void:
 	
 	kill_particles_tmp_buffer_uniform = RDUniform.new()
 	kill_particles_tmp_buffer_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	kill_particles_tmp_buffer_uniform.binding = 9
+	kill_particles_tmp_buffer_uniform.binding = 10
 	kill_particles_tmp_buffer_uniform.add_id(tmp_buffer_rid)
 	store_particle_info_tmp_buffer_uniform = RDUniform.new()
 	store_particle_info_tmp_buffer_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_particle_info_tmp_buffer_uniform.binding = 7
+	store_particle_info_tmp_buffer_uniform.binding = 8
 	store_particle_info_tmp_buffer_uniform.add_id(tmp_buffer_rid)
 	
 	#region textures
@@ -2120,7 +2144,7 @@ func init_gpu() -> void:
 	
 	kill_particles_grid_to_particles_img_uniform = RDUniform.new()
 	kill_particles_grid_to_particles_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	kill_particles_grid_to_particles_img_uniform.binding = 8
+	kill_particles_grid_to_particles_img_uniform.binding = 9
 	kill_particles_grid_to_particles_img_uniform.add_id(grid_to_particles_img_texture_rid)
 	integrate_motion_particle_pos_ener_img_uniform = RDUniform.new()
 	integrate_motion_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -2136,7 +2160,7 @@ func init_gpu() -> void:
 	integrate_motion_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
 	store_particle_info_particles_to_grid_img_uniform = RDUniform.new()
 	store_particle_info_particles_to_grid_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	store_particle_info_particles_to_grid_img_uniform.binding = 6
+	store_particle_info_particles_to_grid_img_uniform.binding = 7
 	store_particle_info_particles_to_grid_img_uniform.add_id(particles_to_grid_img_texture_rid)
 	store_neighbors_particle_pos_ener_img_uniform = RDUniform.new()
 	store_neighbors_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -2154,12 +2178,12 @@ func init_gpu() -> void:
 	#spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_temperatures_uniform, spawn_particles_latent_heats_uniform], spawn_particles_shader_rid, 0)
 	
 	# with tmp
-	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_energies_uniform, kill_particles_grid_to_particles_img_uniform, kill_particles_tmp_buffer_uniform], kill_particles_shader_rid, 0)
+	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_energies_uniform, kill_particles_evaporated_masses_uniform, kill_particles_grid_to_particles_img_uniform, kill_particles_tmp_buffer_uniform], kill_particles_shader_rid, 0)
 	
 	# without tmp
-	#kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_energies_uniform, kill_particles_grid_to_particles_img_uniform], kill_particles_shader_rid, 0)
+	#kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_energies_uniform, kill_particles_evaporated_masses_uniform, kill_particles_grid_to_particles_img_uniform], kill_particles_shader_rid, 0)
 	
-	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_energies_uniform], spawn_particles_shader_rid, 0)
+	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_energies_uniform, spawn_particles_evaporated_masses_uniform], spawn_particles_shader_rid, 0)
 	compute_hashes_uniform_set_rid = rd.uniform_set_create([compute_hashes_positions_uniform, compute_hashes_hashes_uniform, compute_hashes_particle_indices_uniform], compute_hashes_shader_rid, 0)
 	
 	#region parallel radix sort uniform sets
@@ -2185,10 +2209,10 @@ func init_gpu() -> void:
 	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_latent_heats_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	
 	# with tmp
-	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_particles_to_grid_img_uniform, store_particle_info_tmp_buffer_uniform], store_particle_info_shader_rid, 0)
+	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform, store_particle_info_tmp_buffer_uniform], store_particle_info_shader_rid, 0)
 	
 	# without tmp
-	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
+	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	
 	store_neighbors_uniform_set_rid = rd.uniform_set_create([store_neighbors_positions_uniform, store_neighbors_sorted_particle_indices_uniform, store_neighbors_start_indices_uniform, store_neighbors_end_indices_uniform, store_neighbors_neighbor_flags_uniform, store_neighbors_particle_pos_ener_img_uniform], store_neighbors_shader_rid, 0)
 	mark_neighbors_uniform_set_rid = rd.uniform_set_create([mark_neighbors_neighbor_flags_uniform, mark_neighbors_particle_pos_ener_img_uniform], mark_neighbors_shader_rid, 0)
@@ -2644,6 +2668,7 @@ func free_gpu() -> void:
 	#rd.free_rid(temperatures_buffer_rid)
 	#rd.free_rid(latent_heats_buffer_rid)
 	rd.free_rid(energies_buffer_rid)
+	rd.free_rid(evaporated_masses_buffer_rid)
 	rd.free_rid(lifetimes_buffer_rid)
 	rd.free_rid(ages_buffer_rid)
 	rd.free_rid(is_alive_buffer_rid)

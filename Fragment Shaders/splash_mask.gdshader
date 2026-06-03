@@ -77,5 +77,5 @@ void fragment() {
 		}
 	}
 
-	COLOR = vec4(new_mask.r, new_mask.g, new_mask.b, 0.5);
+	COLOR = vec4(new_mask.r, new_mask.g, new_mask.b, 1.0);
 }
