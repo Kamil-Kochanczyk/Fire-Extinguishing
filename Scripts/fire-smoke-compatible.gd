@@ -219,9 +219,9 @@ var fire_default_temperature_cool_exponent: float = 1.0
 var fire_default_vorticity_scale: float = 5.0
 var fire_default_buoyancy_strength: float = 10.0
 var fire_default_vel_abs_val_limit: float = 1.0
-var fire_default_water_heating_speed: float = 100.0
+var fire_default_water_heating_speed: float = 25.0
 var fire_default_water_vaporization_speed: float = 250.0
-var fire_default_extinguish_strength: float = 100.0
+var fire_default_extinguish_strength: float = 1.0
 
 var fire_default_obstacle_toggled_on: bool = false
 var fire_default_baked_color_toggled_on: bool = true

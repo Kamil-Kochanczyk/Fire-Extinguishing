@@ -927,6 +927,7 @@ size_flags_vertical = 1
 text = "0.0"
 
 [node name="HeatingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
 [node name="HeatingSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
@@ -952,6 +953,7 @@ size_flags_vertical = 1
 text = "100.0"
 
 [node name="VaporizationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 
 [node name="VaporizationSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
@@ -1002,8 +1004,9 @@ label_settings = SubResource("LabelSettings_wojkn")
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 1.0
+max_value = 0.1
 step = 0.001
+value = 0.001
 
 [node name="Smoother" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer"]
 layout_mode = 2
@@ -1013,7 +1016,7 @@ label_settings = SubResource("LabelSettings_2i0ow")
 [node name="LerpFactorValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.0"
+text = "0.001"
 
 [node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

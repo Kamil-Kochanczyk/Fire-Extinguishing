@@ -27,17 +27,17 @@ void fragment() {
 		highp vec4 temps_previous = texture(TEXTURE, UV);
 		highp float fire_temp_previous = temps_previous.x;
 		highp float smoke_temp_previous = temps_previous.y;
-		
+
 		highp float rho_fuel = texture(u_fire_fuel_smoke_density_splash, UV).r;
 		//highp float rho_fuel = rho_fuel_is_vapor.x;
-		
+
 		// mimick the vapor density splash logic here
 		//highp float rho_fuel_previous = texture(u_fire_fuel_smoke_density_advect, UV).r;
 		highp float particles_energy = texture(u_particles_to_grid, UV).g;
 		highp float particles_latent_heat = max(particles_energy - u_heating_energy_cost, 0.0);
 		//highp float is_vapor_previous = (particles_latent_heat > 0.0 && rho_fuel_previous > 0.0) ? 1.0 : 0.0;
 		highp float is_vapor_previous = (particles_latent_heat > 0.0 && fire_temp_previous > u_fire_temp_ambient) ? 1.0 : 0.0;
-		
+
 		highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
 		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 
@@ -54,7 +54,8 @@ void fragment() {
 			highp vec4 splash_mask = texture(u_splash_mask, UV);
 			smoke_temp_new = smoke_temp_previous;
 			smoke_temp_new += splash_mask.g * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
-			smoke_temp_new += is_vapor_previous * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			//smoke_temp_new += is_vapor_previous * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			smoke_temp_new += is_vapor_previous * 0.0 * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new -= splash_mask.b * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new -= u_smoke_temp_dissipation_rate * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new = clamp(smoke_temp_new, u_smoke_temp_ambient, u_smoke_temp_max);

@@ -14,16 +14,18 @@ void fragment() {
 	}
 	else {
 		highp float prev_extinguish_mask = texture(TEXTURE, UV).r;
-		highp float particles_density = texture(u_particles_to_grid, UV).r;
+		highp float particle_density = texture(u_particles_to_grid, UV).r;
 		highp float fuel_mask = texture(u_splash_mask, UV).r;
 		highp float extinguished_temp = texture(u_fire_temperature_extinguish, UV).r;
 		
 		float new_extinguish_mask = prev_extinguish_mask;
 		
-		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * particles_density > 0.0) && (fuel_mask > 0.0) && (prev_extinguish_mask < 1e-6)) {
+		// product of mutliple numbers is non-zero iff each of these multiple numbers is non-zero
+		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * particle_density * fuel_mask > 0.0) && (prev_extinguish_mask < 1e-6)) {
 			new_extinguish_mask = 1.0;
 		}
 		
 		COLOR = vec4(new_extinguish_mask, 0.0, 0.0, 1.0);
+		//COLOR = vec4(0.0, 0.0, 0.0, 1.0);
 	}
 }
