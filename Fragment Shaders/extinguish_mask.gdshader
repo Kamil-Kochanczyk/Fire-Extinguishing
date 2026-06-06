@@ -22,7 +22,7 @@ void fragment() {
 		float new_extinguish_mask = prev_extinguish_mask;
 		
 		// product of mutliple numbers is non-zero iff each of these multiple numbers is non-zero
-		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * evaporated_mass * fuel_mask > 0.0) && (prev_extinguish_mask < 1e-6)) {
+		if ((extinguished_temp <= u_fire_temp_extinguish) && (u_extinguish_strength * evaporated_mass * fuel_mask > 0.0)) {
 			new_extinguish_mask = 1.0;
 		}
 		

@@ -35,7 +35,7 @@ void fragment() {
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
 
 		//highp float is_vapor_new = (particles_latent_heat > 0.0 && fire_temp > u_fire_temp_ambient && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
-		highp float is_vapor_new = (evaporated_mass > 0.0 && u_vapor_density_splash_strength > 0.0) ? 1.0 : is_vapor_prev;
+		highp float is_vapor_new = (evaporated_mass * u_vapor_density_splash_strength > 0.0) ? 1.0 : is_vapor_prev;
 
 		float extinguish_mask = texture(u_extinguish_mask, UV).r;
 

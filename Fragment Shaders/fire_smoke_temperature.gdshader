@@ -14,6 +14,7 @@ uniform float u_fire_temp_burn = 2000.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
 uniform highp float u_smoke_temp_ambient = 300.0;    // Kelvin
 uniform highp float u_smoke_temp_max = 500.0;    // Kelvin
+uniform float u_fire_temp_release_rate = 7.5;
 uniform float u_smoke_temp_dissipation_rate = 0.05;
 
 uniform float u_vapor_heating_splash_strength = 1.0;
@@ -36,9 +37,10 @@ void fragment() {
 		highp vec2 particle_density_evaporated_mass = texture(u_particles_to_grid, UV).rb;
 		highp float particle_density = particle_density_evaporated_mass.x;
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
-		highp float is_vapor = (evaporated_mass > 0.0 && u_vapor_heating_splash_strength > 0.0) ? 1.0 : 0.0;
+		highp float is_vapor = (evaporated_mass * u_vapor_heating_splash_strength > 0.0) ? 1.0 : 0.0;
 
-		highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
+		//highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
+		highp float fire_temp_new = fire_temp_previous + (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
 		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 
 		highp float smoke_temp_new;

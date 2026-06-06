@@ -1006,7 +1006,7 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 0.1
 step = 0.001
-value = 0.001
+value = 0.01
 
 [node name="Smoother" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer"]
 layout_mode = 2
@@ -1016,7 +1016,7 @@ label_settings = SubResource("LabelSettings_2i0ow")
 [node name="LerpFactorValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.001"
+text = "0.01"
 
 [node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

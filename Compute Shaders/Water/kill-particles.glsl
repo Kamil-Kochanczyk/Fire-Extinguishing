@@ -224,35 +224,43 @@ void main() {
 
         float delta_energy = pixel.r;    // FLIP style
         float modified_energy = pixel.g;    // PIC style
+        float heat_transfer = pixel.b;
 
         float energy = energies[id];
-        float temperature = get_temperature(energy);
-        float latent_heat = get_latent_heat(energy);
-        float evaporated_mass = 0.0;
+        // float temperature = get_temperature(energy);
+        // float latent_heat = get_latent_heat(energy);
 
-        float current_heating_energy = min(energy, params.heating_energy_cost);
-        float heating_energy_desirable = params.heating_energy_cost - current_heating_energy;
-        float heating_energy_used = min(delta_energy, heating_energy_desirable);
-        temperature += (1.0 * (heating_energy_used / (params.mass * params.specific_heat_capacity)));    // heating happens when still no mass is evaporated
-        temperature = mix(temperature, get_temperature(modified_energy), params.lerp_factor);    // 0 -> temp computed here based on the acquired energy (FLIP-like, grainy), 1 -> temp precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
-        temperature = clamp(temperature, params.ambient_temperature, params.max_temperature);    // ensure temperature stays within [ambient, max]
+        // float current_heating_energy = min(energy, params.heating_energy_cost);
+        // float heating_energy_desirable = params.heating_energy_cost - current_heating_energy;
+        // float heating_energy_used = min(delta_energy, heating_energy_desirable);
+        // temperature += (1.0 * (heating_energy_used / (params.mass * params.specific_heat_capacity)));    // heating happens when still no mass is evaporated
+        // temperature = mix(temperature, get_temperature(modified_energy), params.lerp_factor);    // 0 -> temp computed here based on the acquired energy (FLIP-like, grainy), 1 -> temp precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
+        // temperature = clamp(temperature, params.ambient_temperature, params.max_temperature);    // ensure temperature stays within [ambient, max]
 
         // only when the particle reaches the max temperature, it can start vaporizing and thus gain latent heat
-        if (temperature >= params.max_temperature) {
-            float orig_latent_heat = latent_heat;
-            float delta_energy_left = delta_energy - heating_energy_used;
-            float vaporization_energy_desirable = params.vaporization_energy_cost - latent_heat;
-            float vaporization_energy_used = min(delta_energy_left, vaporization_energy_desirable);
-            latent_heat += (1.0 * vaporization_energy_used);
-            latent_heat = mix(latent_heat, get_latent_heat(modified_energy), params.lerp_factor);    // 0 -> latent heat computed here based on the acquired energy (FLIP-like, grainy), 1 -> latent heat precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
-            latent_heat = clamp(latent_heat, 0.0, params.vaporization_energy_cost);    // ensure latent heat stays within [0, vaporization_energy_cost]
-            evaporated_mass = max(0.0, (latent_heat - orig_latent_heat) / params.vaporization_energy_cost);    // compute the evaporated mass based on the change in latent heat, store % to avoid small numbers
+        // if (temperature >= params.max_temperature) {
+            // float orig_latent_heat = latent_heat;
+            // float delta_energy_left = delta_energy - heating_energy_used;
+            // float vaporization_energy_desirable = params.vaporization_energy_cost - latent_heat;
+            // float vaporization_energy_used = min(delta_energy_left, vaporization_energy_desirable);
+            // latent_heat += (1.0 * vaporization_energy_used);
+            // latent_heat = mix(latent_heat, get_latent_heat(modified_energy), params.lerp_factor);    // 0 -> latent heat computed here based on the acquired energy (FLIP-like, grainy), 1 -> latent heat precomputed on the grid in the fragment shader (PIC-like, smooth), values in between blend the two updates
+            // latent_heat = clamp(latent_heat, 0.0, params.vaporization_energy_cost);    // ensure latent heat stays within [0, vaporization_energy_cost]
+            // evaporated_mass = max(0.0, (latent_heat - orig_latent_heat) / params.vaporization_energy_cost);    // compute the evaporated mass based on the change in latent heat, store % to avoid small numbers
+        // }
+
+        float new_energy;
+
+        if (heat_transfer > 0.0) {
+            new_energy = clamp(mix(energy + delta_energy, modified_energy, params.lerp_factor), 0.0, params.total_energy_cost);
+        }
+        else {
+            new_energy = energy;
         }
 
-        float new_energy = clamp(get_energy(temperature, latent_heat), 0.0, params.total_energy_cost);
-        // float new_energy = modified_energy;
+        float evaporated_mass = max(0.0, (get_latent_heat(new_energy) - get_latent_heat(energy)) / params.vaporization_energy_cost);    // compute the evaporated mass based on the change in latent heat, store % to avoid small numbers
 
-        tmp[id] = pixel.a;
+        tmp[id] = new_energy;
 
         // if age exceeds lifetime of a mortal particle or latent heat reaches vaporization threshold, this particle is killed (becomes dead)
         if (((lifetime != (1.0 / 0.0)) && (age > lifetime)) || (new_energy >= params.total_energy_cost)) {
