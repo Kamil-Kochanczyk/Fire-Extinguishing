@@ -45,7 +45,8 @@ void fragment() {
 
 		// make sure that fuzzy boolean variable isn't e.g. 1.0 where density is e.g. 0.0
 		// both are in the range [0,1]
-		advected_is_vapor = min(advected_smoke_density, asdiv.y);
+		//advected_is_vapor = min(advected_smoke_density, asdiv.y);
+		advected_is_vapor = asdiv.y;
 		advected_is_vapor = clamp(advected_is_vapor, 0.0, 1.0);
 	}
 	else {

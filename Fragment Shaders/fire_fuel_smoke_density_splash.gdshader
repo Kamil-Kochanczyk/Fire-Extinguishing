@@ -24,7 +24,7 @@ void fragment() {
 		highp vec3 fire_fuel_smoke_density_is_vapor = texture(TEXTURE, UV).rgb;
 		highp float rho_fuel = fire_fuel_smoke_density_is_vapor.x;
 		highp float rho_density = fire_fuel_smoke_density_is_vapor.y;
-		highp float is_vapor_prev = fire_fuel_smoke_density_is_vapor.z;
+		highp float is_vapor = fire_fuel_smoke_density_is_vapor.z;
 
 		highp float fire_temp = texture(u_fire_smoke_temperature_advect, UV).r;
 
@@ -35,7 +35,7 @@ void fragment() {
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
 
 		//highp float is_vapor_new = (particles_latent_heat > 0.0 && fire_temp > u_fire_temp_ambient && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
-		highp float is_vapor_new = (evaporated_mass * u_vapor_density_splash_strength > 0.0) ? 1.0 : is_vapor_prev;
+		bool is_vapor_bool = evaporated_mass * u_vapor_density_splash_strength > 0.0;
 
 		float extinguish_mask = texture(u_extinguish_mask, UV).r;
 
@@ -48,12 +48,19 @@ void fragment() {
 		}
 
 		rho_density += splash_mask.g * u_timestep;
-		rho_density += is_vapor_new * evaporated_mass * particle_density * u_vapor_density_splash_strength * u_timestep;
-		rho_density -= u_density_dissipation_rate * u_timestep;
+		if (is_vapor_bool) {
+			highp float vapor_delta = evaporated_mass * particle_density * u_vapor_density_splash_strength * u_timestep;
+			rho_density += vapor_delta;
+			is_vapor += vapor_delta;
+		}
+		highp float dissipation_delta = u_density_dissipation_rate * u_timestep;
+		rho_density -= dissipation_delta;
+		is_vapor -= dissipation_delta;
 		rho_density = clamp(rho_density, 0.0, 1.0);
+		is_vapor = clamp(is_vapor, 0.0, 1.0);
 
 		// vapor-related variable is stored in the final texture for visualization purposes
-
-		COLOR = vec4(rho_fuel, rho_density, is_vapor_new, 1.0);
+		
+		COLOR = vec4(rho_fuel, rho_density, is_vapor, 1.0);
 	}
 }

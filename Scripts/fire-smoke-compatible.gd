@@ -134,7 +134,7 @@ extends Node2D
 @export var fire_temp_ambient: float = 300.0
 @export var fire_temp_max: float = 2000.0
 @export var fire_temp_burn: float = 2000.0
-@export var fire_temp_extinguish: float = 300.0
+var fire_temp_extinguish: float
 @export var smoke_temp_ambient: float = 300.0
 @export var smoke_temp_max: float = 500.0
 @export var particle_temp_ambient: float = 300.0
@@ -268,7 +268,7 @@ var smoke_default_dense_down_force: float = 0.1
 var smoke_default_hot_up_force: float = 2.0
 var smoke_default_vel_abs_val_limit: float = 1.0
 var smoke_default_vapor_density_splash_strength: float = 100.0
-var smoke_default_vapor_heating_splash_strength: float = 100.0
+var smoke_default_vapor_heating_splash_strength: float = 5.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 
@@ -355,7 +355,6 @@ func fire_smoke_ready() -> void:
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
@@ -407,6 +406,9 @@ func fire_smoke_ready() -> void:
 	reset_params()
 
 func fire_smoke_process(delta: float) -> void:
+	fire_temp_extinguish = fire_curr_vis_temp_threshold
+	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
+	
 	tmp_sprite.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
 	
 	velocity_sprite.material.set("shader_parameter/u_timestep", delta)
@@ -1432,6 +1434,8 @@ func plancks_law_normalized(wavelength: float, temperature: float, m_max: float,
 	
 	var spectral_exitance: float = (2.0 * PI * h * c * c) / pow(wavelength, 5.0) / (exp(exponent) - 1.0)
 	
+	# m_max - maximum intensity in the limited range
+	# l_avg - controls the brightness, bigger values give darker results
 	var normalized: float = m_max * (1.0 - exp((-spectral_exitance) / l_avg))
 	
 	return clamp(normalized, 0.0, 1.0)
