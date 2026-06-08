@@ -21,11 +21,11 @@
 [ext_resource type="Shader" uid="uid://b3jybqmncimd2" path="res://Fragment Shaders/fire_smoke_temperature_advect.gdshader" id="15_kb7fg"]
 [ext_resource type="Shader" uid="uid://c0g0k8pj4cyvc" path="res://Fragment Shaders/fire_fuel_smoke_density_advect.gdshader" id="16_oj18q"]
 [ext_resource type="Shader" uid="uid://dgidqstkgc4fr" path="res://Fragment Shaders/plancks_law.gdshader" id="17_t424u"]
-[ext_resource type="Texture2D" uid="uid://cpx4du24f7q5u" path="res://Fire Color Spectrum/fire_gradient.png" id="18_shihg"]
 [ext_resource type="Shader" uid="uid://ctk5vasevd74o" path="res://Fragment Shaders/smoke_vis.gdshader" id="19_gujhc"]
 [ext_resource type="Shader" uid="uid://dmpf8bdla1axa" path="res://Fragment Shaders/fire_smoke_together.gdshader" id="20_w6xmb"]
 [ext_resource type="PackedScene" uid="uid://8ytan70082j4" path="res://Scenes/gradient-editor.tscn" id="21_5kuns"]
 [ext_resource type="Shader" uid="uid://hl1nakw6w7o1" path="res://Fragment Shaders/modify_particle_temperature.gdshader" id="21_hbe1w"]
+[ext_resource type="Texture2D" uid="uid://jx5qiufhrwxj" path="res://Fire Color Spectrum/plancks_law.png" id="23_xnvxc"]
 [ext_resource type="Shader" uid="uid://6soyjqo217c7" path="res://Fragment Shaders/tmp.gdshader" id="24_kid1v"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kid1v"]
@@ -317,7 +317,7 @@ viewport_path = NodePath("ObstaclesRawViewport")
 resource_local_to_scene = true
 shader = ExtResource("17_t424u")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_rofs8")
-shader_parameter/u_baked_fire_temp = ExtResource("18_shihg")
+shader_parameter/u_baked_fire_temp = ExtResource("23_xnvxc")
 shader_parameter/u_use_custom_fire_temp = 0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
@@ -1263,12 +1263,12 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 5000.0
 step = 10.0
-value = 2500.0
+value = 2750.0
 
 [node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "2500.0"
+text = "2750.0"
 
 [node name="FireObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 visible = false

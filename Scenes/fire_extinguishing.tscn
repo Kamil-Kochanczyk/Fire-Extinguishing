@@ -32,4 +32,12 @@ pg_gp_size = Vector2i(90, 50)
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_wcyfl"), SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu")])
 
 [node name="TmpDisplay" type="Sprite2D" parent="."]
+visible = false
 centered = false
+
+[node name="TextureRect" type="TextureRect" parent="."]
+visible = false
+custom_minimum_size = Vector2(512, 50)
+offset_right = 40.0
+offset_bottom = 40.0
+expand_mode = 1

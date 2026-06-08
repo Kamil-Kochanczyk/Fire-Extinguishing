@@ -107,7 +107,7 @@ void fragment() {
 
 	if ((fire_temperature > u_fire_vis_temp_threshold) && (orig_particle_density > 0.0)) {
 		heat_transfer = area * (fire_temperature - orig_particle_temperature) * u_timestep;
-		
+
 		highp float current_heating_energy = min(orig_particle_energy, u_heating_energy_cost);
 		highp float heating_energy_desirable = u_heating_energy_cost - current_heating_energy;
 		highp float heating_energy_used = min(heat_transfer, heating_energy_desirable);

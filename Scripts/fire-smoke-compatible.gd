@@ -228,7 +228,7 @@ var fire_default_vel_abs_val_limit: float = 1.0
 var fire_default_vis_temp_threshold: float = 750.0
 var fire_default_water_heating_speed: float = 50.0
 var fire_default_water_vaporization_speed: float = 500.0
-var fire_default_extinguish_strength: float = 2500.0
+var fire_default_extinguish_strength: float = 2750.0
 
 var fire_default_obstacle_toggled_on: bool = false
 var fire_default_baked_color_toggled_on: bool = true
@@ -1396,3 +1396,42 @@ func clear_extinguish_mask() -> void:
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", true)
 	await RenderingServer.frame_post_draw
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
+
+func generate_blackbody_lookup(width: int, t_ambient: float, t_max: float, m_max: float, l_avg: float, output_path: String = "") -> Image:
+	const H: float = 6.62607015e-34
+	const C: float = 2.99792458e8
+	const K_B: float = 1.380649e-23
+	
+	const LAMBDA_R: float = 610e-9
+	const LAMBDA_G: float = 555e-9
+	const LAMBDA_B: float = 465e-9
+	
+	var image: Image = Image.create(width, 1, false, Image.FORMAT_RGBA8)
+	
+	for x in width:
+		var alpha: float = float(x) / float(max(width - 1, 1))
+		var temperature: float = lerp(t_ambient, t_max, alpha)
+		
+		var r: float = plancks_law_normalized(LAMBDA_R, temperature, m_max, l_avg, H, C, K_B)
+		var g: float = plancks_law_normalized(LAMBDA_G, temperature, m_max, l_avg, H, C, K_B)
+		var b: float = plancks_law_normalized(LAMBDA_B, temperature, m_max, l_avg, H, C, K_B)
+		
+		image.set_pixel(x, 0, Color(r, g, b, 1.0))
+	
+	if output_path != "":
+		image.save_png(output_path)
+	
+	return image
+
+func plancks_law_normalized(wavelength: float, temperature: float, m_max: float, l_avg: float, h: float, c: float, k_b: float) -> float:
+	# Spectral exitance:
+	# M(λ,T) = (2πhc²/λ⁵) / (exp(hc/(λkT)) - 1)
+	
+	var exponent: float = (h * c) / (wavelength * k_b * temperature)
+	#exponent = min(exponent, 700.0)    # avoid overflow
+	
+	var spectral_exitance: float = (2.0 * PI * h * c * c) / pow(wavelength, 5.0) / (exp(exponent) - 1.0)
+	
+	var normalized: float = m_max * (1.0 - exp((-spectral_exitance) / l_avg))
+	
+	return clamp(normalized, 0.0, 1.0)

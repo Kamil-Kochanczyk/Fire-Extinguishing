@@ -5,8 +5,12 @@ extends Node
 @onready var fire_smoke: FireSmokeCompatible = $FireSmokeCompatible
 
 @onready var tmp_display: Sprite2D = $TmpDisplay
+@onready var texture_rect: TextureRect = $TextureRect
 
 func _ready() -> void:
+	#var plancks_law_image: Image = fire_smoke.generate_blackbody_lookup(512, 300.0, 2000.0, 1.0, 1e7, "res://Fire Color Spectrum/plancks_law.png")
+	#texture_rect.texture = ImageTexture.create_from_image(plancks_law_image)
+	
 	fire_smoke.fire_smoke_ready()
 	water.set_grid_to_particles_connection(fire_smoke.get_grid_to_particles_connection())
 	water.water_ready()
