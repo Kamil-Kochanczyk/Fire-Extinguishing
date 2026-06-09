@@ -163,6 +163,7 @@ shader_parameter/u_water_heating_speed = 250.0
 shader_parameter/u_water_vaporization_speed = 250.0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
+shader_parameter/u_fire_temp_extinguish = 400.0
 shader_parameter/u_fire_vis_temp_threshold = 750.0
 shader_parameter/u_particle_temp_ambient = 300.0
 shader_parameter/u_particle_temp_max = 373.0
@@ -211,6 +212,7 @@ shader_parameter/u_splash_mask = SubResource("ViewportTexture_kb7fg")
 shader_parameter/u_grid_to_particles = SubResource("ViewportTexture_qmlq6")
 shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj18q")
 shader_parameter/u_extinguish_strength = 100.0
+shader_parameter/u_fire_vis_temp_threshold = 750.0
 shader_parameter/u_fire_temp_extinguish = 500.0
 shader_parameter/u_init_state = true
 
@@ -1191,12 +1193,12 @@ layout_mode = 2
 size_flags_vertical = 1
 min_value = 300.0
 max_value = 2000.0
-value = 750.0
+value = 1000.0
 
 [node name="FireVisTempThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisTempThresholdHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "750.0"
+text = "1000.0"
 
 [node name="FireWaterHeatingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2

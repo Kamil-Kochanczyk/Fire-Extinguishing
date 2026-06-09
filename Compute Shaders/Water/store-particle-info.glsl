@@ -188,7 +188,7 @@ void main() {
 
     vec2 center_pix = vec2(pixel_coords) + vec2(0.5);
 
-    // int count = 0;
+    int count = 0;
 
     for (int cy = min_cell.y; cy <= max_cell.y; ++cy) {
         for (int cx = min_cell.x; cx <= max_cell.x; ++cx) {
@@ -223,7 +223,7 @@ void main() {
 
                 // energy_max = max(energy_max, energies[pid]);
 
-                // count++;
+                count++;
             }
         }
     }
@@ -233,9 +233,10 @@ void main() {
     float evaporated_mass = (weight_sum > 0.0) ? (evaporated_mass_sum / weight_sum) : 0.0;
     // float energy = energy_max;
 
-    // if (pixel_coords.x < 10 && pixel_coords.y == 5) {
-    //     tmp[pixel_coords.x] = evaporated_mass;
-    // }
+    if (pixel_coords.x <= 20 && pixel_coords.x >= 11 && pixel_coords.y == 5) {
+        tmp[pixel_coords.x - 11] = max_cell.x - min_cell.x + 1;    // how many cells covered
+        // tmp[pixel_coords.x - 11] = float(count);    // how many particles contributed
+    }
 
     imageStore(particles_to_grid_img, pixel_coords, vec4(density, energy, evaporated_mass, 0.33));
 }

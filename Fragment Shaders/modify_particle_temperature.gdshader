@@ -8,6 +8,7 @@ uniform highp float u_water_heating_speed = 250.0;
 uniform highp float u_water_vaporization_speed = 250.0;
 uniform float u_fire_temp_ambient = 500.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
+uniform float u_fire_temp_extinguish = 400.0;    // Kelvin
 uniform float u_fire_vis_temp_threshold = 750.0;    // Kelvin
 uniform float u_particle_temp_ambient = 300.0;    // Kelvin
 uniform float u_particle_temp_max = 373.0;    // Kelvin
@@ -105,7 +106,7 @@ void fragment() {
 	highp float modified_temperature = orig_particle_temperature;
 	highp float modified_latent_heat = orig_particle_latent_heat;
 
-	if ((fire_temperature > u_fire_vis_temp_threshold) && (orig_particle_density > 0.0)) {
+	if ((fire_temperature > u_particle_temp_max) && (orig_particle_density > 0.0)) {
 		heat_transfer = area * (fire_temperature - orig_particle_temperature) * u_timestep;
 
 		highp float current_heating_energy = min(orig_particle_energy, u_heating_energy_cost);

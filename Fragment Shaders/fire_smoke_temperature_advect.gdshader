@@ -31,10 +31,15 @@ void fragment() {
 
 	highp float advected_fire_temp;
 	highp float advected_smoke_temp;
+	
+	highp float fire_temp_aux = texture(TEXTURE, UV).b;
 
 	if (fire_previous_uv.x >= 0.0 && fire_previous_uv.x <= 1.0 && fire_previous_uv.y >= 0.0 && fire_previous_uv.y <= 1.0) {
 		advected_fire_temp = bilerp(TEXTURE, fire_previous_uv, TEXTURE_PIXEL_SIZE).r;
 		advected_fire_temp = clamp(advected_fire_temp, u_fire_temp_ambient, u_fire_temp_max);
+		
+		fire_temp_aux = bilerp(TEXTURE, fire_previous_uv, TEXTURE_PIXEL_SIZE).b;
+		fire_temp_aux = clamp(fire_temp_aux, u_fire_temp_ambient, u_fire_temp_max);
 	}
 	else {
 		advected_fire_temp = u_fire_temp_ambient;
@@ -48,5 +53,5 @@ void fragment() {
 		advected_smoke_temp = u_smoke_temp_ambient;
 	}
 
-	COLOR = vec4(advected_fire_temp, advected_smoke_temp, 0.0, 1.0);
+	COLOR = vec4(advected_fire_temp, advected_smoke_temp, fire_temp_aux, 1.0);
 }

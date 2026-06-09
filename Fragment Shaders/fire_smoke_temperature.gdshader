@@ -22,26 +22,30 @@ uniform float u_heating_energy_cost;    // J
 
 void fragment() {
 	if (u_init_state) {
-		COLOR = vec4(u_fire_temp_ambient, u_smoke_temp_ambient, 0.0, 1.0);
+		COLOR = vec4(u_fire_temp_ambient, u_smoke_temp_ambient, u_fire_temp_ambient, 1.0);
 	}
 	else {
+		highp vec4 splash_mask = texture(u_splash_mask, UV);
+		
 		highp vec4 temps_previous = texture(TEXTURE, UV);
 		highp float fire_temp_previous = temps_previous.x;
 		highp float smoke_temp_previous = temps_previous.y;
+		highp float fire_aux_temp_previous = temps_previous.z;
 
 		highp vec2 rho_fuel_is_vapor = texture(u_fire_fuel_smoke_density_splash, UV).rb;
 		highp float rho_fuel = rho_fuel_is_vapor.x;
+		highp float is_vapor = rho_fuel_is_vapor.y;
 
-		// here we mimick the vapor logic from density splash shader
-		// but we don't need to store any vapor-related variables this time in the final texture
 		highp vec2 particle_density_evaporated_mass = texture(u_particles_to_grid, UV).rb;
 		highp float particle_density = particle_density_evaporated_mass.x;
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
-		highp float is_vapor = (evaporated_mass * u_vapor_heating_splash_strength > 0.0) ? 1.0 : 0.0;
 
 		//highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
 		highp float fire_temp_new = fire_temp_previous + (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
 		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
+		
+		highp float fire_aux_temp_new = fire_aux_temp_previous + (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
+		fire_aux_temp_new = clamp(fire_aux_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 
 		highp float smoke_temp_new;
 
@@ -53,7 +57,6 @@ void fragment() {
 			smoke_temp_new = u_smoke_temp_ambient;
 		}
 		else {
-			highp vec4 splash_mask = texture(u_splash_mask, UV);
 			smoke_temp_new = smoke_temp_previous;
 			smoke_temp_new += splash_mask.g * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new += is_vapor * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
@@ -62,6 +65,6 @@ void fragment() {
 			smoke_temp_new = clamp(smoke_temp_new, u_smoke_temp_ambient, u_smoke_temp_max);
 		}
 
-		COLOR = vec4(fire_temp_new, smoke_temp_new, 0.0, 1.0);
+		COLOR = vec4(fire_temp_new, smoke_temp_new, fire_aux_temp_new, 1.0);
 	}
 }
