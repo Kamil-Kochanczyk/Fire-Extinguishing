@@ -59,6 +59,7 @@ extends Node2D
 @onready var fire_buoyancy_strength_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer/FireBuoyancyStrengthValue
 @onready var fire_vel_abs_val_limit_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitValue
 @onready var fire_vis_temp_threshold_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisTempThresholdHBoxContainer/FireVisTempThresholdValue
+@onready var fire_vis_fuel_threshold_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer/FireVisFuelThresholdValue
 @onready var fire_water_heating_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedValue
 @onready var fire_water_vaporization_speed_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedValue
 @onready var fire_extinguish_strength_value: Label = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer/FireExtinguishStrengthValue
@@ -76,6 +77,7 @@ extends Node2D
 @onready var fire_buoyancy_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireBuoyancyStrengthHBoxContainer/FireBuoyancyStrengthMarginContainer/FireBuoyancyStrengthHSlider
 @onready var fire_vel_abs_val_limit_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVelAbsValLimitHBoxContainer/FireVelAbsValLimitMarginContainer/FireVelAbsValLimitHSlider
 @onready var fire_vis_temp_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisTempThresholdHBoxContainer/FireVisTempThresholdMarginContainer/FireVisTempThresholdHSlider
+@onready var fire_vis_fuel_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer/FireVisFuelThresholdMarginContainer/FireVisFuelThresholdHSlider
 @onready var fire_water_heating_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterHeatingSpeedHBoxContainer/FireWaterHeatingSpeedMarginContainer/FireWaterHeatingSpeedHSlider
 @onready var fire_water_vaporization_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireWaterVaporizationSpeedHBoxContainer/FireWaterVaporizationSpeedMarginContainer/FireWaterVaporizationSpeedHSlider
 @onready var fire_extinguish_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer/FireExtinguishStrengthMarginContainer/FireExtinguishStrengthHSlider
@@ -225,7 +227,8 @@ var fire_default_temperature_cool_exponent: float = 1.0
 var fire_default_vorticity_scale: float = 5.0
 var fire_default_buoyancy_strength: float = 10.0
 var fire_default_vel_abs_val_limit: float = 1.0
-var fire_default_vis_temp_threshold: float = 1000.0
+var fire_default_vis_temp_threshold: float = 750.0    # auxiliary variable for tweaking the fuel threshold
+var fire_default_vis_fuel_threshold: float = 0.5
 var fire_default_water_heating_speed: float = 50.0
 var fire_default_water_vaporization_speed: float = 500.0
 var fire_default_extinguish_strength: float = 2750.0
@@ -247,6 +250,7 @@ var fire_curr_vorticity_scale: float = fire_default_vorticity_scale
 var fire_curr_buoyancy_strength: float = fire_default_buoyancy_strength
 var fire_curr_vel_abs_val_limit: float = fire_default_vel_abs_val_limit
 var fire_curr_vis_temp_threshold: float = fire_default_vis_temp_threshold
+var fire_curr_vis_fuel_threshold: float = fire_default_vis_fuel_threshold
 var fire_curr_water_heating_speed: float = fire_default_water_heating_speed
 var fire_curr_water_vaporization_speed: float = fire_default_water_vaporization_speed
 var fire_curr_extinguish_strength: float = fire_default_extinguish_strength
@@ -316,7 +320,7 @@ func fire_smoke_ready() -> void:
 	Engine.max_fps = 120
 	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
-	assert(fire_temp_extinguish < fire_default_vis_temp_threshold, "Extinguish temp should be smaller than vis temp threshold")
+	#assert(fire_temp_extinguish < fire_default_vis_temp_threshold, "Extinguish temp should be smaller than vis temp threshold")
 	
 	for vp in get_tree().get_nodes_in_group("ViewportPipeline"):
 		# this line affects only the viewports created manually, not the ones created in this script
@@ -411,6 +415,7 @@ func fire_smoke_ready() -> void:
 func fire_smoke_process(delta: float) -> void:
 	
 	tmp_sprite.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
+	tmp_sprite.material.set("shader_parameter/u_fire_vis_fuel_threshold", fire_curr_vis_fuel_threshold)
 	
 	velocity_sprite.material.set("shader_parameter/u_timestep", delta)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_timestep", delta)
@@ -424,7 +429,6 @@ func fire_smoke_process(delta: float) -> void:
 	fire_fuel_smoke_density_advect_sprite.material.set("shader_parameter/u_timestep", delta)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_heating_speed", fire_curr_water_heating_speed)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_vaporization_speed", fire_curr_water_vaporization_speed)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_disturbance_radius", fire_curr_disturbance_radius)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_disturbance_strength", fire_curr_disturbance_strength)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_vorticity_scale", fire_curr_vorticity_scale)
@@ -451,7 +455,7 @@ func fire_smoke_process(delta: float) -> void:
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_exponent", fire_curr_temperature_cool_exponent)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_extinguish_strength", fire_curr_extinguish_strength)
 	extinguish_mask_sprite.material.set("shader_parameter/u_extinguish_strength", fire_curr_extinguish_strength)
-	extinguish_mask_sprite.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
+	extinguish_mask_sprite.material.set("shader_parameter/u_fire_vis_fuel_threshold", fire_curr_vis_fuel_threshold)
 	velocity_div_free_sprite.material.set("shader_parameter/fire_vel_abs_val_limit", fire_curr_vel_abs_val_limit)
 	velocity_div_free_sprite.material.set("shader_parameter/smoke_vel_abs_val_limit", smoke_curr_vel_abs_val_limit)
 	plancks_law_sprite.material.set("shader_parameter/u_use_custom_fire_temp", int(fire_curr_custom_color_toggled_on))
@@ -647,10 +651,15 @@ func init_slider_callbacks() -> void:
 		fire_curr_vel_abs_val_limit = new_value
 	
 	slider_callbacks_dict["FireVisTempThresholdHSlider"] = func(new_value: float) -> void:
-		var new_val: float = max(new_value, ceil(fire_temp_extinguish + 1e-6))
-		fire_vis_temp_threshold_value.text = str(new_val)
-		fire_vis_temp_threshold_h_slider.value = new_val
-		fire_curr_vis_temp_threshold = new_val
+		#var new_val: float = max(new_value, ceil(fire_temp_extinguish + 1e-6))
+		fire_vis_temp_threshold_value.text = str(new_value)
+		fire_vis_temp_threshold_h_slider.value = new_value
+		fire_curr_vis_temp_threshold = new_value
+	
+	slider_callbacks_dict["FireVisFuelThresholdHSlider"] = func(new_value: float) -> void:
+		fire_vis_fuel_threshold_value.text = str(new_value)
+		fire_vis_fuel_threshold_h_slider.value = new_value
+		fire_curr_vis_fuel_threshold = new_value
 	
 	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"] = func(new_value: float) -> void:
 		fire_water_heating_speed_value.text = str(new_value)
@@ -805,6 +814,7 @@ func reset_params() -> void:
 	slider_callbacks_dict["FireBuoyancyStrengthHSlider"].call(fire_default_buoyancy_strength)
 	slider_callbacks_dict["FireVelAbsValLimitHSlider"].call(fire_default_vel_abs_val_limit)
 	slider_callbacks_dict["FireVisTempThresholdHSlider"].call(fire_default_vis_temp_threshold)
+	slider_callbacks_dict["FireVisFuelThresholdHSlider"].call(fire_default_vis_fuel_threshold)
 	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"].call(fire_default_water_heating_speed)
 	slider_callbacks_dict["FireWaterVaporizationSpeedHSlider"].call(fire_default_water_vaporization_speed)
 	slider_callbacks_dict["FireExtinguishStrengthHSlider"].call(fire_default_extinguish_strength)

@@ -33,7 +33,6 @@ pg_gp_size = Vector2i(96, 54)
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_rq2oy"), SubResource("ViewportTexture_k45wu"), SubResource("ViewportTexture_as8u4")])
 
 [node name="TmpDisplay" type="Sprite2D" parent="."]
-visible = false
 centered = false
 
 [node name="TextureRect" type="TextureRect" parent="."]

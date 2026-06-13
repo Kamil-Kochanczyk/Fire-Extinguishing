@@ -35,16 +35,9 @@ void fragment() {
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
 
 		//highp float is_vapor_new = (particles_latent_heat > 0.0 && fire_temp > u_fire_temp_ambient && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
-
-		float extinguish_mask = texture(u_extinguish_mask, UV).r;
-
-		if (extinguish_mask > 0.5) {
-			rho_fuel = 0.0;
-		}
-		else {
-			rho_fuel += splash_mask.r * u_timestep;
-			rho_fuel = clamp(rho_fuel, 0.0, 1.0);
-		}
+		
+		rho_fuel += splash_mask.r * u_timestep;
+		rho_fuel = clamp(rho_fuel, 0.0, 1.0);
 
 		rho_density += splash_mask.g * u_timestep;
 		highp float vapor_delta = evaporated_mass * particle_density * u_vapor_density_splash_strength * u_timestep;
