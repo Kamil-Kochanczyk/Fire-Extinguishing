@@ -128,8 +128,6 @@ extends Node2D
 
 @onready var smoke_custom_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer/SmokeCustomToggleHBoxContainer/SmokeCustomColorPickerButton
 
-@onready var obstacle_polygon_2d: Polygon2D = $ObstaclesRawViewport/Polygon2D
-
 @export var pressure_jacobi_iterations: int = 25
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
 @export var pg_gp_size: Vector2i = Vector2i(256, 256)
@@ -159,6 +157,8 @@ var prev_mouse_pos: Vector2 = Vector2(-INF, -INF)
 var curr_mouse_pos: Vector2 = Vector2(-INF, -INF)
 
 var disturbance_direction: Vector2 = Vector2(-INF, -INF)
+
+var obstacle_polygon_2d: Polygon2D
 
 var curr_textures: Array[ViewportTexture]    # textures to display in the simulation
 var curr_labels: Array[String]    # labels visible in the top-left corner
@@ -233,7 +233,7 @@ var fire_default_water_heating_speed: float = 50.0
 var fire_default_water_vaporization_speed: float = 500.0
 var fire_default_extinguish_strength: float = 2750.0
 
-var fire_default_obstacle_toggled_on: bool = false
+var fire_default_obstacle_toggled_on: bool = true
 var fire_default_baked_color_toggled_on: bool = true
 var fire_default_custom_color_toggled_on: bool = false
 
@@ -276,7 +276,7 @@ var smoke_default_vapor_heating_splash_strength: float = 5.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 
-var smoke_default_obstacle_toggled_on: bool = false
+var smoke_default_obstacle_toggled_on: bool = true
 var smoke_default_grayscale_color_toggled_on: bool = true
 var smoke_default_custom_color_toggled_on: bool = false
 
@@ -522,10 +522,10 @@ func _input(event: InputEvent) -> void:
 		else:
 			shift_key_pressed = false
 	elif event is InputEventKey and event.pressed:
-		if event.keycode == KEY_RIGHT:
+		if event.keycode == KEY_M:
 			curr_display_index = (curr_display_index + 1) % curr_textures.size()
 			set_display()
-		elif event.keycode == KEY_LEFT:
+		elif event.keycode == KEY_N:
 			curr_display_index = (curr_display_index - 1) % curr_textures.size()
 			set_display()
 		elif event.keycode == KEY_Z:
@@ -768,10 +768,10 @@ func init_toggle_callbacks() -> void:
 	# callables are stored in a dictionary
 	# the keys are the names of the toggles
 	
-	toggle_callbacks_dict["FireObstacleToggleCheckBox"] = func(toggled_on: bool) -> void:
-		fire_obstacle_toggle_check_box.button_pressed = toggled_on
-		smoke_obstacle_toggle_check_box.button_pressed = toggled_on
-		obstacle_polygon_2d.visible = toggled_on
+	#toggle_callbacks_dict["FireObstacleToggleCheckBox"] = func(toggled_on: bool) -> void:
+		#fire_obstacle_toggle_check_box.button_pressed = toggled_on
+		#smoke_obstacle_toggle_check_box.button_pressed = toggled_on
+		#obstacle_polygon_2d.visible = toggled_on
 	
 	toggle_callbacks_dict["FireBakedToggleCheckBox"] = func(toggled_on: bool) -> void:
 		fire_baked_toggle_check_box.button_pressed = toggled_on
@@ -782,10 +782,10 @@ func init_toggle_callbacks() -> void:
 		fire_curr_custom_color_toggled_on = toggled_on
 		fire_gradient_editor.visible = toggled_on
 	
-	toggle_callbacks_dict["SmokeObstacleToggleCheckBox"] = func(toggled_on: bool) -> void:
-		smoke_obstacle_toggle_check_box.button_pressed = toggled_on
-		fire_obstacle_toggle_check_box.button_pressed = toggled_on
-		obstacle_polygon_2d.visible = toggled_on
+	#toggle_callbacks_dict["SmokeObstacleToggleCheckBox"] = func(toggled_on: bool) -> void:
+		#smoke_obstacle_toggle_check_box.button_pressed = toggled_on
+		#fire_obstacle_toggle_check_box.button_pressed = toggled_on
+		#obstacle_polygon_2d.visible = toggled_on
 	
 	toggle_callbacks_dict["SmokeGrayscaleToggleCheckBox"] = func(toggled_on: bool) -> void:
 		smoke_grayscale_toggle_check_box.button_pressed = toggled_on
@@ -824,7 +824,7 @@ func reset_params() -> void:
 	slider_callbacks_dict["FireWaterVaporizationSpeedHSlider"].call(fire_default_water_vaporization_speed)
 	slider_callbacks_dict["FireExtinguishStrengthHSlider"].call(fire_default_extinguish_strength)
 	
-	toggle_callbacks_dict["FireObstacleToggleCheckBox"].call(fire_default_obstacle_toggled_on)
+	#toggle_callbacks_dict["FireObstacleToggleCheckBox"].call(fire_default_obstacle_toggled_on)
 	toggle_callbacks_dict["FireBakedToggleCheckBox"].call(fire_default_baked_color_toggled_on)
 	toggle_callbacks_dict["FireCustomToggleCheckBox"].call(fire_default_custom_color_toggled_on)
 	
@@ -845,7 +845,7 @@ func reset_params() -> void:
 	slider_callbacks_dict["SmokeMinAlbedoHSlider"].call(smoke_default_min_albedo)
 	slider_callbacks_dict["SmokeMaxAlbedoHSlider"].call(smoke_default_max_albedo)
 	
-	toggle_callbacks_dict["SmokeObstacleToggleCheckBox"].call(smoke_default_obstacle_toggled_on)
+	#toggle_callbacks_dict["SmokeObstacleToggleCheckBox"].call(smoke_default_obstacle_toggled_on)
 	toggle_callbacks_dict["SmokeGrayscaleToggleCheckBox"].call(smoke_default_grayscale_color_toggled_on)
 	toggle_callbacks_dict["SmokeCustomToggleCheckBox"].call(smoke_default_custom_color_toggled_on)
 	
@@ -1456,3 +1456,7 @@ func plancks_law_normalized(wavelength: float, temperature: float, m_max: float,
 	var normalized: float = m_max * (1.0 - exp((-spectral_exitance) / l_avg))
 	
 	return clamp(normalized, 0.0, 1.0)
+
+func set_obstacle(polygon: Polygon2D) -> void:
+	obstacle_polygon_2d = polygon
+	polygon.reparent(obstacles_raw_viewport)

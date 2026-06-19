@@ -708,7 +708,7 @@ func water_ready() -> void:
 	M_rotation_Y_x = col_Y.x
 	M_rotation_Y_y = col_Y.y
 	
-	create_sdf_related_textures(false)
+	create_sdf_related_textures(true)
 	
 	init_gpu()
 	
@@ -3885,3 +3885,6 @@ func get_extinguishing_data() -> Array[float]:
 	data.append(vaporization_energy_cost)
 	data.append(total_energy_cost)
 	return data
+
+func get_obstacle() -> Polygon2D:
+	return glass

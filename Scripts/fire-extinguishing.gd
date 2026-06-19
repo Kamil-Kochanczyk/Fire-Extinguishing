@@ -17,6 +17,7 @@ func _ready() -> void:
 	fire_smoke.set_particles_to_grid_connection(water.get_particles_to_grid_connection())
 	
 	fire_smoke.set_extinguishing_data(water.get_extinguishing_data())
+	fire_smoke.set_obstacle(water.get_obstacle())
 	
 	assert(water.viewport_size.x == fire_smoke.viewport_size.x and water.viewport_size.y == fire_smoke.viewport_size.y, "Fire, Smoke and Water must have the same viewport size")
 	assert(water.pg_gp_size == fire_smoke.pg_gp_size, "Fire, Smoke and Water must have the same particles->grid and grid->particles viewports sizes")

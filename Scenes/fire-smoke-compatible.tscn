@@ -458,11 +458,6 @@ texture_repeat = 1
 texture = ExtResource("2_hbe1w")
 centered = false
 
-[node name="Polygon2D" type="Polygon2D" parent="ObstaclesRawViewport"]
-offset = Vector2(-66, 100)
-polygon = PackedVector2Array(631.901, 132.48, 608.368, 192.683, 544.323, 192.456, 600.977, 227.233, 584.15, 295.026, 631.964, 253.662, 679.764, 293.484, 663.82, 225.691, 718.932, 191.819, 656.867, 192.039)
-uv = PackedVector2Array(631.901, 132.48, 613.723, 186.738, 566.346, 152.84, 588.887, 209.088, 539.026, 212.263, 592.612, 245.722, 577.087, 295.403, 620.552, 268.703, 631.108, 289.815, 641.663, 268.082, 684.507, 295.403, 670.848, 242.618, 723.625, 226.481, 667.123, 206.604, 684.508, 155.692, 645.39, 184.875)
-
 [node name="ObstaclesEdgesViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
 transparent_bg = true

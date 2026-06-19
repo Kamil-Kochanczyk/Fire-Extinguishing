@@ -156,7 +156,6 @@ texture = SubResource("ViewportTexture_rqihb")
 centered = false
 
 [node name="Glass" type="Polygon2D" parent="."]
-visible = false
 offset = Vector2(4, 0)
 polygon = PackedVector2Array(-80, -72, -56, 72, 48, 72, 72, -72, 64, -72, 40, 64, -48, 64, -72, -72)
 uv = PackedVector2Array(440.081, 216.02, 463.976, 359.986, 568.13, 360.065, 592.068, 216.049, 584.056, 216.045, 560.04, 352.004, 472.108, 352.043, 447.974, 216.02)
