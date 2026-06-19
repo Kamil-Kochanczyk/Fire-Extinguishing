@@ -32,6 +32,13 @@ extends Node2D
 
 #region init tweakables
 
+## Which algorithm to use. Default option is WCSPH. Other option is PCISPH.
+## Warning: for PCISPH it's recommended to set all particles as immortal because mortal particles can cause instabilities.
+@export var use_pcisph: bool = false
+
+## Number of predictive-corrective iterations performed in PCISPH.
+@export var pcisph_num_iterations: int = 7
+
 ## Size of the window that the simulation will be displayed in.
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
 
@@ -111,9 +118,9 @@ var stiffness: float = 10.0
 var stiffness_near: float = 2.0
 var viscosity_scale: float = 0.0005
 var xsph_scale: float = 0.03
-var vorticity_scale: float = 0.1
-var surface_tension_threshold: float = 550.0
-var surface_tension_scale: float = 5.0
+var vorticity_scale: float = 1.5
+var surface_tension_threshold: float = 95.0
+var surface_tension_scale: float = 0.0005
 var adhesion_threshold: float = 0.01
 var adhesion_scale: float = 0.3
 var gravity_multiplier: float = 1.0
@@ -154,15 +161,21 @@ var normalized_sim_world_bounds_max: Vector2
 var normalized_to_viewport_scale_factor: Vector2
 var viewport_to_normalized_scale_factor: Vector2
 
+var area: float
 var mass: float
 var smoothing_radius: float
 var max_timestep: float
 
 var poly6_2d_constant: float
+var poly6_2d_gradient_constant: float
+var poly6_2d_laplacian_constant: float
 var spiky_2d_gradient_constant: float
 var visc_2d_laplacian_constant: float
 
 var gravity: Vector2
+
+var sigma_part: float
+var sigma: float
 
 var specific_heat_capacity: float
 var specific_latent_heat_vaporization: float
@@ -220,8 +233,8 @@ var compute_vorticities_workgroup_size_x: int
 var compute_vorticities_workgroups_x: int
 var compute_forces_workgroup_size_x: int
 var compute_forces_workgroups_x: int
-var integrate_motion_workgroup_size_x: int
-var integrate_motion_workgroups_x: int
+var integrate_motion_wcsph_workgroup_size_x: int
+var integrate_motion_wcsph_workgroups_x: int
 var store_particle_info_workgroup_size_x: int
 var store_particle_info_workgroups_x: int
 var store_particle_info_workgroup_size_y: int
@@ -230,6 +243,16 @@ var store_neighbors_workgroup_size_x: int
 var store_neighbors_workgroups_x: int
 var mark_neighbors_workgroup_size_x: int
 var mark_neighbors_workgroups_x: int
+var compute_non_pressure_forces_workgroup_size_x: int
+var compute_non_pressure_forces_workgroups_x: int
+var compute_predicted_positions_workgroup_size_x: int
+var compute_predicted_positions_workgroups_x: int
+var predict_densities_update_pressures_workgroup_size_x: int
+var predict_densities_update_pressures_workgroups_x: int
+var compute_pressure_forces_workgroup_size_x: int
+var compute_pressure_forces_workgroups_x: int
+var integrate_motion_pcisph_workgroup_size_x: int
+var integrate_motion_pcisph_workgroups_x: int
 
 var positions_size: int
 var velocities_size: int
@@ -252,6 +275,10 @@ var near_pressures_size: int
 var vorticities_size: int
 var forces_size: int
 var neighbor_flags_size: int
+var non_pressure_forces_size: int
+var pressure_forces_size: int
+var predicted_positions_size: int
+var predicted_densities_size: int
 
 var glass_sdf_img: Image
 var glass_sdf_gradient_img: Image
@@ -481,10 +508,15 @@ var compute_densities_shader_rid: RID
 var compute_pressures_shader_rid: RID
 var compute_vorticities_shader_rid: RID
 var compute_forces_shader_rid: RID
-var integrate_motion_shader_rid: RID
+var integrate_motion_wcsph_shader_rid: RID
 var store_particle_info_shader_rid: RID
 var store_neighbors_shader_rid: RID
 var mark_neighbors_shader_rid: RID
+var compute_non_pressure_forces_shader_rid: RID
+var compute_predicted_positions_shader_rid: RID
+var predict_densities_update_pressures_shader_rid: RID
+var compute_pressure_forces_shader_rid: RID
+var integrate_motion_pcisph_shader_rid: RID
 #endregion
 
 #region buffers
@@ -520,117 +552,10 @@ var near_pressures_buffer_rid: RID
 var vorticities_buffer_rid: RID
 var forces_buffer_rid: RID
 var neighbor_flags_buffer_rid: RID
-#endregion
-
-#region uniforms
-# uniforms point to existing buffers on GPU and connect them to shaders
-var kill_particles_positions_uniform: RDUniform
-var kill_particles_velocities_uniform: RDUniform
-var kill_particles_lifetimes_uniform: RDUniform
-var kill_particles_ages_uniform: RDUniform
-var kill_particles_is_alive_uniform: RDUniform
-var kill_particles_dead_stack_uniform: RDUniform
-var kill_particles_dead_count_uniform: RDUniform
-#var kill_particles_temperatures_uniform: RDUniform
-#var kill_particles_latent_heats_uniform: RDUniform
-var kill_particles_energies_uniform: RDUniform
-var kill_particles_evaporated_masses_uniform: RDUniform
-var spawn_particles_positions_uniform: RDUniform
-var spawn_particles_velocities_uniform: RDUniform
-var spawn_particles_ages_uniform: RDUniform
-var spawn_particles_is_alive_uniform: RDUniform
-var spawn_particles_dead_stack_uniform: RDUniform
-var spawn_particles_dead_count_uniform: RDUniform
-#var spawn_particles_temperatures_uniform: RDUniform
-#var spawn_particles_latent_heats_uniform: RDUniform
-var spawn_particles_energies_uniform: RDUniform
-var spawn_particles_evaporated_masses_uniform: RDUniform
-var compute_hashes_positions_uniform: RDUniform
-var compute_hashes_hashes_uniform: RDUniform
-var compute_hashes_particle_indices_uniform: RDUniform
-#region parallel radix sort uniforms
-var histogram_keys_in_1_uniform: RDUniform    # ping-pong
-var histogram_keys_in_2_uniform: RDUniform    # ping-pong
-var histogram_group_histograms_uniform: RDUniform
-var counts_per_digit_group_histograms_uniform: RDUniform
-var counts_per_digit_digit_totals_uniform: RDUniform
-var pps16_inputtt_uniform: RDUniform
-var pps16_outputtt_uniform: RDUniform
-var scan_per_digit_group_histograms_uniform: RDUniform
-var scan_per_digit_prefix_groups_uniform: RDUniform
-var combine_offsets_digit_totals_after_scan_uniform: RDUniform
-var combine_offsets_prefix_groups_uniform: RDUniform
-var combine_offsets_group_offsets_uniform: RDUniform
-var scatter_keys_in_1_uniform: RDUniform    # ping-pong
-var scatter_keys_in_2_uniform: RDUniform    # ping-pong
-var scatter_keys_out_1_uniform: RDUniform    # ping-pong
-var scatter_keys_out_2_uniform: RDUniform    # ping-pong
-var scatter_group_offsets_uniform: RDUniform
-var scatter_values_in_1_uniform: RDUniform    # ping-pong
-var scatter_values_in_2_uniform: RDUniform    # ping-pong
-var scatter_values_out_1_uniform: RDUniform    # ping-pong
-var scatter_values_out_2_uniform: RDUniform    # ping-pong
-#endregion
-var range_start_end_hashes_uniform: RDUniform
-var range_start_end_start_indices_uniform: RDUniform
-var range_start_end_end_indices_uniform: RDUniform
-var compute_densities_positions_uniform: RDUniform
-var compute_densities_sorted_particle_indices_uniform: RDUniform
-var compute_densities_start_indices_uniform: RDUniform
-var compute_densities_end_indices_uniform: RDUniform
-var compute_densities_densities_uniform: RDUniform
-var compute_densities_near_densities_uniform: RDUniform
-var compute_densities_is_alive_uniform: RDUniform
-var compute_pressures_densities_uniform: RDUniform
-var compute_pressures_pressures_uniform: RDUniform
-var compute_pressures_near_densities_uniform: RDUniform
-var compute_pressures_near_pressures_uniform: RDUniform
-var compute_pressures_is_alive_uniform: RDUniform
-var compute_vorticities_positions_uniform: RDUniform
-var compute_vorticities_sorted_particle_indices_uniform: RDUniform
-var compute_vorticities_start_indices_uniform: RDUniform
-var compute_vorticities_end_indices_uniform: RDUniform
-var compute_vorticities_densities_uniform: RDUniform
-var compute_vorticities_velocities_uniform: RDUniform
-var compute_vorticities_vorticities_uniform: RDUniform
-var compute_vorticities_is_alive_uniform: RDUniform
-var compute_forces_positions_uniform: RDUniform
-var compute_forces_velocities_uniform: RDUniform
-var compute_forces_sorted_particle_indices_uniform: RDUniform
-var compute_forces_start_indices_uniform: RDUniform
-var compute_forces_end_indices_uniform: RDUniform
-var compute_forces_densities_uniform: RDUniform
-var compute_forces_pressures_uniform: RDUniform
-var compute_forces_near_densities_uniform: RDUniform
-var compute_forces_near_pressures_uniform: RDUniform
-var compute_forces_vorticities_uniform: RDUniform
-var compute_forces_forces_uniform: RDUniform
-var compute_forces_is_alive_uniform: RDUniform
-var integrate_motion_positions_uniform: RDUniform
-var integrate_motion_velocities_uniform: RDUniform
-var integrate_motion_densities_uniform: RDUniform
-var integrate_motion_forces_uniform: RDUniform
-var integrate_motion_sorted_particle_indices_uniform: RDUniform
-var integrate_motion_start_indices_uniform: RDUniform
-var integrate_motion_end_indices_uniform: RDUniform
-var integrate_motion_is_alive_uniform: RDUniform
-#var integrate_motion_temperatures_uniform: RDUniform
-var integrate_motion_energies_uniform: RDUniform
-var store_particle_info_positions_uniform: RDUniform
-var store_particle_info_sorted_particle_indices_uniform: RDUniform
-var store_particle_info_start_indices_uniform: RDUniform
-var store_particle_info_end_indices_uniform: RDUniform
-var store_particle_info_densities_uniform: RDUniform
-#var store_particle_info_temperatures_uniform: RDUniform
-#var store_particle_info_latent_heats_uniform: RDUniform
-var store_particle_info_energies_uniform: RDUniform
-var store_particle_info_evaporated_masses_uniform: RDUniform
-var store_neighbors_positions_uniform: RDUniform
-var store_neighbors_sorted_particle_indices_uniform: RDUniform
-var store_neighbors_start_indices_uniform: RDUniform
-var store_neighbors_end_indices_uniform: RDUniform
-var store_neighbors_neighbor_flags_uniform: RDUniform
-var mark_neighbors_neighbor_flags_uniform: RDUniform
+var non_pressure_forces_buffer_rid: RID
+var pressure_forces_buffer_rid: RID
+var predicted_positions_buffer_rid: RID
+var predicted_densities_buffer_rid: RID
 #endregion
 
 #region textures
@@ -669,14 +594,6 @@ var particles_to_grid_img_texture_format: RDTextureFormat
 var particles_to_grid_img_ren_texture_rid: RID
 var particles_to_grid_img_texture_rid: RID
 var particles_to_grid_img_texture_2drd: Texture2DRD
-
-var kill_particles_grid_to_particles_img_uniform: RDUniform
-var integrate_motion_particle_pos_ener_img_uniform: RDUniform
-var integrate_motion_glass_sdf_img_uniform: RDUniform
-var integrate_motion_glass_sdf_gradient_img_uniform: RDUniform
-var store_particle_info_particles_to_grid_img_uniform: RDUniform
-var store_neighbors_particle_pos_ener_img_uniform: RDUniform
-var mark_neighbors_particle_pos_ener_img_uniform: RDUniform
 #endregion
 
 #region uniform sets
@@ -699,10 +616,15 @@ var compute_densities_uniform_set_rid: RID
 var compute_pressures_uniform_set_rid: RID
 var compute_vorticities_uniform_set_rid: RID
 var compute_forces_uniform_set_rid: RID
-var integrate_motion_uniform_set_rid: RID
+var integrate_motion_wcsph_uniform_set_rid: RID
 var store_particle_info_uniform_set_rid: RID
 var store_neighbors_uniform_set_rid: RID
 var mark_neighbors_uniform_set_rid: RID
+var compute_non_pressure_forces_uniform_set_rid: RID
+var compute_predicted_positions_uniform_set_rid: RID
+var predict_densities_update_pressures_uniform_set_rid: RID
+var compute_pressure_forces_uniform_set_rid: RID
+var integrate_motion_pcisph_uniform_set_rid: RID
 #endregion
 
 #region pipelines
@@ -723,10 +645,15 @@ var compute_densities_pipeline_rid: RID
 var compute_pressures_pipeline_rid: RID
 var compute_vorticities_pipeline_rid: RID
 var compute_forces_pipeline_rid: RID
-var integrate_motion_pipeline_rid: RID
+var integrate_motion_wcsph_pipeline_rid: RID
 var store_particle_info_pipeline_rid: RID
 var store_neighbors_pipeline_rid: RID
 var mark_neighbors_pipeline_rid: RID
+var compute_non_pressure_forces_pipeline_rid: RID
+var compute_predicted_positions_pipeline_rid: RID
+var predict_densities_update_pressures_pipeline_rid: RID
+var compute_pressure_forces_pipeline_rid: RID
+var integrate_motion_pcisph_pipeline_rid: RID
 #endregion
 
 #endregion
@@ -784,6 +711,8 @@ func water_ready() -> void:
 	create_sdf_related_textures(false)
 	
 	init_gpu()
+	
+	compute_sigma_part()
 	
 	verbose_particle_idx = randi() % particle_count
 	
@@ -851,6 +780,8 @@ func water_ready() -> void:
 	reset_params()
 	
 	set_display()
+	
+	print("Max simulation timestep: ", max_timestep)
 
 func water_process(delta: float) -> void:
 	if not waiting_for_gpu:
@@ -1042,15 +973,21 @@ func init_general_predefined_variables() -> void:
 	normalized_to_viewport_scale_factor = Vector2(viewport_size.x, viewport_size.y)
 	viewport_to_normalized_scale_factor = Vector2(1.0 / normalized_to_viewport_scale_factor.x, 1.0 / normalized_to_viewport_scale_factor.y)
 	
-	mass = rest_density * (particle_spacing * particle_spacing)
+	area = particle_spacing * particle_spacing
+	mass = rest_density * area
 	smoothing_radius = particle_spacing * smoothing_radius_multiplier
 	max_timestep = safety_courant_number * (smoothing_radius / sqrt(stiffness))
 	
 	poly6_2d_constant = 4.0 / (PI * pow(smoothing_radius, 8.0))
+	poly6_2d_gradient_constant = -24.0 / (PI * pow(smoothing_radius, 8.0))
+	poly6_2d_laplacian_constant = -48.0 / (PI * pow(smoothing_radius, 8.0))
 	spiky_2d_gradient_constant = -30.0 / (PI * pow(smoothing_radius, 5.0))
 	visc_2d_laplacian_constant = 40.0 / (PI * pow(smoothing_radius, 5.0))
 	
 	gravity = Vector2(0.0, 9.81)
+	
+	#sigma_part
+	sigma = 0.0
 	
 	specific_heat_capacity = 4184.0    # J / kg / K
 	specific_latent_heat_vaporization = 2264705.0    # J / kg
@@ -1108,8 +1045,8 @@ func init_general_predefined_variables() -> void:
 	compute_vorticities_workgroups_x = kill_particles_workgroups_x
 	compute_forces_workgroup_size_x = kill_particles_workgroup_size_x
 	compute_forces_workgroups_x = kill_particles_workgroups_x
-	integrate_motion_workgroup_size_x = kill_particles_workgroup_size_x
-	integrate_motion_workgroups_x = kill_particles_workgroups_x
+	integrate_motion_wcsph_workgroup_size_x = kill_particles_workgroup_size_x
+	integrate_motion_wcsph_workgroups_x = kill_particles_workgroups_x
 	store_particle_info_workgroup_size_x = 16    # should match local_size_x in the corresponding shader
 	store_particle_info_workgroups_x = int(ceil(pg_gp_size.x / float(store_particle_info_workgroup_size_x)))
 	store_particle_info_workgroup_size_y = 16    # should match local_size_y in the corresponding shader
@@ -1118,6 +1055,16 @@ func init_general_predefined_variables() -> void:
 	store_neighbors_workgroups_x = kill_particles_workgroups_x
 	mark_neighbors_workgroup_size_x = kill_particles_workgroup_size_x
 	mark_neighbors_workgroups_x = kill_particles_workgroups_x
+	compute_non_pressure_forces_workgroup_size_x = kill_particles_workgroup_size_x
+	compute_non_pressure_forces_workgroups_x = kill_particles_workgroups_x
+	compute_predicted_positions_workgroup_size_x = kill_particles_workgroup_size_x
+	compute_predicted_positions_workgroups_x = kill_particles_workgroups_x
+	predict_densities_update_pressures_workgroup_size_x = kill_particles_workgroup_size_x
+	predict_densities_update_pressures_workgroups_x = kill_particles_workgroups_x
+	compute_pressure_forces_workgroup_size_x = kill_particles_workgroup_size_x
+	compute_pressure_forces_workgroups_x = kill_particles_workgroups_x
+	integrate_motion_pcisph_workgroup_size_x = kill_particles_workgroup_size_x
+	integrate_motion_pcisph_workgroups_x = kill_particles_workgroups_x
 	
 	positions_size = particle_count
 	velocities_size = positions_size
@@ -1140,6 +1087,10 @@ func init_general_predefined_variables() -> void:
 	vorticities_size = positions_size
 	forces_size = positions_size
 	neighbor_flags_size = positions_size
+	non_pressure_forces_size = positions_size
+	pressure_forces_size = positions_size
+	predicted_positions_size = positions_size
+	predicted_densities_size = positions_size
 	
 	#glass_sdf_img
 	#glass_sdf_gradient_img
@@ -1311,9 +1262,9 @@ func init_gpu() -> void:
 	var compute_forces_shader_spirv = compute_forces_shader_file.get_spirv()
 	compute_forces_shader_rid = rd.shader_create_from_spirv(compute_forces_shader_spirv)
 	
-	var integrate_motion_shader_file = load("res://Compute Shaders/Water/integrate-motion.glsl")
-	var integrate_motion_shader_spirv = integrate_motion_shader_file.get_spirv()
-	integrate_motion_shader_rid = rd.shader_create_from_spirv(integrate_motion_shader_spirv)
+	var integrate_motion_wcsph_shader_file = load("res://Compute Shaders/Water/integrate-motion-wcsph.glsl")
+	var integrate_motion_wcsph_shader_spirv = integrate_motion_wcsph_shader_file.get_spirv()
+	integrate_motion_wcsph_shader_rid = rd.shader_create_from_spirv(integrate_motion_wcsph_shader_spirv)
 	
 	var store_particle_info_shader_file = load("res://Compute Shaders/Water/store-particle-info.glsl")
 	var store_particle_info_shader_spirv = store_particle_info_shader_file.get_spirv()
@@ -1326,6 +1277,26 @@ func init_gpu() -> void:
 	var mark_neighbors_shader_file = load("res://Compute Shaders/Water/mark-neighbors.glsl")
 	var mark_neighbors_shader_spirv = mark_neighbors_shader_file.get_spirv()
 	mark_neighbors_shader_rid = rd.shader_create_from_spirv(mark_neighbors_shader_spirv)
+	
+	var compute_non_pressure_forces_shader_file = load("res://Compute Shaders/Water/compute-non-pressure-forces.glsl")
+	var compute_non_pressure_forces_shader_spirv = compute_non_pressure_forces_shader_file.get_spirv()
+	compute_non_pressure_forces_shader_rid = rd.shader_create_from_spirv(compute_non_pressure_forces_shader_spirv)
+	
+	var compute_predicted_positions_shader_file = load("res://Compute Shaders/Water/compute-predicted-positions.glsl")
+	var compute_predicted_positions_shader_spirv = compute_predicted_positions_shader_file.get_spirv()
+	compute_predicted_positions_shader_rid = rd.shader_create_from_spirv(compute_predicted_positions_shader_spirv)
+	
+	var predict_densities_update_pressures_shader_file = load("res://Compute Shaders/Water/predict-densities-update-pressures.glsl")
+	var predict_densities_update_pressures_shader_spirv = predict_densities_update_pressures_shader_file.get_spirv()
+	predict_densities_update_pressures_shader_rid = rd.shader_create_from_spirv(predict_densities_update_pressures_shader_spirv)
+	
+	var compute_pressure_forces_shader_file = load("res://Compute Shaders/Water/compute-pressure-forces.glsl")
+	var compute_pressure_forces_shader_spirv = compute_pressure_forces_shader_file.get_spirv()
+	compute_pressure_forces_shader_rid = rd.shader_create_from_spirv(compute_pressure_forces_shader_spirv)
+	
+	var integrate_motion_pcisph_shader_file = load("res://Compute Shaders/Water/integrate-motion-pcisph.glsl")
+	var integrate_motion_pcisph_shader_spirv = integrate_motion_pcisph_shader_file.get_spirv()
+	integrate_motion_pcisph_shader_rid = rd.shader_create_from_spirv(integrate_motion_pcisph_shader_spirv)
 	#endregion
 	
 	#region bytes
@@ -1511,6 +1482,26 @@ func init_gpu() -> void:
 	neighbor_flags.resize(neighbor_flags_size)
 	neighbor_flags.fill(0)
 	var neighbor_flags_bytes: PackedByteArray = get_uint_packed_byte_array(neighbor_flags)
+	
+	var non_pressure_forces: PackedVector2Array = PackedVector2Array()
+	for i in non_pressure_forces_size:
+		non_pressure_forces.append(Vector2(0.0, 0.0))
+	var non_pressure_forces_bytes: PackedByteArray = non_pressure_forces.to_byte_array()
+	
+	var pressure_forces: PackedVector2Array = PackedVector2Array()
+	for i in pressure_forces_size:
+		pressure_forces.append(Vector2(0.0, 0.0))
+	var pressure_forces_bytes: PackedByteArray = pressure_forces.to_byte_array()
+	
+	var predicted_positions: PackedVector2Array = PackedVector2Array()
+	for i in predicted_positions_size:
+		predicted_positions.append(Vector2(2.0 + (randf() * 10.0), 2.0 + (randf() * 10.0)))
+	var predicted_positions_bytes: PackedByteArray = predicted_positions.to_byte_array()
+	
+	var predicted_densities: PackedFloat32Array = PackedFloat32Array()
+	predicted_densities.resize(predicted_densities_size)
+	predicted_densities.fill(rest_density)
+	var predicted_densities_bytes: PackedByteArray = predicted_densities.to_byte_array()
 	#endregion
 	
 	var tmp_buffer_vals: PackedFloat32Array = PackedFloat32Array()
@@ -1552,435 +1543,612 @@ func init_gpu() -> void:
 	vorticities_buffer_rid = rd.storage_buffer_create(vorticities_bytes.size(), vorticities_bytes)
 	forces_buffer_rid = rd.storage_buffer_create(forces_bytes.size(), forces_bytes)
 	neighbor_flags_buffer_rid = rd.storage_buffer_create(neighbor_flags_bytes.size(), neighbor_flags_bytes)
+	non_pressure_forces_buffer_rid = rd.storage_buffer_create(non_pressure_forces_bytes.size(), non_pressure_forces_bytes)
+	pressure_forces_buffer_rid = rd.storage_buffer_create(pressure_forces_bytes.size(), pressure_forces_bytes)
+	predicted_positions_buffer_rid = rd.storage_buffer_create(predicted_positions_bytes.size(), predicted_positions_bytes)
+	predicted_densities_buffer_rid = rd.storage_buffer_create(predicted_densities_bytes.size(), predicted_densities_bytes)
 	#endregion
 	
 	tmp_buffer_rid = rd.storage_buffer_create(tmp_buffer_vals_bytes.size(), tmp_buffer_vals_bytes)
 	
 	#region uniforms
-	kill_particles_positions_uniform = RDUniform.new()
+	# uniforms point to existing buffers on GPU and connect them to shaders
+	var kill_particles_positions_uniform: RDUniform = RDUniform.new()
 	kill_particles_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_positions_uniform.binding = 0
 	kill_particles_positions_uniform.add_id(positions_buffer_rid)
-	kill_particles_velocities_uniform = RDUniform.new()
+	var kill_particles_velocities_uniform: RDUniform = RDUniform.new()
 	kill_particles_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_velocities_uniform.binding = 1
 	kill_particles_velocities_uniform.add_id(velocities_buffer_rid)
-	kill_particles_lifetimes_uniform = RDUniform.new()
+	var kill_particles_lifetimes_uniform: RDUniform = RDUniform.new()
 	kill_particles_lifetimes_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_lifetimes_uniform.binding = 2
 	kill_particles_lifetimes_uniform.add_id(lifetimes_buffer_rid)
-	kill_particles_ages_uniform = RDUniform.new()
+	var kill_particles_ages_uniform: RDUniform = RDUniform.new()
 	kill_particles_ages_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_ages_uniform.binding = 3
 	kill_particles_ages_uniform.add_id(ages_buffer_rid)
-	kill_particles_is_alive_uniform = RDUniform.new()
+	var kill_particles_is_alive_uniform: RDUniform = RDUniform.new()
 	kill_particles_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_is_alive_uniform.binding = 4
 	kill_particles_is_alive_uniform.add_id(is_alive_buffer_rid)
-	kill_particles_dead_stack_uniform = RDUniform.new()
+	var kill_particles_dead_stack_uniform: RDUniform = RDUniform.new()
 	kill_particles_dead_stack_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_dead_stack_uniform.binding = 5
 	kill_particles_dead_stack_uniform.add_id(dead_stack_buffer_rid)
-	kill_particles_dead_count_uniform = RDUniform.new()
+	var kill_particles_dead_count_uniform: RDUniform = RDUniform.new()
 	kill_particles_dead_count_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_dead_count_uniform.binding = 6
 	kill_particles_dead_count_uniform.add_id(dead_count_buffer_rid)
-	#kill_particles_temperatures_uniform = RDUniform.new()
+	#kill_particles_temperatures_uniform: RDUniform = RDUniform.new()
 	#kill_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#kill_particles_temperatures_uniform.binding = 7
 	#kill_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
-	#kill_particles_latent_heats_uniform = RDUniform.new()
+	#kill_particles_latent_heats_uniform: RDUniform = RDUniform.new()
 	#kill_particles_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#kill_particles_latent_heats_uniform.binding = 8
 	#kill_particles_latent_heats_uniform.add_id(latent_heats_buffer_rid)
-	kill_particles_energies_uniform = RDUniform.new()
+	var kill_particles_energies_uniform: RDUniform = RDUniform.new()
 	kill_particles_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_energies_uniform.binding = 7
 	kill_particles_energies_uniform.add_id(energies_buffer_rid)
-	kill_particles_evaporated_masses_uniform = RDUniform.new()
+	var kill_particles_evaporated_masses_uniform: RDUniform = RDUniform.new()
 	kill_particles_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	kill_particles_evaporated_masses_uniform.binding = 8
 	kill_particles_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
-	spawn_particles_positions_uniform = RDUniform.new()
+	var spawn_particles_positions_uniform: RDUniform = RDUniform.new()
 	spawn_particles_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_positions_uniform.binding = 0
 	spawn_particles_positions_uniform.add_id(positions_buffer_rid)
-	spawn_particles_velocities_uniform = RDUniform.new()
+	var spawn_particles_velocities_uniform: RDUniform = RDUniform.new()
 	spawn_particles_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_velocities_uniform.binding = 1
 	spawn_particles_velocities_uniform.add_id(velocities_buffer_rid)
-	spawn_particles_ages_uniform = RDUniform.new()
+	var spawn_particles_ages_uniform: RDUniform = RDUniform.new()
 	spawn_particles_ages_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_ages_uniform.binding = 2
 	spawn_particles_ages_uniform.add_id(ages_buffer_rid)
-	spawn_particles_is_alive_uniform = RDUniform.new()
+	var spawn_particles_is_alive_uniform: RDUniform = RDUniform.new()
 	spawn_particles_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_is_alive_uniform.binding = 3
 	spawn_particles_is_alive_uniform.add_id(is_alive_buffer_rid)
-	spawn_particles_dead_stack_uniform = RDUniform.new()
+	var spawn_particles_dead_stack_uniform: RDUniform = RDUniform.new()
 	spawn_particles_dead_stack_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_dead_stack_uniform.binding = 4
 	spawn_particles_dead_stack_uniform.add_id(dead_stack_buffer_rid)
-	spawn_particles_dead_count_uniform = RDUniform.new()
+	var spawn_particles_dead_count_uniform: RDUniform = RDUniform.new()
 	spawn_particles_dead_count_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_dead_count_uniform.binding = 5
 	spawn_particles_dead_count_uniform.add_id(dead_count_buffer_rid)
-	#spawn_particles_temperatures_uniform = RDUniform.new()
+	#spawn_particles_temperatures_uniform: RDUniform = RDUniform.new()
 	#spawn_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#spawn_particles_temperatures_uniform.binding = 6
 	#spawn_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
-	#spawn_particles_latent_heats_uniform = RDUniform.new()
+	#spawn_particles_latent_heats_uniform: RDUniform = RDUniform.new()
 	#spawn_particles_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#spawn_particles_latent_heats_uniform.binding = 7
 	#spawn_particles_latent_heats_uniform.add_id(latent_heats_buffer_rid)
-	spawn_particles_energies_uniform = RDUniform.new()
+	var spawn_particles_energies_uniform: RDUniform = RDUniform.new()
 	spawn_particles_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_energies_uniform.binding = 6
 	spawn_particles_energies_uniform.add_id(energies_buffer_rid)
-	spawn_particles_evaporated_masses_uniform = RDUniform.new()
+	var spawn_particles_evaporated_masses_uniform: RDUniform = RDUniform.new()
 	spawn_particles_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_evaporated_masses_uniform.binding = 7
 	spawn_particles_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
-	compute_hashes_positions_uniform = RDUniform.new()
+	var compute_hashes_positions_uniform: RDUniform = RDUniform.new()
 	compute_hashes_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_positions_uniform.binding = 0
 	compute_hashes_positions_uniform.add_id(positions_buffer_rid)
-	compute_hashes_hashes_uniform = RDUniform.new()
+	var compute_hashes_hashes_uniform: RDUniform = RDUniform.new()
 	compute_hashes_hashes_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_hashes_uniform.binding = 1
 	compute_hashes_hashes_uniform.add_id(hashes_1_buffer_rid)
-	compute_hashes_particle_indices_uniform = RDUniform.new()
+	var compute_hashes_particle_indices_uniform: RDUniform = RDUniform.new()
 	compute_hashes_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_hashes_particle_indices_uniform.binding = 2
 	compute_hashes_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
 	
 	#region parallel radix sort uniforms
-	histogram_keys_in_1_uniform = RDUniform.new()    # ping-pong
+	var histogram_keys_in_1_uniform: RDUniform = RDUniform.new()    # ping-pong
 	histogram_keys_in_1_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	histogram_keys_in_1_uniform.binding = 0
 	histogram_keys_in_1_uniform.add_id(hashes_1_buffer_rid)
-	histogram_keys_in_2_uniform = RDUniform.new()    # ping-pong
+	var histogram_keys_in_2_uniform: RDUniform = RDUniform.new()    # ping-pong
 	histogram_keys_in_2_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	histogram_keys_in_2_uniform.binding = 0
 	histogram_keys_in_2_uniform.add_id(hashes_2_buffer_rid)
-	histogram_group_histograms_uniform = RDUniform.new()
+	var histogram_group_histograms_uniform: RDUniform = RDUniform.new()
 	histogram_group_histograms_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	histogram_group_histograms_uniform.binding = 1
 	histogram_group_histograms_uniform.add_id(group_histograms_buffer_rid)
-	counts_per_digit_group_histograms_uniform = RDUniform.new()
+	var counts_per_digit_group_histograms_uniform: RDUniform = RDUniform.new()
 	counts_per_digit_group_histograms_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	counts_per_digit_group_histograms_uniform.binding = 0
 	counts_per_digit_group_histograms_uniform.add_id(group_histograms_buffer_rid)
-	counts_per_digit_digit_totals_uniform = RDUniform.new()
+	var counts_per_digit_digit_totals_uniform: RDUniform = RDUniform.new()
 	counts_per_digit_digit_totals_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	counts_per_digit_digit_totals_uniform.binding = 1
 	counts_per_digit_digit_totals_uniform.add_id(digit_totals_buffer_rid)
-	pps16_inputtt_uniform = RDUniform.new()
+	var pps16_inputtt_uniform: RDUniform = RDUniform.new()
 	pps16_inputtt_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	pps16_inputtt_uniform.binding = 0
 	pps16_inputtt_uniform.add_id(digit_totals_buffer_rid)
-	pps16_outputtt_uniform = RDUniform.new()
+	var pps16_outputtt_uniform: RDUniform = RDUniform.new()
 	pps16_outputtt_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	pps16_outputtt_uniform.binding = 1
 	pps16_outputtt_uniform.add_id(digit_totals_after_scan_buffer_rid)
-	scan_per_digit_group_histograms_uniform = RDUniform.new()
+	var scan_per_digit_group_histograms_uniform: RDUniform = RDUniform.new()
 	scan_per_digit_group_histograms_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scan_per_digit_group_histograms_uniform.binding = 0
 	scan_per_digit_group_histograms_uniform.add_id(group_histograms_buffer_rid)
-	scan_per_digit_prefix_groups_uniform = RDUniform.new()
+	var scan_per_digit_prefix_groups_uniform: RDUniform = RDUniform.new()
 	scan_per_digit_prefix_groups_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scan_per_digit_prefix_groups_uniform.binding = 1
 	scan_per_digit_prefix_groups_uniform.add_id(prefix_groups_buffer_rid)
-	combine_offsets_digit_totals_after_scan_uniform = RDUniform.new()
+	var combine_offsets_digit_totals_after_scan_uniform: RDUniform = RDUniform.new()
 	combine_offsets_digit_totals_after_scan_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	combine_offsets_digit_totals_after_scan_uniform.binding = 0
 	combine_offsets_digit_totals_after_scan_uniform.add_id(digit_totals_after_scan_buffer_rid)
-	combine_offsets_prefix_groups_uniform = RDUniform.new()
+	var combine_offsets_prefix_groups_uniform: RDUniform = RDUniform.new()
 	combine_offsets_prefix_groups_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	combine_offsets_prefix_groups_uniform.binding = 1
 	combine_offsets_prefix_groups_uniform.add_id(prefix_groups_buffer_rid)
-	combine_offsets_group_offsets_uniform = RDUniform.new()
+	var combine_offsets_group_offsets_uniform: RDUniform = RDUniform.new()
 	combine_offsets_group_offsets_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	combine_offsets_group_offsets_uniform.binding = 2
 	combine_offsets_group_offsets_uniform.add_id(group_offsets_buffer_rid)
-	scatter_keys_in_1_uniform = RDUniform.new()    # ping-pong
+	var scatter_keys_in_1_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_keys_in_1_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_keys_in_1_uniform.binding = 0
 	scatter_keys_in_1_uniform.add_id(hashes_1_buffer_rid)
-	scatter_keys_in_2_uniform = RDUniform.new()    # ping-pong
+	var scatter_keys_in_2_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_keys_in_2_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_keys_in_2_uniform.binding = 0
 	scatter_keys_in_2_uniform.add_id(hashes_2_buffer_rid)
-	scatter_keys_out_1_uniform = RDUniform.new()    # ping-pong
+	var scatter_keys_out_1_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_keys_out_1_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_keys_out_1_uniform.binding = 1
 	scatter_keys_out_1_uniform.add_id(hashes_2_buffer_rid)
-	scatter_keys_out_2_uniform = RDUniform.new()    # ping-pong
+	var scatter_keys_out_2_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_keys_out_2_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_keys_out_2_uniform.binding = 1
 	scatter_keys_out_2_uniform.add_id(hashes_1_buffer_rid)
-	scatter_group_offsets_uniform = RDUniform.new()
+	var scatter_group_offsets_uniform: RDUniform = RDUniform.new()
 	scatter_group_offsets_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_group_offsets_uniform.binding = 2
 	scatter_group_offsets_uniform.add_id(group_offsets_buffer_rid)
-	scatter_values_in_1_uniform = RDUniform.new()    # ping-pong
+	var scatter_values_in_1_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_values_in_1_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_values_in_1_uniform.binding = 3
 	scatter_values_in_1_uniform.add_id(particle_indices_1_buffer_rid)
-	scatter_values_in_2_uniform = RDUniform.new()    # ping-pong
+	var scatter_values_in_2_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_values_in_2_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_values_in_2_uniform.binding = 3
 	scatter_values_in_2_uniform.add_id(particle_indices_2_buffer_rid)
-	scatter_values_out_1_uniform = RDUniform.new()    # ping-pong
+	var scatter_values_out_1_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_values_out_1_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_values_out_1_uniform.binding = 4
 	scatter_values_out_1_uniform.add_id(particle_indices_2_buffer_rid)
-	scatter_values_out_2_uniform = RDUniform.new()    # ping-pong
+	var scatter_values_out_2_uniform: RDUniform = RDUniform.new()    # ping-pong
 	scatter_values_out_2_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	scatter_values_out_2_uniform.binding = 4
 	scatter_values_out_2_uniform.add_id(particle_indices_1_buffer_rid)
 	#endregion
 	
-	range_start_end_hashes_uniform = RDUniform.new()
+	var range_start_end_hashes_uniform: RDUniform = RDUniform.new()
 	range_start_end_hashes_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	range_start_end_hashes_uniform.binding = 0
 	range_start_end_hashes_uniform.add_id(hashes_1_buffer_rid)
-	range_start_end_start_indices_uniform = RDUniform.new()
+	var range_start_end_start_indices_uniform: RDUniform = RDUniform.new()
 	range_start_end_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	range_start_end_start_indices_uniform.binding = 1
 	range_start_end_start_indices_uniform.add_id(start_indices_buffer_rid)
-	range_start_end_end_indices_uniform = RDUniform.new()
+	var range_start_end_end_indices_uniform: RDUniform = RDUniform.new()
 	range_start_end_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	range_start_end_end_indices_uniform.binding = 2
 	range_start_end_end_indices_uniform.add_id(end_indices_buffer_rid)
-	compute_densities_positions_uniform = RDUniform.new()
+	var compute_densities_positions_uniform: RDUniform = RDUniform.new()
 	compute_densities_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_positions_uniform.binding = 0
 	compute_densities_positions_uniform.add_id(positions_buffer_rid)
-	compute_densities_sorted_particle_indices_uniform = RDUniform.new()
+	var compute_densities_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
 	compute_densities_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_sorted_particle_indices_uniform.binding = 1
 	compute_densities_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	compute_densities_start_indices_uniform = RDUniform.new()
+	var compute_densities_start_indices_uniform: RDUniform = RDUniform.new()
 	compute_densities_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_start_indices_uniform.binding = 2
 	compute_densities_start_indices_uniform.add_id(start_indices_buffer_rid)
-	compute_densities_end_indices_uniform = RDUniform.new()
+	var compute_densities_end_indices_uniform: RDUniform = RDUniform.new()
 	compute_densities_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_end_indices_uniform.binding = 3
 	compute_densities_end_indices_uniform.add_id(end_indices_buffer_rid)
-	compute_densities_densities_uniform = RDUniform.new()
+	var compute_densities_densities_uniform: RDUniform = RDUniform.new()
 	compute_densities_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_densities_uniform.binding = 4
 	compute_densities_densities_uniform.add_id(densities_buffer_rid)
-	compute_densities_near_densities_uniform = RDUniform.new()
+	var compute_densities_near_densities_uniform: RDUniform = RDUniform.new()
 	compute_densities_near_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_near_densities_uniform.binding = 5
 	compute_densities_near_densities_uniform.add_id(near_densities_buffer_rid)
-	compute_densities_is_alive_uniform = RDUniform.new()
+	var compute_densities_is_alive_uniform: RDUniform = RDUniform.new()
 	compute_densities_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_densities_is_alive_uniform.binding = 6
 	compute_densities_is_alive_uniform.add_id(is_alive_buffer_rid)
-	compute_pressures_densities_uniform = RDUniform.new()
+	var compute_pressures_densities_uniform: RDUniform = RDUniform.new()
 	compute_pressures_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_pressures_densities_uniform.binding = 0
 	compute_pressures_densities_uniform.add_id(densities_buffer_rid)
-	compute_pressures_pressures_uniform = RDUniform.new()
+	var compute_pressures_pressures_uniform: RDUniform = RDUniform.new()
 	compute_pressures_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_pressures_pressures_uniform.binding = 1
 	compute_pressures_pressures_uniform.add_id(pressures_buffer_rid)
-	compute_pressures_near_densities_uniform = RDUniform.new()
+	var compute_pressures_near_densities_uniform: RDUniform = RDUniform.new()
 	compute_pressures_near_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_pressures_near_densities_uniform.binding = 2
 	compute_pressures_near_densities_uniform.add_id(near_densities_buffer_rid)
-	compute_pressures_near_pressures_uniform = RDUniform.new()
+	var compute_pressures_near_pressures_uniform: RDUniform = RDUniform.new()
 	compute_pressures_near_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_pressures_near_pressures_uniform.binding = 3
 	compute_pressures_near_pressures_uniform.add_id(near_pressures_buffer_rid)
-	compute_pressures_is_alive_uniform = RDUniform.new()
+	var compute_pressures_is_alive_uniform: RDUniform = RDUniform.new()
 	compute_pressures_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_pressures_is_alive_uniform.binding = 4
 	compute_pressures_is_alive_uniform.add_id(is_alive_buffer_rid)
-	compute_vorticities_positions_uniform = RDUniform.new()
+	var compute_vorticities_positions_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_positions_uniform.binding = 0
 	compute_vorticities_positions_uniform.add_id(positions_buffer_rid)
-	compute_vorticities_sorted_particle_indices_uniform = RDUniform.new()
+	var compute_vorticities_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_sorted_particle_indices_uniform.binding = 1
 	compute_vorticities_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	compute_vorticities_start_indices_uniform = RDUniform.new()
+	var compute_vorticities_start_indices_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_start_indices_uniform.binding = 2
 	compute_vorticities_start_indices_uniform.add_id(start_indices_buffer_rid)
-	compute_vorticities_end_indices_uniform = RDUniform.new()
+	var compute_vorticities_end_indices_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_end_indices_uniform.binding = 3
 	compute_vorticities_end_indices_uniform.add_id(end_indices_buffer_rid)
-	compute_vorticities_densities_uniform = RDUniform.new()
+	var compute_vorticities_densities_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_densities_uniform.binding = 4
 	compute_vorticities_densities_uniform.add_id(densities_buffer_rid)
-	compute_vorticities_velocities_uniform = RDUniform.new()
+	var compute_vorticities_velocities_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_velocities_uniform.binding = 5
 	compute_vorticities_velocities_uniform.add_id(velocities_buffer_rid)
-	compute_vorticities_vorticities_uniform = RDUniform.new()
+	var compute_vorticities_vorticities_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_vorticities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_vorticities_uniform.binding = 6
 	compute_vorticities_vorticities_uniform.add_id(vorticities_buffer_rid)
-	compute_vorticities_is_alive_uniform = RDUniform.new()
+	var compute_vorticities_is_alive_uniform: RDUniform = RDUniform.new()
 	compute_vorticities_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_vorticities_is_alive_uniform.binding = 7
 	compute_vorticities_is_alive_uniform.add_id(is_alive_buffer_rid)
-	compute_forces_positions_uniform = RDUniform.new()
+	var compute_forces_positions_uniform: RDUniform = RDUniform.new()
 	compute_forces_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_positions_uniform.binding = 0
 	compute_forces_positions_uniform.add_id(positions_buffer_rid)
-	compute_forces_velocities_uniform = RDUniform.new()
+	var compute_forces_velocities_uniform: RDUniform = RDUniform.new()
 	compute_forces_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_velocities_uniform.binding = 1
 	compute_forces_velocities_uniform.add_id(velocities_buffer_rid)
-	compute_forces_sorted_particle_indices_uniform = RDUniform.new()
+	var compute_forces_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
 	compute_forces_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_sorted_particle_indices_uniform.binding = 2
 	compute_forces_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	compute_forces_start_indices_uniform = RDUniform.new()
+	var compute_forces_start_indices_uniform: RDUniform = RDUniform.new()
 	compute_forces_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_start_indices_uniform.binding = 3
 	compute_forces_start_indices_uniform.add_id(start_indices_buffer_rid)
-	compute_forces_end_indices_uniform = RDUniform.new()
+	var compute_forces_end_indices_uniform: RDUniform = RDUniform.new()
 	compute_forces_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_end_indices_uniform.binding = 4
 	compute_forces_end_indices_uniform.add_id(end_indices_buffer_rid)
-	compute_forces_densities_uniform = RDUniform.new()
+	var compute_forces_densities_uniform: RDUniform = RDUniform.new()
 	compute_forces_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_densities_uniform.binding = 5
 	compute_forces_densities_uniform.add_id(densities_buffer_rid)
-	compute_forces_pressures_uniform = RDUniform.new()
+	var compute_forces_pressures_uniform: RDUniform = RDUniform.new()
 	compute_forces_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_pressures_uniform.binding = 6
 	compute_forces_pressures_uniform.add_id(pressures_buffer_rid)
-	compute_forces_near_densities_uniform = RDUniform.new()
+	var compute_forces_near_densities_uniform: RDUniform = RDUniform.new()
 	compute_forces_near_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_near_densities_uniform.binding = 7
 	compute_forces_near_densities_uniform.add_id(near_densities_buffer_rid)
-	compute_forces_near_pressures_uniform = RDUniform.new()
+	var compute_forces_near_pressures_uniform: RDUniform = RDUniform.new()
 	compute_forces_near_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_near_pressures_uniform.binding = 8
 	compute_forces_near_pressures_uniform.add_id(near_pressures_buffer_rid)
-	compute_forces_vorticities_uniform = RDUniform.new()
+	var compute_forces_vorticities_uniform: RDUniform = RDUniform.new()
 	compute_forces_vorticities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_vorticities_uniform.binding = 9
 	compute_forces_vorticities_uniform.add_id(vorticities_buffer_rid)
-	compute_forces_forces_uniform = RDUniform.new()
+	var compute_forces_forces_uniform: RDUniform = RDUniform.new()
 	compute_forces_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_forces_uniform.binding = 10
 	compute_forces_forces_uniform.add_id(forces_buffer_rid)
-	compute_forces_is_alive_uniform = RDUniform.new()
+	var compute_forces_is_alive_uniform: RDUniform = RDUniform.new()
 	compute_forces_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_forces_is_alive_uniform.binding = 11
 	compute_forces_is_alive_uniform.add_id(is_alive_buffer_rid)
-	integrate_motion_positions_uniform = RDUniform.new()
-	integrate_motion_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_positions_uniform.binding = 0
-	integrate_motion_positions_uniform.add_id(positions_buffer_rid)
-	integrate_motion_velocities_uniform = RDUniform.new()
-	integrate_motion_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_velocities_uniform.binding = 1
-	integrate_motion_velocities_uniform.add_id(velocities_buffer_rid)
-	integrate_motion_densities_uniform = RDUniform.new()
-	integrate_motion_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_densities_uniform.binding = 2
-	integrate_motion_densities_uniform.add_id(densities_buffer_rid)
-	integrate_motion_forces_uniform = RDUniform.new()
-	integrate_motion_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_forces_uniform.binding = 3
-	integrate_motion_forces_uniform.add_id(forces_buffer_rid)
-	integrate_motion_sorted_particle_indices_uniform = RDUniform.new()
-	integrate_motion_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_sorted_particle_indices_uniform.binding = 4
-	integrate_motion_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	integrate_motion_start_indices_uniform = RDUniform.new()
-	integrate_motion_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_start_indices_uniform.binding = 5
-	integrate_motion_start_indices_uniform.add_id(start_indices_buffer_rid)
-	integrate_motion_end_indices_uniform = RDUniform.new()
-	integrate_motion_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_end_indices_uniform.binding = 6
-	integrate_motion_end_indices_uniform.add_id(end_indices_buffer_rid)
-	integrate_motion_is_alive_uniform = RDUniform.new()
-	integrate_motion_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_is_alive_uniform.binding = 7
-	integrate_motion_is_alive_uniform.add_id(is_alive_buffer_rid)
-	#integrate_motion_temperatures_uniform = RDUniform.new()
-	#integrate_motion_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#integrate_motion_temperatures_uniform.binding = 8
-	#integrate_motion_temperatures_uniform.add_id(temperatures_buffer_rid)
-	integrate_motion_energies_uniform = RDUniform.new()
-	integrate_motion_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	integrate_motion_energies_uniform.binding = 8
-	integrate_motion_energies_uniform.add_id(energies_buffer_rid)
-	store_particle_info_positions_uniform = RDUniform.new()
+	var integrate_motion_wcsph_positions_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_positions_uniform.binding = 0
+	integrate_motion_wcsph_positions_uniform.add_id(positions_buffer_rid)
+	var integrate_motion_wcsph_velocities_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_velocities_uniform.binding = 1
+	integrate_motion_wcsph_velocities_uniform.add_id(velocities_buffer_rid)
+	var integrate_motion_wcsph_densities_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_densities_uniform.binding = 2
+	integrate_motion_wcsph_densities_uniform.add_id(densities_buffer_rid)
+	var integrate_motion_wcsph_forces_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_forces_uniform.binding = 3
+	integrate_motion_wcsph_forces_uniform.add_id(forces_buffer_rid)
+	var integrate_motion_wcsph_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_sorted_particle_indices_uniform.binding = 4
+	integrate_motion_wcsph_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	var integrate_motion_wcsph_start_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_start_indices_uniform.binding = 5
+	integrate_motion_wcsph_start_indices_uniform.add_id(start_indices_buffer_rid)
+	var integrate_motion_wcsph_end_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_end_indices_uniform.binding = 6
+	integrate_motion_wcsph_end_indices_uniform.add_id(end_indices_buffer_rid)
+	var integrate_motion_wcsph_is_alive_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_is_alive_uniform.binding = 7
+	integrate_motion_wcsph_is_alive_uniform.add_id(is_alive_buffer_rid)
+	#integrate_motion_wcsph_temperatures_uniform: RDUniform = RDUniform.new()
+	#integrate_motion_wcsph_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	#integrate_motion_wcsph_temperatures_uniform.binding = 8
+	#integrate_motion_wcsph_temperatures_uniform.add_id(temperatures_buffer_rid)
+	var integrate_motion_wcsph_energies_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_wcsph_energies_uniform.binding = 8
+	integrate_motion_wcsph_energies_uniform.add_id(energies_buffer_rid)
+	var store_particle_info_positions_uniform: RDUniform = RDUniform.new()
 	store_particle_info_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_positions_uniform.binding = 0
 	store_particle_info_positions_uniform.add_id(positions_buffer_rid)
-	store_particle_info_sorted_particle_indices_uniform = RDUniform.new()
+	var store_particle_info_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
 	store_particle_info_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_sorted_particle_indices_uniform.binding = 1
 	store_particle_info_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	store_particle_info_start_indices_uniform = RDUniform.new()
+	var store_particle_info_start_indices_uniform: RDUniform = RDUniform.new()
 	store_particle_info_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_start_indices_uniform.binding = 2
 	store_particle_info_start_indices_uniform.add_id(start_indices_buffer_rid)
-	store_particle_info_end_indices_uniform = RDUniform.new()
+	var store_particle_info_end_indices_uniform: RDUniform = RDUniform.new()
 	store_particle_info_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_end_indices_uniform.binding = 3
 	store_particle_info_end_indices_uniform.add_id(end_indices_buffer_rid)
-	store_particle_info_densities_uniform = RDUniform.new()
+	var store_particle_info_densities_uniform: RDUniform = RDUniform.new()
 	store_particle_info_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_densities_uniform.binding = 4
 	store_particle_info_densities_uniform.add_id(densities_buffer_rid)
-	#store_particle_info_temperatures_uniform = RDUniform.new()
+	#store_particle_info_temperatures_uniform: RDUniform = RDUniform.new()
 	#store_particle_info_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#store_particle_info_temperatures_uniform.binding = 5
 	#store_particle_info_temperatures_uniform.add_id(temperatures_buffer_rid)
-	#store_particle_info_latent_heats_uniform = RDUniform.new()
+	#store_particle_info_latent_heats_uniform: RDUniform = RDUniform.new()
 	#store_particle_info_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	#store_particle_info_latent_heats_uniform.binding = 6
 	#store_particle_info_latent_heats_uniform.add_id(latent_heats_buffer_rid)
-	store_particle_info_energies_uniform = RDUniform.new()
+	var store_particle_info_energies_uniform: RDUniform = RDUniform.new()
 	store_particle_info_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_energies_uniform.binding = 5
 	store_particle_info_energies_uniform.add_id(energies_buffer_rid)
-	store_particle_info_evaporated_masses_uniform = RDUniform.new()
+	var store_particle_info_evaporated_masses_uniform: RDUniform = RDUniform.new()
 	store_particle_info_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_evaporated_masses_uniform.binding = 6
 	store_particle_info_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
-	store_neighbors_positions_uniform = RDUniform.new()
+	var store_neighbors_positions_uniform: RDUniform = RDUniform.new()
 	store_neighbors_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_positions_uniform.binding = 0
 	store_neighbors_positions_uniform.add_id(positions_buffer_rid)
-	store_neighbors_sorted_particle_indices_uniform = RDUniform.new()
+	var store_neighbors_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
 	store_neighbors_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_sorted_particle_indices_uniform.binding = 1
 	store_neighbors_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	store_neighbors_start_indices_uniform = RDUniform.new()
+	var store_neighbors_start_indices_uniform: RDUniform = RDUniform.new()
 	store_neighbors_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_start_indices_uniform.binding = 2
 	store_neighbors_start_indices_uniform.add_id(start_indices_buffer_rid)
-	store_neighbors_end_indices_uniform = RDUniform.new()
+	var store_neighbors_end_indices_uniform: RDUniform = RDUniform.new()
 	store_neighbors_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_end_indices_uniform.binding = 3
 	store_neighbors_end_indices_uniform.add_id(end_indices_buffer_rid)
-	store_neighbors_neighbor_flags_uniform = RDUniform.new()
+	var store_neighbors_neighbor_flags_uniform: RDUniform = RDUniform.new()
 	store_neighbors_neighbor_flags_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_neighbors_neighbor_flags_uniform.binding = 4
 	store_neighbors_neighbor_flags_uniform.add_id(neighbor_flags_buffer_rid)
-	mark_neighbors_neighbor_flags_uniform = RDUniform.new()
+	var mark_neighbors_neighbor_flags_uniform: RDUniform = RDUniform.new()
 	mark_neighbors_neighbor_flags_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	mark_neighbors_neighbor_flags_uniform.binding = 0
 	mark_neighbors_neighbor_flags_uniform.add_id(neighbor_flags_buffer_rid)
+	var compute_non_pressure_forces_positions_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_positions_uniform.binding = 0
+	compute_non_pressure_forces_positions_uniform.add_id(positions_buffer_rid)
+	var compute_non_pressure_forces_velocities_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_velocities_uniform.binding = 1
+	compute_non_pressure_forces_velocities_uniform.add_id(velocities_buffer_rid)
+	var compute_non_pressure_forces_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_sorted_particle_indices_uniform.binding = 2
+	compute_non_pressure_forces_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	var compute_non_pressure_forces_start_indices_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_start_indices_uniform.binding = 3
+	compute_non_pressure_forces_start_indices_uniform.add_id(start_indices_buffer_rid)
+	var compute_non_pressure_forces_end_indices_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_end_indices_uniform.binding = 4
+	compute_non_pressure_forces_end_indices_uniform.add_id(end_indices_buffer_rid)
+	var compute_non_pressure_forces_densities_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_densities_uniform.binding = 5
+	compute_non_pressure_forces_densities_uniform.add_id(densities_buffer_rid)
+	var compute_non_pressure_forces_vorticities_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_vorticities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_vorticities_uniform.binding = 6
+	compute_non_pressure_forces_vorticities_uniform.add_id(vorticities_buffer_rid)
+	var compute_non_pressure_forces_non_pressure_forces_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_non_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_non_pressure_forces_uniform.binding = 7
+	compute_non_pressure_forces_non_pressure_forces_uniform.add_id(non_pressure_forces_buffer_rid)
+	var compute_non_pressure_forces_pressures_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_pressures_uniform.binding = 8
+	compute_non_pressure_forces_pressures_uniform.add_id(pressures_buffer_rid)
+	var compute_non_pressure_forces_pressure_forces_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_pressure_forces_uniform.binding = 9
+	compute_non_pressure_forces_pressure_forces_uniform.add_id(pressure_forces_buffer_rid)
+	var compute_non_pressure_forces_near_densities_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_near_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_near_densities_uniform.binding = 10
+	compute_non_pressure_forces_near_densities_uniform.add_id(near_densities_buffer_rid)
+	var compute_non_pressure_forces_is_alive_uniform: RDUniform = RDUniform.new()
+	compute_non_pressure_forces_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_non_pressure_forces_is_alive_uniform.binding = 11
+	compute_non_pressure_forces_is_alive_uniform.add_id(is_alive_buffer_rid)
+	var compute_predicted_positions_positions_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_positions_uniform.binding = 0
+	compute_predicted_positions_positions_uniform.add_id(positions_buffer_rid)
+	var compute_predicted_positions_velocities_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_velocities_uniform.binding = 1
+	compute_predicted_positions_velocities_uniform.add_id(velocities_buffer_rid)
+	var compute_predicted_positions_densities_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_densities_uniform.binding = 2
+	compute_predicted_positions_densities_uniform.add_id(densities_buffer_rid)
+	var compute_predicted_positions_non_pressure_forces_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_non_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_non_pressure_forces_uniform.binding = 3
+	compute_predicted_positions_non_pressure_forces_uniform.add_id(non_pressure_forces_buffer_rid)
+	var compute_predicted_positions_pressure_forces_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_pressure_forces_uniform.binding = 4
+	compute_predicted_positions_pressure_forces_uniform.add_id(pressure_forces_buffer_rid)
+	var compute_predicted_positions_predicted_positions_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_predicted_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_predicted_positions_uniform.binding = 5
+	compute_predicted_positions_predicted_positions_uniform.add_id(predicted_positions_buffer_rid)
+	var compute_predicted_positions_is_alive_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_predicted_positions_is_alive_uniform.binding = 6
+	compute_predicted_positions_is_alive_uniform.add_id(is_alive_buffer_rid)
+	var predict_densities_update_pressures_predicted_positions_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_predicted_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_predicted_positions_uniform.binding = 0
+	predict_densities_update_pressures_predicted_positions_uniform.add_id(predicted_positions_buffer_rid)
+	var predict_densities_update_pressures_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_sorted_particle_indices_uniform.binding = 1
+	predict_densities_update_pressures_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	var predict_densities_update_pressures_start_indices_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_start_indices_uniform.binding = 2
+	predict_densities_update_pressures_start_indices_uniform.add_id(start_indices_buffer_rid)
+	var predict_densities_update_pressures_end_indices_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_end_indices_uniform.binding = 3
+	predict_densities_update_pressures_end_indices_uniform.add_id(end_indices_buffer_rid)
+	var predict_densities_update_pressures_predicted_densities_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_predicted_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_predicted_densities_uniform.binding = 4
+	predict_densities_update_pressures_predicted_densities_uniform.add_id(predicted_densities_buffer_rid)
+	var predict_densities_update_pressures_pressures_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_pressures_uniform.binding = 5
+	predict_densities_update_pressures_pressures_uniform.add_id(pressures_buffer_rid)
+	var predict_densities_update_pressures_is_alive_uniform: RDUniform = RDUniform.new()
+	predict_densities_update_pressures_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	predict_densities_update_pressures_is_alive_uniform.binding = 6
+	predict_densities_update_pressures_is_alive_uniform.add_id(is_alive_buffer_rid)
+	var compute_pressure_forces_predicted_positions_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_predicted_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_predicted_positions_uniform.binding = 0
+	compute_pressure_forces_predicted_positions_uniform.add_id(predicted_positions_buffer_rid)
+	var compute_pressure_forces_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_sorted_particle_indices_uniform.binding = 1
+	compute_pressure_forces_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	var compute_pressure_forces_start_indices_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_start_indices_uniform.binding = 2
+	compute_pressure_forces_start_indices_uniform.add_id(start_indices_buffer_rid)
+	var compute_pressure_forces_end_indices_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_end_indices_uniform.binding = 3
+	compute_pressure_forces_end_indices_uniform.add_id(end_indices_buffer_rid)
+	var compute_pressure_forces_predicted_densities_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_predicted_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_predicted_densities_uniform.binding = 4
+	compute_pressure_forces_predicted_densities_uniform.add_id(predicted_densities_buffer_rid)
+	var compute_pressure_forces_pressures_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_pressures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_pressures_uniform.binding = 5
+	compute_pressure_forces_pressures_uniform.add_id(pressures_buffer_rid)
+	var compute_pressure_forces_pressure_forces_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_pressure_forces_uniform.binding = 6
+	compute_pressure_forces_pressure_forces_uniform.add_id(pressure_forces_buffer_rid)
+	var compute_pressure_forces_is_alive_uniform: RDUniform = RDUniform.new()
+	compute_pressure_forces_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	compute_pressure_forces_is_alive_uniform.binding = 7
+	compute_pressure_forces_is_alive_uniform.add_id(is_alive_buffer_rid)
+	var integrate_motion_pcisph_positions_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_positions_uniform.binding = 0
+	integrate_motion_pcisph_positions_uniform.add_id(positions_buffer_rid)
+	var integrate_motion_pcisph_velocities_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_velocities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_velocities_uniform.binding = 1
+	integrate_motion_pcisph_velocities_uniform.add_id(velocities_buffer_rid)
+	var integrate_motion_pcisph_densities_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_densities_uniform.binding = 2
+	integrate_motion_pcisph_densities_uniform.add_id(densities_buffer_rid)
+	var integrate_motion_pcisph_non_pressure_forces_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_non_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_non_pressure_forces_uniform.binding = 3
+	integrate_motion_pcisph_non_pressure_forces_uniform.add_id(non_pressure_forces_buffer_rid)
+	var integrate_motion_pcisph_pressure_forces_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_pressure_forces_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_pressure_forces_uniform.binding = 4
+	integrate_motion_pcisph_pressure_forces_uniform.add_id(pressure_forces_buffer_rid)
+	var integrate_motion_pcisph_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_sorted_particle_indices_uniform.binding = 5
+	integrate_motion_pcisph_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
+	var integrate_motion_pcisph_start_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_start_indices_uniform.binding = 6
+	integrate_motion_pcisph_start_indices_uniform.add_id(start_indices_buffer_rid)
+	var integrate_motion_pcisph_end_indices_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_end_indices_uniform.binding = 7
+	integrate_motion_pcisph_end_indices_uniform.add_id(end_indices_buffer_rid)
+	var integrate_motion_pcisph_is_alive_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	integrate_motion_pcisph_is_alive_uniform.binding = 8
+	integrate_motion_pcisph_is_alive_uniform.add_id(is_alive_buffer_rid)
 	#endregion
 	
 	kill_particles_tmp_buffer_uniform = RDUniform.new()
@@ -2142,34 +2310,54 @@ func init_gpu() -> void:
 		particles_to_grid_img_texture_format.array_layers
 	)
 	
-	kill_particles_grid_to_particles_img_uniform = RDUniform.new()
+	var kill_particles_grid_to_particles_img_uniform: RDUniform = RDUniform.new()
 	kill_particles_grid_to_particles_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	kill_particles_grid_to_particles_img_uniform.binding = 9
 	kill_particles_grid_to_particles_img_uniform.add_id(grid_to_particles_img_texture_rid)
-	integrate_motion_particle_pos_ener_img_uniform = RDUniform.new()
-	integrate_motion_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	integrate_motion_particle_pos_ener_img_uniform.binding = 9
-	integrate_motion_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
-	integrate_motion_glass_sdf_img_uniform = RDUniform.new()
-	integrate_motion_glass_sdf_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	integrate_motion_glass_sdf_img_uniform.binding = 10
-	integrate_motion_glass_sdf_img_uniform.add_id(glass_sdf_img_texture_rid)
-	integrate_motion_glass_sdf_gradient_img_uniform = RDUniform.new()
-	integrate_motion_glass_sdf_gradient_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	integrate_motion_glass_sdf_gradient_img_uniform.binding = 11
-	integrate_motion_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
-	store_particle_info_particles_to_grid_img_uniform = RDUniform.new()
+	var integrate_motion_wcsph_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_wcsph_particle_pos_ener_img_uniform.binding = 9
+	integrate_motion_wcsph_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
+	var integrate_motion_wcsph_glass_sdf_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_glass_sdf_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_wcsph_glass_sdf_img_uniform.binding = 10
+	integrate_motion_wcsph_glass_sdf_img_uniform.add_id(glass_sdf_img_texture_rid)
+	var integrate_motion_wcsph_glass_sdf_gradient_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_wcsph_glass_sdf_gradient_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_wcsph_glass_sdf_gradient_img_uniform.binding = 11
+	integrate_motion_wcsph_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
+	var store_particle_info_particles_to_grid_img_uniform: RDUniform = RDUniform.new()
 	store_particle_info_particles_to_grid_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	store_particle_info_particles_to_grid_img_uniform.binding = 7
 	store_particle_info_particles_to_grid_img_uniform.add_id(particles_to_grid_img_texture_rid)
-	store_neighbors_particle_pos_ener_img_uniform = RDUniform.new()
+	var store_neighbors_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
 	store_neighbors_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	store_neighbors_particle_pos_ener_img_uniform.binding = 5
 	store_neighbors_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
-	mark_neighbors_particle_pos_ener_img_uniform = RDUniform.new()
+	var mark_neighbors_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
 	mark_neighbors_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	mark_neighbors_particle_pos_ener_img_uniform.binding = 1
 	mark_neighbors_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
+	var compute_predicted_positions_glass_sdf_img_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_glass_sdf_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	compute_predicted_positions_glass_sdf_img_uniform.binding = 7
+	compute_predicted_positions_glass_sdf_img_uniform.add_id(glass_sdf_img_texture_rid)
+	var compute_predicted_positions_glass_sdf_gradient_img_uniform: RDUniform = RDUniform.new()
+	compute_predicted_positions_glass_sdf_gradient_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	compute_predicted_positions_glass_sdf_gradient_img_uniform.binding = 8
+	compute_predicted_positions_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
+	var integrate_motion_pcisph_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_pcisph_particle_pos_ener_img_uniform.binding = 9
+	integrate_motion_pcisph_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
+	var integrate_motion_pcisph_glass_sdf_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_glass_sdf_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_pcisph_glass_sdf_img_uniform.binding = 10
+	integrate_motion_pcisph_glass_sdf_img_uniform.add_id(glass_sdf_img_texture_rid)
+	var integrate_motion_pcisph_glass_sdf_gradient_img_uniform: RDUniform = RDUniform.new()
+	integrate_motion_pcisph_glass_sdf_gradient_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
+	integrate_motion_pcisph_glass_sdf_gradient_img_uniform.binding = 11
+	integrate_motion_pcisph_glass_sdf_gradient_img_uniform.add_id(glass_sdf_gradient_img_texture_rid)
 	#endregion
 	
 	#region uniform sets
@@ -2202,8 +2390,8 @@ func init_gpu() -> void:
 	compute_pressures_uniform_set_rid = rd.uniform_set_create([compute_pressures_densities_uniform, compute_pressures_pressures_uniform, compute_pressures_near_densities_uniform, compute_pressures_near_pressures_uniform, compute_pressures_is_alive_uniform], compute_pressures_shader_rid, 0)
 	compute_vorticities_uniform_set_rid = rd.uniform_set_create([compute_vorticities_positions_uniform, compute_vorticities_sorted_particle_indices_uniform, compute_vorticities_start_indices_uniform, compute_vorticities_end_indices_uniform, compute_vorticities_densities_uniform, compute_vorticities_velocities_uniform, compute_vorticities_vorticities_uniform, compute_vorticities_is_alive_uniform], compute_vorticities_shader_rid, 0)
 	compute_forces_uniform_set_rid = rd.uniform_set_create([compute_forces_positions_uniform, compute_forces_velocities_uniform, compute_forces_sorted_particle_indices_uniform, compute_forces_start_indices_uniform, compute_forces_end_indices_uniform, compute_forces_densities_uniform, compute_forces_pressures_uniform, compute_forces_near_densities_uniform, compute_forces_near_pressures_uniform, compute_forces_vorticities_uniform, compute_forces_forces_uniform, compute_forces_is_alive_uniform], compute_forces_shader_rid, 0)
-	#integrate_motion_uniform_set_rid = rd.uniform_set_create([integrate_motion_positions_uniform, integrate_motion_velocities_uniform, integrate_motion_densities_uniform, integrate_motion_forces_uniform, integrate_motion_sorted_particle_indices_uniform, integrate_motion_start_indices_uniform, integrate_motion_end_indices_uniform, integrate_motion_is_alive_uniform, integrate_motion_temperatures_uniform, integrate_motion_particle_pos_ener_img_uniform, integrate_motion_glass_sdf_img_uniform, integrate_motion_glass_sdf_gradient_img_uniform], integrate_motion_shader_rid, 0)
-	integrate_motion_uniform_set_rid = rd.uniform_set_create([integrate_motion_positions_uniform, integrate_motion_velocities_uniform, integrate_motion_densities_uniform, integrate_motion_forces_uniform, integrate_motion_sorted_particle_indices_uniform, integrate_motion_start_indices_uniform, integrate_motion_end_indices_uniform, integrate_motion_is_alive_uniform, integrate_motion_energies_uniform, integrate_motion_particle_pos_ener_img_uniform, integrate_motion_glass_sdf_img_uniform, integrate_motion_glass_sdf_gradient_img_uniform], integrate_motion_shader_rid, 0)
+	#integrate_motion_wcsph_uniform_set_rid = rd.uniform_set_create([integrate_motion_wcsph_positions_uniform, integrate_motion_wcsph_velocities_uniform, integrate_motion_wcsph_densities_uniform, integrate_motion_wcsph_forces_uniform, integrate_motion_wcsph_sorted_particle_indices_uniform, integrate_motion_wcsph_start_indices_uniform, integrate_motion_wcsph_end_indices_uniform, integrate_motion_wcsph_is_alive_uniform, integrate_motion_wcsph_temperatures_uniform, integrate_motion_wcsph_particle_pos_ener_img_uniform, integrate_motion_wcsph_glass_sdf_img_uniform, integrate_motion_wcsph_glass_sdf_gradient_img_uniform], integrate_motion_wcsph_shader_rid, 0)
+	integrate_motion_wcsph_uniform_set_rid = rd.uniform_set_create([integrate_motion_wcsph_positions_uniform, integrate_motion_wcsph_velocities_uniform, integrate_motion_wcsph_densities_uniform, integrate_motion_wcsph_forces_uniform, integrate_motion_wcsph_sorted_particle_indices_uniform, integrate_motion_wcsph_start_indices_uniform, integrate_motion_wcsph_end_indices_uniform, integrate_motion_wcsph_is_alive_uniform, integrate_motion_wcsph_energies_uniform, integrate_motion_wcsph_particle_pos_ener_img_uniform, integrate_motion_wcsph_glass_sdf_img_uniform, integrate_motion_wcsph_glass_sdf_gradient_img_uniform], integrate_motion_wcsph_shader_rid, 0)
 	
 	# deprecated
 	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_latent_heats_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
@@ -2216,6 +2404,11 @@ func init_gpu() -> void:
 	
 	store_neighbors_uniform_set_rid = rd.uniform_set_create([store_neighbors_positions_uniform, store_neighbors_sorted_particle_indices_uniform, store_neighbors_start_indices_uniform, store_neighbors_end_indices_uniform, store_neighbors_neighbor_flags_uniform, store_neighbors_particle_pos_ener_img_uniform], store_neighbors_shader_rid, 0)
 	mark_neighbors_uniform_set_rid = rd.uniform_set_create([mark_neighbors_neighbor_flags_uniform, mark_neighbors_particle_pos_ener_img_uniform], mark_neighbors_shader_rid, 0)
+	compute_non_pressure_forces_uniform_set_rid = rd.uniform_set_create([compute_non_pressure_forces_positions_uniform, compute_non_pressure_forces_velocities_uniform, compute_non_pressure_forces_sorted_particle_indices_uniform, compute_non_pressure_forces_start_indices_uniform, compute_non_pressure_forces_end_indices_uniform, compute_non_pressure_forces_densities_uniform, compute_non_pressure_forces_vorticities_uniform, compute_non_pressure_forces_non_pressure_forces_uniform, compute_non_pressure_forces_pressures_uniform, compute_non_pressure_forces_pressure_forces_uniform, compute_non_pressure_forces_near_densities_uniform, compute_non_pressure_forces_is_alive_uniform], compute_non_pressure_forces_shader_rid, 0)
+	compute_predicted_positions_uniform_set_rid = rd.uniform_set_create([compute_predicted_positions_positions_uniform, compute_predicted_positions_velocities_uniform, compute_predicted_positions_densities_uniform, compute_predicted_positions_non_pressure_forces_uniform, compute_predicted_positions_pressure_forces_uniform, compute_predicted_positions_predicted_positions_uniform, compute_predicted_positions_is_alive_uniform, compute_predicted_positions_glass_sdf_img_uniform, compute_predicted_positions_glass_sdf_gradient_img_uniform], compute_predicted_positions_shader_rid, 0)
+	predict_densities_update_pressures_uniform_set_rid = rd.uniform_set_create([predict_densities_update_pressures_predicted_positions_uniform, predict_densities_update_pressures_sorted_particle_indices_uniform, predict_densities_update_pressures_start_indices_uniform, predict_densities_update_pressures_end_indices_uniform, predict_densities_update_pressures_predicted_densities_uniform, predict_densities_update_pressures_pressures_uniform, predict_densities_update_pressures_is_alive_uniform], predict_densities_update_pressures_shader_rid, 0)
+	compute_pressure_forces_uniform_set_rid = rd.uniform_set_create([compute_pressure_forces_predicted_positions_uniform, compute_pressure_forces_sorted_particle_indices_uniform, compute_pressure_forces_start_indices_uniform, compute_pressure_forces_end_indices_uniform, compute_pressure_forces_predicted_densities_uniform, compute_pressure_forces_pressures_uniform, compute_pressure_forces_pressure_forces_uniform, compute_pressure_forces_is_alive_uniform], compute_pressure_forces_shader_rid, 0)
+	integrate_motion_pcisph_uniform_set_rid = rd.uniform_set_create([integrate_motion_pcisph_positions_uniform, integrate_motion_pcisph_velocities_uniform, integrate_motion_pcisph_densities_uniform, integrate_motion_pcisph_non_pressure_forces_uniform, integrate_motion_pcisph_pressure_forces_uniform, integrate_motion_pcisph_sorted_particle_indices_uniform, integrate_motion_pcisph_start_indices_uniform, integrate_motion_pcisph_end_indices_uniform, integrate_motion_pcisph_is_alive_uniform, integrate_motion_pcisph_particle_pos_ener_img_uniform, integrate_motion_pcisph_glass_sdf_img_uniform, integrate_motion_pcisph_glass_sdf_gradient_img_uniform], integrate_motion_pcisph_shader_rid, 0)
 	#endregion
 	
 	#region pipelines
@@ -2237,13 +2430,22 @@ func init_gpu() -> void:
 	compute_pressures_pipeline_rid = rd.compute_pipeline_create(compute_pressures_shader_rid)
 	compute_vorticities_pipeline_rid = rd.compute_pipeline_create(compute_vorticities_shader_rid)
 	compute_forces_pipeline_rid = rd.compute_pipeline_create(compute_forces_shader_rid)
-	integrate_motion_pipeline_rid = rd.compute_pipeline_create(integrate_motion_shader_rid)
+	integrate_motion_wcsph_pipeline_rid = rd.compute_pipeline_create(integrate_motion_wcsph_shader_rid)
 	store_particle_info_pipeline_rid = rd.compute_pipeline_create(store_particle_info_shader_rid)
 	store_neighbors_pipeline_rid = rd.compute_pipeline_create(store_neighbors_shader_rid)
 	mark_neighbors_pipeline_rid = rd.compute_pipeline_create(mark_neighbors_shader_rid)
+	compute_non_pressure_forces_pipeline_rid = rd.compute_pipeline_create(compute_non_pressure_forces_shader_rid)
+	compute_predicted_positions_pipeline_rid = rd.compute_pipeline_create(compute_predicted_positions_shader_rid)
+	predict_densities_update_pressures_pipeline_rid = rd.compute_pipeline_create(predict_densities_update_pressures_shader_rid)
+	compute_pressure_forces_pipeline_rid = rd.compute_pipeline_create(compute_pressure_forces_shader_rid)
+	integrate_motion_pcisph_pipeline_rid = rd.compute_pipeline_create(integrate_motion_pcisph_shader_rid)
 	#endregion
 
 func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
+	#print("Current simulation timestep: ", delta)
+	
+	sigma = (rt_rest_density * rt_rest_density) / (sigma_part * 2.0 * (delta * delta) * (mass * mass))
+	#print("Sigma: ", sigma)
 	
 	# begin a list of instructions for GPU to execute
 	var compute_list: int = rd.compute_list_begin()
@@ -2443,113 +2645,292 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		rd.compute_list_dispatch(compute_list, range_start_end_workgroups_x, 1, 1)
 		#endregion
 		
-		#region compute densities pass
-		rd.compute_list_bind_compute_pipeline(compute_list, compute_densities_pipeline_rid)
-		rd.compute_list_bind_uniform_set(compute_list, compute_densities_uniform_set_rid, 0)
-		params.resize(16)
-		params.fill(0)
-		params.encode_u32(0, particle_count)
-		params.encode_float(4, smoothing_radius)
-		params.encode_float(8, poly6_2d_constant)
-		params.encode_float(12, mass)
-		rd.compute_list_set_push_constant(compute_list, params, params.size())
-		rd.compute_list_add_barrier(compute_list)
-		rd.compute_list_dispatch(compute_list, compute_densities_workgroups_x, 1, 1)
-		#endregion
-		
-		#region compute pressures pass
-		rd.compute_list_bind_compute_pipeline(compute_list, compute_pressures_pipeline_rid)
-		rd.compute_list_bind_uniform_set(compute_list, compute_pressures_uniform_set_rid, 0)
-		params.resize(16)
-		params.fill(0)
-		params.encode_u32(0, particle_count)
-		params.encode_float(4, rt_rest_density)
-		params.encode_float(8, rt_stiffness)
-		params.encode_float(12, rt_stiffness_near)
-		rd.compute_list_set_push_constant(compute_list, params, params.size())
-		rd.compute_list_add_barrier(compute_list)
-		rd.compute_list_dispatch(compute_list, compute_pressures_workgroups_x, 1, 1)
-		#endregion
-		
-		#region compute vorticities pass
-		rd.compute_list_bind_compute_pipeline(compute_list, compute_vorticities_pipeline_rid)
-		rd.compute_list_bind_uniform_set(compute_list, compute_vorticities_uniform_set_rid, 0)
-		params.resize(32)
-		params.fill(0)
-		params.encode_u32(0, particle_count)
-		params.encode_float(4, smoothing_radius)
-		params.encode_float(8, spiky_2d_gradient_constant)
-		params.encode_float(12, rt_vorticity_scale)
-		params.encode_float(16, mass)
-		rd.compute_list_set_push_constant(compute_list, params, params.size())
-		rd.compute_list_add_barrier(compute_list)
-		rd.compute_list_dispatch(compute_list, compute_vorticities_workgroups_x, 1, 1)
-		#endregion
-		
-		#region compute forces pass
-		rd.compute_list_bind_compute_pipeline(compute_list, compute_forces_pipeline_rid)
-		rd.compute_list_bind_uniform_set(compute_list, compute_forces_uniform_set_rid, 0)
-		params.resize(64)
-		params.fill(0)
-		params.encode_u32(0, particle_count)
-		params.encode_float(4, smoothing_radius)
-		params.encode_float(8, spiky_2d_gradient_constant)
-		params.encode_float(12, visc_2d_laplacian_constant)
-		params.encode_float(16, rt_viscosity_scale)
-		params.encode_float(20, gravity.x * rt_gravity_multiplier)
-		params.encode_float(24, gravity.y * rt_gravity_multiplier)
-		params.encode_float(28, mouse_normalized_pos.x)
-		params.encode_float(32, mouse_normalized_pos.y)
-		params.encode_float(36, rt_mouse_interaction_radius)
-		params.encode_float(40, rt_mouse_interaction_strength if right_button_clicked else (-rt_mouse_interaction_strength if middle_button_clicked else 0.0))
-		params.encode_float(44, rt_surface_tension_threshold)
-		params.encode_float(48, rt_surface_tension_scale)
-		params.encode_float(52, rt_vorticity_scale)
-		params.encode_float(56, mass)
-		rd.compute_list_set_push_constant(compute_list, params, params.size())
-		rd.compute_list_add_barrier(compute_list)
-		rd.compute_list_dispatch(compute_list, compute_forces_workgroups_x, 1, 1)
-		#endregion
-		
-		#region integrate motion pass
-		rd.compute_list_bind_compute_pipeline(compute_list, integrate_motion_pipeline_rid)
-		rd.compute_list_bind_uniform_set(compute_list, integrate_motion_uniform_set_rid, 0)
-		params.resize(128)
-		params.fill(0)
-		params.encode_u32(0, particle_count)
-		params.encode_float(4, delta)
-		params.encode_float(8, rt_damping)
-		params.encode_float(12, rt_bounds_damping)
-		params.encode_float(16, rt_vel_clamp)
-		params.encode_float(20, particle_pos_ener_img_size_f)
-		params.encode_float(24, glass_sdf_imgs_size_f.x)
-		params.encode_float(28, glass_sdf_imgs_size_f.y)
-		params.encode_float(32, rt_adhesion_scale)
-		params.encode_float(36, rt_adhesion_threshold)
-		params.encode_float(40, particle_spacing)
-		params.encode_float(44, smoothing_radius)
-		params.encode_float(48, poly6_2d_constant)
-		params.encode_float(52, mass)
-		params.encode_float(56, rt_xsph_scale)
-		params.encode_float(60, M_X_x)
-		params.encode_float(64, M_X_y)
-		params.encode_float(68, M_Y_x)
-		params.encode_float(72, M_Y_y)
-		params.encode_float(76, M_origin_x)
-		params.encode_float(80, M_origin_y)
-		params.encode_float(84, M_rotation_X_x)
-		params.encode_float(88, M_rotation_X_y)
-		params.encode_float(92, M_rotation_Y_x)
-		params.encode_float(96, M_rotation_Y_y)
-		params.encode_float(100, normalized_to_viewport_scale_factor.x)
-		params.encode_float(104, normalized_to_viewport_scale_factor.y)
-		params.encode_float(108, viewport_to_normalized_scale_factor.x)
-		params.encode_float(112, viewport_to_normalized_scale_factor.y)
-		params.encode_u32(116, int(rt_vis_neighborhood_search))
-		rd.compute_list_set_push_constant(compute_list, params, params.size())
-		rd.compute_list_add_barrier(compute_list)
-		rd.compute_list_dispatch(compute_list, integrate_motion_workgroups_x, 1, 1)
-		#endregion
+		if not use_pcisph:
+			# WCSPH
+			
+			#region compute densities pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_densities_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_densities_uniform_set_rid, 0)
+			params.resize(16)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, poly6_2d_constant)
+			params.encode_float(12, mass)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_densities_workgroups_x, 1, 1)
+			#endregion
+			
+			#region compute pressures pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_pressures_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_pressures_uniform_set_rid, 0)
+			params.resize(16)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, rt_rest_density)
+			params.encode_float(8, rt_stiffness)
+			params.encode_float(12, rt_stiffness_near)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_pressures_workgroups_x, 1, 1)
+			#endregion
+			
+			#region compute vorticities pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_vorticities_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_vorticities_uniform_set_rid, 0)
+			params.resize(32)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, spiky_2d_gradient_constant)
+			params.encode_float(12, rt_vorticity_scale)
+			params.encode_float(16, mass)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_vorticities_workgroups_x, 1, 1)
+			#endregion
+			
+			#region compute forces pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_forces_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_forces_uniform_set_rid, 0)
+			params.resize(80)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, spiky_2d_gradient_constant)
+			params.encode_float(12, visc_2d_laplacian_constant)
+			params.encode_float(16, rt_viscosity_scale)
+			params.encode_float(20, gravity.x * rt_gravity_multiplier)
+			params.encode_float(24, gravity.y * rt_gravity_multiplier)
+			params.encode_float(28, mouse_normalized_pos.x)
+			params.encode_float(32, mouse_normalized_pos.y)
+			params.encode_float(36, rt_mouse_interaction_radius)
+			params.encode_float(40, rt_mouse_interaction_strength if right_button_clicked else (-rt_mouse_interaction_strength if middle_button_clicked else 0.0))
+			params.encode_float(44, rt_surface_tension_threshold)
+			params.encode_float(48, rt_surface_tension_scale)
+			params.encode_float(52, rt_vorticity_scale)
+			params.encode_float(56, mass)
+			params.encode_float(60, poly6_2d_gradient_constant)
+			params.encode_float(64, poly6_2d_laplacian_constant)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_forces_workgroups_x, 1, 1)
+			#endregion
+			
+			#region integrate motion (WCSPH) pass
+			rd.compute_list_bind_compute_pipeline(compute_list, integrate_motion_wcsph_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, integrate_motion_wcsph_uniform_set_rid, 0)
+			params.resize(128)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, delta)
+			params.encode_float(8, rt_damping)
+			params.encode_float(12, rt_bounds_damping)
+			params.encode_float(16, rt_vel_clamp)
+			params.encode_float(20, particle_pos_ener_img_size_f)
+			params.encode_float(24, glass_sdf_imgs_size_f.x)
+			params.encode_float(28, glass_sdf_imgs_size_f.y)
+			params.encode_float(32, rt_adhesion_scale)
+			params.encode_float(36, rt_adhesion_threshold)
+			params.encode_float(40, particle_spacing)
+			params.encode_float(44, smoothing_radius)
+			params.encode_float(48, poly6_2d_constant)
+			params.encode_float(52, mass)
+			params.encode_float(56, rt_xsph_scale)
+			params.encode_float(60, M_X_x)
+			params.encode_float(64, M_X_y)
+			params.encode_float(68, M_Y_x)
+			params.encode_float(72, M_Y_y)
+			params.encode_float(76, M_origin_x)
+			params.encode_float(80, M_origin_y)
+			params.encode_float(84, M_rotation_X_x)
+			params.encode_float(88, M_rotation_X_y)
+			params.encode_float(92, M_rotation_Y_x)
+			params.encode_float(96, M_rotation_Y_y)
+			params.encode_float(100, normalized_to_viewport_scale_factor.x)
+			params.encode_float(104, normalized_to_viewport_scale_factor.y)
+			params.encode_float(108, viewport_to_normalized_scale_factor.x)
+			params.encode_float(112, viewport_to_normalized_scale_factor.y)
+			params.encode_u32(116, int(rt_vis_neighborhood_search))
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, integrate_motion_wcsph_workgroups_x, 1, 1)
+			#endregion
+		else:
+			#PCISPH
+			
+			#region compute densities pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_densities_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_densities_uniform_set_rid, 0)
+			params.resize(16)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, poly6_2d_constant)
+			params.encode_float(12, mass)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_densities_workgroups_x, 1, 1)
+			#endregion
+			
+			#region compute vorticities pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_vorticities_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_vorticities_uniform_set_rid, 0)
+			params.resize(32)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, spiky_2d_gradient_constant)
+			params.encode_float(12, rt_vorticity_scale)
+			params.encode_float(16, mass)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_vorticities_workgroups_x, 1, 1)
+			#endregion
+			
+			#region compute non pressure forces pass
+			rd.compute_list_bind_compute_pipeline(compute_list, compute_non_pressure_forces_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, compute_non_pressure_forces_uniform_set_rid, 0)
+			params.resize(80)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, smoothing_radius)
+			params.encode_float(8, spiky_2d_gradient_constant)
+			params.encode_float(12, visc_2d_laplacian_constant)
+			params.encode_float(16, rt_viscosity_scale)
+			params.encode_float(20, gravity.x * rt_gravity_multiplier)
+			params.encode_float(24, gravity.y * rt_gravity_multiplier)
+			params.encode_float(28, mouse_normalized_pos.x)
+			params.encode_float(32, mouse_normalized_pos.y)
+			params.encode_float(36, rt_mouse_interaction_radius)
+			params.encode_float(40, rt_mouse_interaction_strength if right_button_clicked else (-rt_mouse_interaction_strength if middle_button_clicked else 0.0))
+			params.encode_float(44, rt_surface_tension_threshold)
+			params.encode_float(48, rt_surface_tension_scale)
+			params.encode_float(52, rt_vorticity_scale)
+			params.encode_float(56, mass)
+			params.encode_float(60, poly6_2d_gradient_constant)
+			params.encode_float(64, poly6_2d_laplacian_constant)
+			params.encode_float(68, rt_stiffness_near)
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, compute_non_pressure_forces_workgroups_x, 1, 1)
+			#endregion
+			
+			for m in pcisph_num_iterations:
+				#region compute predicted positions pass
+				rd.compute_list_bind_compute_pipeline(compute_list, compute_predicted_positions_pipeline_rid)
+				rd.compute_list_bind_uniform_set(compute_list, compute_predicted_positions_uniform_set_rid, 0)
+				params.resize(64)
+				params.fill(0)
+				params.encode_u32(0, particle_count)
+				params.encode_float(4, delta)
+				params.encode_float(8, rt_damping)
+				params.encode_float(12, rt_vel_clamp)
+				params.encode_float(16, glass_sdf_imgs_size_f.x)
+				params.encode_float(20, glass_sdf_imgs_size_f.y)
+				params.encode_float(24, M_X_x)
+				params.encode_float(28, M_X_y)
+				params.encode_float(32, M_Y_x)
+				params.encode_float(36, M_Y_y)
+				params.encode_float(40, M_origin_x)
+				params.encode_float(44, M_origin_y)
+				params.encode_float(48, normalized_to_viewport_scale_factor.x)
+				params.encode_float(52, normalized_to_viewport_scale_factor.y)
+				params.encode_float(56, viewport_to_normalized_scale_factor.x)
+				params.encode_float(60, viewport_to_normalized_scale_factor.y)
+				rd.compute_list_set_push_constant(compute_list, params, params.size())
+				rd.compute_list_add_barrier(compute_list)
+				rd.compute_list_dispatch(compute_list, compute_predicted_positions_workgroups_x, 1, 1)
+				#endregion
+				
+				#region predict densities update pressures pass
+				rd.compute_list_bind_compute_pipeline(compute_list, predict_densities_update_pressures_pipeline_rid)
+				rd.compute_list_bind_uniform_set(compute_list, predict_densities_update_pressures_uniform_set_rid, 0)
+				params.resize(32)
+				params.fill(0)
+				params.encode_u32(0, particle_count)
+				params.encode_float(4, smoothing_radius)
+				params.encode_float(8, poly6_2d_constant)
+				params.encode_float(12, mass)
+				params.encode_float(16, rt_rest_density)
+				params.encode_float(20, sigma)
+				rd.compute_list_set_push_constant(compute_list, params, params.size())
+				rd.compute_list_add_barrier(compute_list)
+				rd.compute_list_dispatch(compute_list, predict_densities_update_pressures_workgroups_x, 1, 1)
+				#endregion
+				
+				#region compute pressure forces pass
+				rd.compute_list_bind_compute_pipeline(compute_list, compute_pressure_forces_pipeline_rid)
+				rd.compute_list_bind_uniform_set(compute_list, compute_pressure_forces_uniform_set_rid, 0)
+				params.resize(16)
+				params.fill(0)
+				params.encode_u32(0, particle_count)
+				params.encode_float(4, smoothing_radius)
+				params.encode_float(8, spiky_2d_gradient_constant)
+				params.encode_float(12, mass)
+				rd.compute_list_set_push_constant(compute_list, params, params.size())
+				rd.compute_list_add_barrier(compute_list)
+				rd.compute_list_dispatch(compute_list, compute_pressure_forces_workgroups_x, 1, 1)
+				#endregion
+				
+				# for debugging purposes
+				#rd.compute_list_end()
+				#rd.submit()
+				#rd.sync()
+				#var predicted_densities_gpu: PackedFloat32Array = rd.buffer_get_data(predicted_densities_buffer_rid).to_float32_array()
+				##print("iteration {0} ".format([m+1]), "predicted densities avg: ", average(predicted_densities_gpu))
+				##print("iteration {0} ".format([m+1]), "predicted densities: ", predicted_densities_gpu.slice(0, 10))
+				#var maximum_error: float = 0.0
+				#var average_error: float = 0.0
+				#for predicted_density in predicted_densities_gpu:
+					#var error: float = abs((predicted_density - rt_rest_density) / rt_rest_density)
+					#maximum_error = max(maximum_error, error)
+					#average_error += error
+				#average_error /= predicted_densities_gpu.size()
+				#print("iteration {0}, maximum predicted density error {1} %, average predicted density error {2} %".format([m+1, maximum_error, average_error]))
+				#compute_list = rd.compute_list_begin()
+			#print()
+			
+			#region integrate motion (PCISPH) pass
+			rd.compute_list_bind_compute_pipeline(compute_list, integrate_motion_pcisph_pipeline_rid)
+			rd.compute_list_bind_uniform_set(compute_list, integrate_motion_pcisph_uniform_set_rid, 0)
+			params.resize(128)
+			params.fill(0)
+			params.encode_u32(0, particle_count)
+			params.encode_float(4, delta)
+			params.encode_float(8, rt_damping)
+			params.encode_float(12, rt_bounds_damping)
+			params.encode_float(16, rt_vel_clamp)
+			params.encode_float(20, particle_pos_ener_img_size_f)
+			params.encode_float(24, glass_sdf_imgs_size_f.x)
+			params.encode_float(28, glass_sdf_imgs_size_f.y)
+			params.encode_float(32, rt_adhesion_scale)
+			params.encode_float(36, rt_adhesion_threshold)
+			params.encode_float(40, particle_spacing)
+			params.encode_float(44, smoothing_radius)
+			params.encode_float(48, poly6_2d_constant)
+			params.encode_float(52, mass)
+			params.encode_float(56, rt_xsph_scale)
+			params.encode_float(60, M_X_x)
+			params.encode_float(64, M_X_y)
+			params.encode_float(68, M_Y_x)
+			params.encode_float(72, M_Y_y)
+			params.encode_float(76, M_origin_x)
+			params.encode_float(80, M_origin_y)
+			params.encode_float(84, M_rotation_X_x)
+			params.encode_float(88, M_rotation_X_y)
+			params.encode_float(92, M_rotation_Y_x)
+			params.encode_float(96, M_rotation_Y_y)
+			params.encode_float(100, normalized_to_viewport_scale_factor.x)
+			params.encode_float(104, normalized_to_viewport_scale_factor.y)
+			params.encode_float(108, viewport_to_normalized_scale_factor.x)
+			params.encode_float(112, viewport_to_normalized_scale_factor.y)
+			params.encode_u32(116, int(rt_vis_neighborhood_search))
+			rd.compute_list_set_push_constant(compute_list, params, params.size())
+			rd.compute_list_add_barrier(compute_list)
+			rd.compute_list_dispatch(compute_list, integrate_motion_pcisph_workgroups_x, 1, 1)
+			#endregion
 		
 		#region store particle info pass
 		rd.compute_list_bind_compute_pipeline(compute_list, store_particle_info_pipeline_rid)
@@ -2631,10 +3012,15 @@ func free_gpu() -> void:
 	rd.free_rid(compute_pressures_pipeline_rid)
 	rd.free_rid(compute_vorticities_pipeline_rid)
 	rd.free_rid(compute_forces_pipeline_rid)
-	rd.free_rid(integrate_motion_pipeline_rid)
+	rd.free_rid(integrate_motion_wcsph_pipeline_rid)
 	rd.free_rid(store_particle_info_pipeline_rid)
 	rd.free_rid(store_neighbors_pipeline_rid)
 	rd.free_rid(mark_neighbors_pipeline_rid)
+	rd.free_rid(compute_non_pressure_forces_pipeline_rid)
+	rd.free_rid(compute_predicted_positions_pipeline_rid)
+	rd.free_rid(predict_densities_update_pressures_pipeline_rid)
+	rd.free_rid(compute_pressure_forces_pipeline_rid)
+	rd.free_rid(integrate_motion_pcisph_pipeline_rid)
 	#endregion
 	
 	#region uniform sets
@@ -2656,10 +3042,15 @@ func free_gpu() -> void:
 	rd.free_rid(compute_pressures_uniform_set_rid)
 	rd.free_rid(compute_vorticities_uniform_set_rid)
 	rd.free_rid(compute_forces_uniform_set_rid)
-	rd.free_rid(integrate_motion_uniform_set_rid)
+	rd.free_rid(integrate_motion_wcsph_uniform_set_rid)
 	rd.free_rid(store_particle_info_uniform_set_rid)
 	rd.free_rid(store_neighbors_uniform_set_rid)
 	rd.free_rid(mark_neighbors_uniform_set_rid)
+	rd.free_rid(compute_non_pressure_forces_uniform_set_rid)
+	rd.free_rid(compute_predicted_positions_uniform_set_rid)
+	rd.free_rid(predict_densities_update_pressures_uniform_set_rid)
+	rd.free_rid(compute_pressure_forces_uniform_set_rid)
+	rd.free_rid(integrate_motion_pcisph_uniform_set_rid)
 	#endregion
 	
 	#region buffers
@@ -2694,6 +3085,10 @@ func free_gpu() -> void:
 	rd.free_rid(vorticities_buffer_rid)
 	rd.free_rid(forces_buffer_rid)
 	rd.free_rid(neighbor_flags_buffer_rid)
+	rd.free_rid(non_pressure_forces_buffer_rid)
+	rd.free_rid(pressure_forces_buffer_rid)
+	rd.free_rid(predicted_positions_buffer_rid)
+	rd.free_rid(predicted_densities_buffer_rid)
 	#endregion
 	
 	rd.free_rid(tmp_buffer_rid)
@@ -2715,10 +3110,15 @@ func free_gpu() -> void:
 	rd.free_rid(compute_pressures_shader_rid)
 	rd.free_rid(compute_vorticities_shader_rid)
 	rd.free_rid(compute_forces_shader_rid)
-	rd.free_rid(integrate_motion_shader_rid)
+	rd.free_rid(integrate_motion_wcsph_shader_rid)
 	rd.free_rid(store_particle_info_shader_rid)
 	rd.free_rid(store_neighbors_shader_rid)
 	rd.free_rid(mark_neighbors_shader_rid)
+	rd.free_rid(compute_non_pressure_forces_shader_rid)
+	rd.free_rid(compute_predicted_positions_shader_rid)
+	rd.free_rid(predict_densities_update_pressures_shader_rid)
+	rd.free_rid(compute_pressure_forces_shader_rid)
+	rd.free_rid(integrate_motion_pcisph_shader_rid)
 	#endregion
 	
 	#region textures
@@ -2730,6 +3130,47 @@ func free_gpu() -> void:
 	#endregion
 	
 	rd.free()
+
+func compute_sigma_part() -> void:
+	# precompute the kernel sums present in the formula for sigma, the parameter commonly used in PCISPH
+	# do it by assuming a perfect distribution of particles around some center point
+	# the perfect distribution is given by the spacing between particles at the bery beginning of the simulation
+	# everything is done with virtual/prototype/temporary particles since the only thing we need is their positions
+	
+	sigma_part = 0.0
+	
+	var sum_grad_w: Vector2 = Vector2(0.0, 0.0)
+	var sum_grad_w_dot_grad_w: float = 0.0
+	
+	var center: Vector2 = Vector2(0.5, 0.5)
+	var h2: float = smoothing_radius * smoothing_radius
+	var steps: int = int(ceil(smoothing_radius / particle_spacing))
+	var num_neighbors: int = 0
+	
+	for y in range(-steps, steps + 1):
+		for x in range(-steps, steps + 1):
+			if (x == 0 and y == 0):
+				continue
+			
+			var p: Vector2 = center + (Vector2(x, y) * particle_spacing)
+			var diff: Vector2 = center - p
+			var r2: float = diff.length_squared()
+			
+			if r2 < h2:
+				#var gradient_W: Vector2 = spiky_2d_gradient_constant * pow(sqrt(h2) - sqrt(r2), 2.0) * (diff / sqrt(r2))
+				var gradient_W: Vector2 = poly6_2d_gradient_constant * ((h2 - r2) * (h2 - r2)) * diff;
+				sum_grad_w += gradient_W
+				sum_grad_w_dot_grad_w += gradient_W.length_squared()
+				num_neighbors += 1
+	
+	var sum_dot_sum: float = sum_grad_w.length_squared()
+	
+	sigma_part = sum_dot_sum + sum_grad_w_dot_grad_w
+	
+	print("Steps: ", steps)
+	print("Number of neighbors: ", num_neighbors)
+	print("Sigma part: ", sigma_part)
+	print()
 
 func update_glass_transform(delta: float) -> void:
 	var moved: bool = false
@@ -2835,11 +3276,12 @@ func init_slider_callbacks() -> void:
 	# for some reason the inspector doesn't allow 4 decimal digits, only 3 at most
 	
 	viscosity_scale_h_slider.min_value = viscosity_scale
-	viscosity_scale_h_slider.max_value = viscosity_scale * 15
+	viscosity_scale_h_slider.max_value = viscosity_scale * 15.0
 	viscosity_scale_h_slider.step = 0.0001
 	viscosity_scale_h_slider.value = viscosity_scale
 	
 	surface_tension_scale_h_slider.step = 0.0001
+	surface_tension_scale_h_slider.value = surface_tension_scale
 	
 	damping_h_slider.value = damping
 	damping_h_slider.step = 0.0001

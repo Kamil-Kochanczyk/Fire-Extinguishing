@@ -32,7 +32,7 @@ void fragment() {
 		highp vec4 temps_previous = texture(TEXTURE, UV);
 		highp float fire_temp_previous = temps_previous.x;
 		highp float smoke_temp_previous = temps_previous.y;
-		
+
 		highp vec2 rho_fuel_is_vapor = texture(u_fire_fuel_smoke_density_splash, UV).rb;
 		highp float rho_fuel = rho_fuel_is_vapor.x;
 		highp float is_vapor = rho_fuel_is_vapor.y;

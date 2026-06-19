@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://60lbsmx6el6x"
+path="res://.godot/imported/integrate-motion-wcsph.glsl-5cc898c1e0eb39b0db930742c36aa538.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/integrate-motion-wcsph.glsl"
+dest_files=["res://.godot/imported/integrate-motion-wcsph.glsl-5cc898c1e0eb39b0db930742c36aa538.res"]
+
+[params]
+

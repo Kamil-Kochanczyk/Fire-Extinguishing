@@ -395,7 +395,7 @@ shader_parameter/u_fire_vis_temp_threshold = 750.0
 shader_parameter/u_fire_vis_fuel_threshold = 0.5
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_yeig1"]
-viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
+viewport_path = NodePath("ParticlesToGridViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")

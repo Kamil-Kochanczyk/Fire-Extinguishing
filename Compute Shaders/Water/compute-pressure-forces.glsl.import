@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bcenj6bewyb7r"
+path="res://.godot/imported/compute-pressure-forces.glsl-915c0ef76e2d303b7b103663c1534e7d.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/compute-pressure-forces.glsl"
+dest_files=["res://.godot/imported/compute-pressure-forces.glsl-915c0ef76e2d303b7b103663c1534e7d.res"]
+
+[params]
+

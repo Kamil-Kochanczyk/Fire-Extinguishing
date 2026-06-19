@@ -452,14 +452,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 2.0
+max_value = 3.0
 step = 0.01
-value = 0.1
+value = 1.5
 
 [node name="VorticityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.1"
+text = "1.5"
 
 [node name="SurfaceTensionThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -479,12 +479,12 @@ custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
 max_value = 1000.0
-value = 550.0
+value = 95.0
 
 [node name="SurfaceTensionThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "550.0"
+text = "95.0"
 
 [node name="SurfaceTensionScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -503,14 +503,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 10.0
+max_value = 0.01
 step = 0.001
-value = 5.0
+value = 0.001
 
 [node name="SurfaceTensionScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "5.0"
+text = "0.0005"
 
 [node name="AdhesionThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

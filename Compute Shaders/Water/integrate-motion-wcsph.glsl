@@ -222,13 +222,6 @@ void main() {
     }
 
     if (is_alive[id] == 1u) {
-        // our simulation runs in the normalized space to decouple it from the viewport size
-        // this is why we can hardcode our world's boundaries
-        float bounds_min_x = 0.0;
-        float bounds_max_x = 1.0;
-        float bounds_min_y = 0.0;
-        float bounds_max_y = 1.0;
-
         vec2 pos = positions[id];
         vec2 vel = velocities[id];
 
@@ -391,6 +384,13 @@ void main() {
                 vel *= params.bounds_damping;
             }
         }
+
+        // our simulation runs in the normalized space to decouple it from the viewport size
+        // this is why we can hardcode our world's boundaries
+        float bounds_min_x = 0.0;
+        float bounds_max_x = 1.0;
+        float bounds_min_y = 0.0;
+        float bounds_max_y = 1.0;
 
         // boundary handling, X axis
         if (pos.x < bounds_min_x) {

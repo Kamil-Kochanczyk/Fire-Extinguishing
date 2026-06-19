@@ -651,10 +651,15 @@ func init_slider_callbacks() -> void:
 		fire_curr_vel_abs_val_limit = new_value
 	
 	slider_callbacks_dict["FireVisTempThresholdHSlider"] = func(new_value: float) -> void:
-		#var new_val: float = max(new_value, ceil(fire_temp_extinguish + 1e-6))
-		fire_vis_temp_threshold_value.text = str(new_value)
-		fire_vis_temp_threshold_h_slider.value = new_value
-		fire_curr_vis_temp_threshold = new_value
+		# this param is only for tweaking the fuel threshold
+		# it helps to identify the regions to be extinguished
+		# i.e. regions where the fire has temperature greater than the extinguish temperature
+		# this is to ensure the extinguishing happens due to heat transfer to water
+		# and not due to the fact that the fire naturally is cooled below extinguished temperature due to dissipation
+		var new_val: float = max(new_value, ceil(fire_temp_extinguish + 1e-6))
+		fire_vis_temp_threshold_value.text = str(new_val)
+		fire_vis_temp_threshold_h_slider.value = new_val
+		fire_curr_vis_temp_threshold = new_val
 	
 	slider_callbacks_dict["FireVisFuelThresholdHSlider"] = func(new_value: float) -> void:
 		fire_vis_fuel_threshold_value.text = str(new_value)

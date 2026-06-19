@@ -67,6 +67,8 @@ layout(push_constant) uniform Parameters {
     float surface_tension_scale;
     float vorticity_scale;
     float mass;
+    float poly6_2d_gradient_constant;    // -24 / (π * h^8)
+	float poly6_2d_laplacian_constant;    // -48 / (π * h^8)
 } params;
 
 uint hash_cell(ivec2 cell) {
@@ -134,7 +136,7 @@ void main() {
 
                     float scaling_near = (1.0 - (r / h));
 
-                    vec2 gradient_W_dir = ((-diff) / r);
+                    vec2 gradient_W_dir = diff / r;
 
                     vec2 gradient_W = params.spiky_2d_gradient_constant * term2 * gradient_W_dir;
                     float laplacian_W = params.visc_2d_laplacian_constant * term;
@@ -142,17 +144,17 @@ void main() {
                     // pressure force (pressure term in Navier-Stokes)
                     float p_j = pressures[j];
                     float rho_j = densities[j];
-                    // float p_sym_term = ((p_i + p_j) / (2.0 * rho_j));
-                    float p_sym_term = (p_i / (rho_i * rho_i)) + (p_j / (rho_j * rho_j));
-                    vec2 f_pressure = params.mass * p_sym_term * gradient_W;
+                    // float p_sym_term = ((p_i + p_j) / (2.0 * rho_j));    // if using this term, remove the rho_i multiplier in the calculation of f_pressure below
+                    float p_sym_term = (p_i / (rho_i * rho_i)) + (p_j / (rho_j * rho_j));    // if using this term, include the rho_i multiplier in the calculation of f_pressure below
+                    vec2 f_pressure = rho_i * params.mass * p_sym_term * (-gradient_W);
                     force += f_pressure;
 
                     // near pressure force (purely repulsive, anti-clumping)
                     float p_j_near = near_pressures[j];
                     float rho_j_near = near_densities[j];
-                    // float p_sym_term_near = ((p_i_near + p_j_near) / (2.0 * rho_j_near));
-                    float p_sym_term_near = (p_i_near / (rho_i_near * rho_i_near)) + (p_j_near / (rho_j_near * rho_j_near));
-                    vec2 f_pressure_near = (scaling_near * scaling_near * scaling_near) * params.mass * p_sym_term_near * gradient_W;
+                    // float p_sym_term_near = ((p_i_near + p_j_near) / (2.0 * rho_j_near));    // if using this term, remove the rho_i multiplier in the calculation of f_pressure_near below
+                    float p_sym_term_near = (p_i_near / (rho_i_near * rho_i_near)) + (p_j_near / (rho_j_near * rho_j_near));    // if using this term, include the rho_i multiplier in the calculation of f_pressure_near below
+                    vec2 f_pressure_near = (scaling_near * scaling_near * scaling_near) * rho_i * params.mass * p_sym_term_near * (-gradient_W);
                     force += f_pressure_near;
 
                     // viscosity force (viscosity term in Navier-Stokes)
@@ -162,8 +164,11 @@ void main() {
 
                     // surface tension force (accumulation of gradient and laplacian of color field)
                     if (params.surface_tension_scale > 0.0) {
-                        gradient_c += (params.mass / rho_j) * gradient_W;
-                        laplacian_c += (params.mass / rho_j) * laplacian_W;
+                        vec2 sf_gradient_W = params.poly6_2d_gradient_constant * ((h2 - r2) * (h2 - r2)) * diff;
+                        float sf_laplacian_W = params.poly6_2d_laplacian_constant * (h2 - r2) * (h2 - (3.0 * r2));
+
+                        gradient_c += (params.mass / rho_j) * sf_gradient_W;
+                        laplacian_c += (params.mass / rho_j) * sf_laplacian_W;
                     }
 
                     // vorticity confinement force (accumulation of gradient of absolute vorticity)

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bw4e6ey4lphsy"
+path="res://.godot/imported/predict-densities-update-pressures.glsl-f2ea316e37b194084f23150915163cc2.res"
+
+[deps]
+
+source_file="res://Compute Shaders/Water/predict-densities-update-pressures.glsl"
+dest_files=["res://.godot/imported/predict-densities-update-pressures.glsl-f2ea316e37b194084f23150915163cc2.res"]
+
+[params]
+
