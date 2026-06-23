@@ -13,6 +13,7 @@ func _ready() -> void:
 	
 	fire_smoke.fire_smoke_ready()
 	water.set_grid_to_particles_connection(fire_smoke.get_grid_to_particles_connection())
+	
 	water.water_ready()
 	fire_smoke.set_particles_to_grid_connection(water.get_particles_to_grid_connection())
 	

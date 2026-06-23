@@ -272,7 +272,7 @@ var smoke_default_dense_down_force: float = 0.1
 var smoke_default_hot_up_force: float = 2.0
 var smoke_default_vel_abs_val_limit: float = 1.0
 var smoke_default_vapor_density_splash_strength: float = 100.0
-var smoke_default_vapor_heating_splash_strength: float = 5.0
+var smoke_default_vapor_heating_splash_strength: float = 100.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 

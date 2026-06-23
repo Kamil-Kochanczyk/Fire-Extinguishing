@@ -1770,14 +1770,12 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 5.0
-step = 0.1
-value = 5.0
+value = 100.0
 
 [node name="SmokeVaporHeatingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "5.0"
+text = "100.0"
 
 [node name="SmokeMinAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2

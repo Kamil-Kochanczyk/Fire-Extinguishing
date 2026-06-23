@@ -182,7 +182,7 @@ void main() {
     float density_sum = 0.0;
     float energy_sum = 0.0;
     float evaporated_mass_sum = 0.0;
-    float weight_sum = 0.0;
+    // float weight_sum = 0.0;
 
     // float energy_max = 0.0;
 
@@ -219,7 +219,7 @@ void main() {
                 density_sum += w;
                 energy_sum += w * energies[pid];
                 evaporated_mass_sum += w * evaporated_masses[pid];
-                weight_sum += w;
+                // weight_sum += w;
 
                 // energy_max = max(energy_max, energies[pid]);
 
@@ -229,8 +229,8 @@ void main() {
     }
 
     float density = density_sum;
-    float energy = (weight_sum > 0.0) ? (energy_sum / weight_sum) : 0.0;
-    float evaporated_mass = (weight_sum > 0.0) ? (evaporated_mass_sum / weight_sum) : 0.0;
+    float energy = (density > 0.0) ? (energy_sum / density) : 0.0;
+    float evaporated_mass = (density > 0.0) ? (evaporated_mass_sum / density) : 0.0;
     // float energy = energy_max;
 
     if (pixel_coords.x <= 20 && pixel_coords.x >= 11 && pixel_coords.y == 5) {

@@ -63,7 +63,8 @@ void fragment() {
 		else {
 			smoke_temp_new = smoke_temp_previous;
 			smoke_temp_new += splash_mask.g * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
-			smoke_temp_new += is_vapor * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			highp float vapor_delta = evaporated_mass * particle_density * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			smoke_temp_new += vapor_delta;
 			smoke_temp_new -= splash_mask.b * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new -= u_smoke_temp_dissipation_rate * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new = clamp(smoke_temp_new, u_smoke_temp_ambient, u_smoke_temp_max);

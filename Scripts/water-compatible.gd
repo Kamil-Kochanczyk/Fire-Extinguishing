@@ -370,6 +370,7 @@ var curr_display_idx: int
 @onready var upscaled_texture_rect: TextureRect = $WaterSubViewport/UpscaledTextureRect
 @onready var display: Sprite2D = $Display
 @onready var glass: Polygon2D = $Glass    # we assume that all verties of the polygon are within the normalized world boundaries
+#@onready var glass: Polygon2D = $NotGlass
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/Label
 @onready var fps_label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/FPSLabel
