@@ -1,4 +1,4 @@
-[gd_scene load_steps=108 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=107 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -92,9 +92,6 @@ shader_parameter/u_density_dissipation_rate = 0.05
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_heating_energy_cost = 0.0
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_obf3v"]
-viewport_path = NodePath("ExtinguishMaskViewport")
-
 [sub_resource type="ViewportTexture" id="ViewportTexture_y6upe"]
 viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
 
@@ -117,7 +114,6 @@ shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_c4pv6")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_fcd3f")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_kid1v")
 shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_rr1vq")
-shader_parameter/u_extinguish_mask = SubResource("ViewportTexture_obf3v")
 shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture_y6upe")
 shader_parameter/u_init_state = true
 shader_parameter/u_timestep = 0.0
@@ -188,7 +184,7 @@ resource_local_to_scene = true
 shader = ExtResource("13_1pbsg")
 shader_parameter/u_grid_to_particles = SubResource("ViewportTexture_11fkg")
 shader_parameter/u_timestep = 0.0
-shader_parameter/u_extinguish_strength = 100.0
+shader_parameter/u_temp_drop_sensitivity = 2500.0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
 
@@ -222,9 +218,12 @@ shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture
 shader_parameter/u_fire_smoke_temperature = SubResource("ViewportTexture_5fajg")
 shader_parameter/u_grid_to_particles = SubResource("ViewportTexture_qmlq6")
 shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj18q")
-shader_parameter/u_extinguish_strength = 100.0
-shader_parameter/u_fire_vis_fuel_threshold = 0.5
+shader_parameter/u_timestep = 0.0
+shader_parameter/u_extinguish_strength = 1.0
+shader_parameter/u_reignition_strength = 1.0
 shader_parameter/u_fire_temp_extinguish = 600.0
+shader_parameter/u_fire_temp_ambient = 500.0
+shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_init_state = true
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_gujhc"]
@@ -392,10 +391,9 @@ shader_parameter/u_splash_mask = SubResource("ViewportTexture_ccjs0")
 shader_parameter/u_fire_smoke_temperature_advect = SubResource("ViewportTexture_vueri")
 shader_parameter/u_extinguish_mask = SubResource("ViewportTexture_ipvjk")
 shader_parameter/u_fire_vis_temp_threshold = 750.0
-shader_parameter/u_fire_vis_fuel_threshold = 0.5
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_yeig1"]
-viewport_path = NodePath("ParticlesToGridViewport")
+viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
@@ -1219,32 +1217,6 @@ layout_mode = 2
 size_flags_vertical = 1
 text = "750.0"
 
-[node name="FireVisFuelThresholdHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
-layout_mode = 2
-
-[node name="FireVisFuelThreshold" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "Vis Fuel Threshold"
-
-[node name="FireVisFuelThresholdMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_right = 5
-
-[node name="FireVisFuelThresholdHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer/FireVisFuelThresholdMarginContainer" groups=["ParamSlider"]]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_vertical = 1
-max_value = 1.0
-step = 0.01
-value = 0.5
-
-[node name="FireVisFuelThresholdValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireVisFuelThresholdHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "0.5"
-
 [node name="FireWaterHeatingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
 
@@ -1295,6 +1267,32 @@ layout_mode = 2
 size_flags_vertical = 1
 text = "500.0"
 
+[node name="FireTempDropSensitivityHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireTempDropSensitivity" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTempDropSensitivityHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Temp Drop Sensitivity"
+
+[node name="FireTempDropSensitivityMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTempDropSensitivityHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireTempDropSensitivityHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTempDropSensitivityHBoxContainer/FireTempDropSensitivityMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 3000.0
+step = 10.0
+value = 2500.0
+
+[node name="FireTempDropSensitivityValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTempDropSensitivityHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "2500.0"
+
 [node name="FireExtinguishStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
 
@@ -1312,14 +1310,40 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 5000.0
-step = 10.0
-value = 2750.0
+max_value = 1.0
+step = 0.01
+value = 0.1
 
 [node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "2750.0"
+text = "0.1"
+
+[node name="FireReignitionStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
+layout_mode = 2
+
+[node name="FireReignitionStrength" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireReignitionStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Reignition Strength"
+
+[node name="FireReignitionStrengthMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireReignitionStrengthHBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="FireReignitionStrengthHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireReignitionStrengthHBoxContainer/FireReignitionStrengthMarginContainer" groups=["ParamSlider"]]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 1
+max_value = 0.1
+step = 0.001
+value = 0.02
+
+[node name="FireReignitionStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireReignitionStrengthHBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "0.02"
 
 [node name="FireObstacleToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 visible = false

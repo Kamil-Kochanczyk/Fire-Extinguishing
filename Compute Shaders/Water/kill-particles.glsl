@@ -260,7 +260,7 @@ void main() {
 
         float evaporated_mass = max(0.0, (get_latent_heat(new_energy) - get_latent_heat(energy)) / params.vaporization_energy_cost);    // compute the evaporated mass based on the change in latent heat, store % to avoid small numbers
 
-        // tmp[id] = new_energy;
+        tmp[id] = heat_transfer;
 
         // if age exceeds lifetime of a mortal particle or latent heat reaches vaporization threshold, this particle is killed (becomes dead)
         if (((lifetime != (1.0 / 0.0)) && (age > lifetime)) || (new_energy >= params.total_energy_cost)) {

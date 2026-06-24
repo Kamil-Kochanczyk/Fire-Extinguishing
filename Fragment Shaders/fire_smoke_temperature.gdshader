@@ -5,7 +5,7 @@ uniform highp sampler2D u_particles_to_grid : filter_linear, repeat_disable;
 uniform highp sampler2D u_obstacles_raw : filter_nearest, repeat_disable;
 uniform highp sampler2D u_splash_mask : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_fuel_smoke_density_splash : filter_nearest, repeat_disable;
-uniform highp sampler2D u_extinguish_mask : filter_nearest, repeat_disable;
+//uniform highp sampler2D u_extinguish_mask_helper : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_fuel_smoke_density_advect : filter_nearest, repeat_disable;
 
 uniform bool u_init_state = true;
@@ -43,13 +43,14 @@ void fragment() {
 
 		highp float fire_temp_new = fire_temp_previous;
 
-		float extinguish_mask = texture(u_extinguish_mask, UV).r;
-
-		if (extinguish_mask < 0.5) {
-			//highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
-			fire_temp_new += (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
-			fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
-		}
+		//if (extinguish_mask < 0.5) {
+			////highp float fire_temp_new = max(fire_temp_previous, rho_fuel * u_fire_temp_burn);
+			//fire_temp_new += (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
+			//fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
+		//}
+		
+		fire_temp_new += (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
+		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 
 		highp float smoke_temp_new;
 
