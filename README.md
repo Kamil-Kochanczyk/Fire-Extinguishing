@@ -120,110 +120,188 @@ $$
 * particle density $\rho_{\text{gp},k}$
 
 $$
-\rho_{\text{gp},k} = \rho_{\text{pg},k}
+\rho_{\text{gp},k1} = \rho_{\text{pg},k1}, \rho_{\text{gp},k2} = \rho_{\text{pg},k2}, \rho_{\text{gp},k3} = \rho_{\text{pg},k3}, \rho_{\text{gp},k4} = \rho_{\text{pg},k4}
 $$
 
 Here subscripts $_{\text{k1}}$, $_{\text{k2}}$, $_{\text{k3}}$, $_{\text{k4}}$ denote four surrounding *GP Grid Cells* (neighbors) of particle $i$.
 
 Particle density in case of *GP Grid* is actually not used to calculate any particle property, its role is different. **Particle density is used to discard from weighted sums those *GP Grid Cells* which contain no particles at all, i.e. those *GP Grid Cells* where $\rho_{\text{gp},k} = \rho_{\text{pg},k} = 0$**. We discard such grid cells from the weighted sum as **we assume that wherever there are no particles, their properties are undefined there**. Moreover, **not discarding such grid cells would cause problems with numerical dissipation** (reading zeros from cells increases numerical dissipation).
 
-Here, 25.06.2026
+## Water vaporization
 
-## Water evaporation
+One of the visual effects that this simulation is suppossed to simulate is the disappearance of water upon contact with fire.
 
-Water disappearing upon getting in contact in fire is one of the visual effects that this simulation is suppossed to simulate.
+To achieve this **we introduce a new quantity stored by each particle $i$ and this quantity is the current energy $E_{i}$** stored by the particle $i$, $0 \le E_{i} \le E_{\text{max}}$.
 
-To achieve this we introduce a new quantity stored by a particle $i$. This quantity is the current energy $E_{i}$ stored by the particle, $0 \le E_{i} \le E_{\text{max}}$. The total energy that the particle can store is the sum of: (1) the heating energy required to heat the particle from its default temperature to its boiling temperature and (2) the vaporization energy required to completely evaporate the particle, i.e. $E_{\text{max}} = E_{\text{heating}} + E_{\text{vaporization}}$. The heating energy is defined as $E_{\text{heating}} = m_{i} \cdot c_{w} \cdot \left(T_{\text{boiling}} - T_{\text{ambient}} \right)$, where $m_{i}$ is the mass of the particle, $c_{w} = 4184 \frac{J}{kg \cdot K}$ is the specific heat capacity of water, $T_{\text{boiling}} = 373 K$ is the boiling temperature of water and $T_{\text{ambient}}$ is the initial temperature of the particle. The vaporization energy is defined as $E_{\text{vaporization}} = m_{i} \cdot L_{w}$ where $L_{w} = 2264705 \frac{J}{kg}$ is the specific latent heat of vaporization of water.
+The total energy that the particle can store is **the sum of: (1) the heating energy required to heat the particle from its default temperature to its boiling temperature and (2) the vaporization energy required to completely evaporate the particle**
 
-The energy $E_{i}$ is first initialized to $0$. It is then increased by the energy (heat) transfer mechanism when a particle starts interacting with fire and "stealing" fire's energy (heat) to increase its own energy. If $0 \leq E_{i} \leq E_{\text{heating}}$, then we interpret it as the particle being in the heating stage when its temperature is being increased. If $E_{\text{heating}} \lt E_{i} \leq E_{\text{max}}$, then we interpret it as the particle being the vaporization stage when its mass is being lost. When $E_{i}$ reaches its maximum possible value, then the particle is killed as we assume that is when the total evaporation occurs and the entire mass is lost.
+$$E_{\text{max}} = E_{\text{heating}} + E_{\text{vaporization}}
+$$
+
+**The heating energy is defined using a simple relationship from thermodynamics:**
+
+$$E_{\text{heating}} = m c_{\text{water}} (T_{\text{water,boiling}} - T_{\text{water,ambient}})
+$$
+
+Here $m$ is the (constant) mass of each particle, $c_{\text{water}} = 4184 \frac{J}{kg \cdot K}$ is the specific heat capacity of water, $T_{\text{water,boiling}} = 373 K$ is the boiling temperature of water and $T_{\text{water,ambient}}$ is the initial temperature of each particle.
+
+**The vaporization energy is defined as another simple relationship from thermodynamics:**
+
+$$E_{\text{vaporization}} = m L_{\text{water}}
+$$
+
+Here $L_{w} = 2264705 \frac{J}{kg}$ is the specific latent heat of vaporization of water.
+
+The energy $E_{i}$ of particle $i$ is **first initialized to $0$**. It is **then increased by the energy (heat) transfer from fire to water**. Currently **energy loss is not modeled**, i.e. $E_{i}$ can only increase and cannot decrease. When particle $i$ starts interacting with fire **it steals fire's energy (heat) to increase its own energy**. If $0 \leq E_{i} \leq E_{\text{heating}}$, then **we interpret it as the particle being in the heating stage, i.e. the stage when its temperature is being increased**. If $E_{\text{heating}} \lt E_{i} \leq E_{\text{max}}$, then **we interpret it as the particle being in the vaporization stage, i.e. the stage when its mass is being lost**. When $E_{i}$ reaches its **maximum possible value, then the particle is killed** as we assume that this is when the total vaporization occurs and the entire mass is lost.
 
 The fact that vaporization is the main reason why water is such a good extinguishing agent is encoded in the fact that in the simulation $E_{\text{heating}} \lt\lt E_{\text{vaporization}}$.
 
-In practice the energy of the particles is increased on the GP grid by the fire/smoke subsimulation.
+The energy $E_{i}$ is first transferred from particle $i$ to *PG Grid*, later it is moved to *GP Grid* and updated there by the fire/smoke subsimulation and finally it is transferred back from *GP Grid* to particle $i$.
 
-First of all, the temperature and the latent heat of particles in the GP grid cell $i$ are calculated based on the current energy of particles:
+The **update scheme performed on the *GP Grid*** is described below.
 
-$$
-T_{\text{water,gp},i} = T_{ambient} + \frac{\min(E_{\text{gp},i}, E_{\text{heating}})}{m_{j}c_{w}}
-$$
+First of all, **the current energy of particles stored in this cell is remembered for later use as $E_{\text{gp},k}^{\text{old}} = E_{\text{gp},k}$ and the temperature and the latent heat of particles in the *GP Grid Cell* $k$ are calculated**:
 
 $$
-H_{\text{latent,gp},i} = \max(E_{\text{gp},i} - E_{\text{heating}}, 0)
-$$
-
-Then the heat transfer amount from fire to water, $\Delta H_{\text{gp},i} \geq 0$, is calculated. We assume that heat transfer occurs only if fire temperature in the GP grid cell $i$ is greater than the maximum temperature that a particle can have, i.e. $\Delta H_{\text{gp},i} \gt 0 \iff T_{\text{fire,gp},i} \gt T_{\text{boiling}}$, otherwise $\Delta H_{\text{gp},i} = 0$. In other words, in the simulation we do not worry about the case when the heat is transferred from water to fire. One additional check that we can do is to check if $\rho_{\text{gp},i} = \rho_{\text{pg},i} = 0$ and also assume that in that case $\Delta H_{\text{gp},i} = 0$.
-
-When the heat transfer occurs, we assume a simplified, conduction-like heat transfer from fire to water:
-
-$$
-\frac{d(\Delta H_{\text{gp},i})}{dt} = kA(T_{\text{fire,gp},i} - T_{\text{water,gp},i})
-$$
-
-Here $A$ is the area of GP grid cell and $k$ is a tunable parameter used to control the speed of heat transfer.
-
-If we have the heat transfer budget $\Delta H_{\text{gp},i}$ for the current frame, we use differently depending on two cases:
-
-* if $T_{\text{water,gp},i} \lt T_{\text{boiling}}$, then the entire heat transfer budget is used to increase the particles temperature, $T_{\text{water,gp},i} += \frac{H_{\text{used}}}{m_{j}c_{w}}$
-* if $T_{\text{water,gp},i} = T_{\text{boiling}}$, then the entire heat transfer budget is spent to increase the particles latent heat, $H_{\text{latent,gp},i} += \min(\Delta H_{\text{gp},i} - H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},i})$
-* $H_{\text{used}} = \min(\Delta H_{\text{gp},i}, E_{\text{heating}} - \min(E_{\text{gp},i}, E_{\text{heating}}))$
-* a special case is when the particles temperature is almost at its boiling point and the current heat transfer budget is bigger than we need; then, after increasing the particles temperature some of the heat transfer budget remains unused; this entire leftover is then used to increase the latent heat of particles
-
-We can see that $k$ controls both the speed of heating and the speed of vaporization. However, it may be good to be able to control heating and vaporization of water separately, using two different paramters, one for heating and one for vaporization. So in our simulation we use:
-
-* $\frac{d(\Delta H_{\text{gp},i})}{dt} = A(T_{\text{fire,gp},i} - T_{\text{water,gp},i})$
-* $T_{\text{water,gp},i} += k_{\text{heating}} \frac{H_{\text{used}}}{m_{j}c_{w}}$
-* $H_{\text{latent,gp},i} += k_{\text{vaporization}} \min(\Delta H_{\text{gp},i} - H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},i})$
-* $H_{\text{used}} = \min(\Delta H_{\text{gp},i}, E_{\text{heating}} - \min(E_{\text{gp},i}, E_{\text{heating}}))$, $k_{\text{heating}}$ and $k_{\text{vaporization}}$ are tunable paramters controlling the speed of heating and vaporization respectively
-
-We recalculate $\Delta H_{\text{gp},i}$ each frame (we do not accumulate it so we assume if some of it reamains at the end of the frame we assume that it is lost to the environment and forget about it).
-
-Based on the updated temperature and latent heat we compute the new energy:
-
-$$
-E_{\text{gp,new},i} = [m_{j} c_{w} (T_{\text{water,gp},i} - T_{\text{ambient}})] + H_{\text{latent,gp},i};
-$$
-
-Delta particle energy is calculated:
-
-$$
-\Delta E_{\text{gp},i} = E_{\text{gp,new},i} - E_{\text{gp},i}
-$$
-
-Finally, $E_{\text{gp,new},i}$, $\Delta E_{\text{gp},i}$, $\Delta H_{\text{gp},i}$ and $\rho_{\text{gp},i}$ are stored in the GP grid cell. Later, particles near this grid cell read the values $E_{\text{gp,new},i}$, $\Delta E_{\text{gp},i}$, and $\Delta H_{\text{gp},i}$ stored their and use them in the weighted sum formulas presented earlier to calculate $\Delta E_{j}$, $E_{\text{new},j}$ and $\Delta H_{j}$. As we remember, $\rho_{\text{gp},i}$ is used to discard undefined grid cells.
-
-Now, the particles should increase their energy budget. Inspired by PIC-FLIP blending we calculate new energy of a particle $j$ using linear interpolation:
-
-$$
-E_{\text{new},j} = (1 - t)(E_{\text{old},j} + \Delta E_{j}) + tE_{\text{new},j}
-$$
-
-Here $t \in [0,1]$ is a tunable interpolation factor. When its values are near zero, we get grainy, noisy energy updates, i.e. particles which are near one another can have very different temperatures and latent heats and die at very different times. When its values are near one, we get more smooth energy updates, i.e. most particles which are near will have similar, pretty much the same energy and die at approximately the same time. The idea behind this blending is to make it as grainy as possible because smoothing causes the loss of details, but make it smooth enough so that as many particles as possible die at approximately the same time. We want the particles to die at the same time (due to evaporation) because it seems that dying particles are the source of instabilities. If we make particles disappear one by one it can cause particles to start moving very rapidly and eventually blow up sometimes. If we make them disappear in groups it seems that they behave more stable.
-
-One final note is that we perform particle energy update only when $\Delta H_{j} \gt 0$. This is done because particle updates based on values read from GP grid are not very accurate and in practice many particles can have energies which do not always monotonically increase, i.e. sometimes the energy of the particle can be lower than previously which is in contradiction with out assumption that heat transfer occurs only from fire to water. In general, GP grid updates proved to both artificially loose and create energy. This is why want to limit ourselves only to the regions near the fire, where we know that the water will interact with fire. Those regions are suppossed to be marked by the non-zero values of $\Delta H_{j} \gt 0$ and are suppossed to be the regions where the fire is strong and visibly burning on screen. This condition, i.e. $\Delta H_{j} \gt 0$, is also important in the case of formation of vapor as it will be explained in the next section.
-
-And finally, we have not yet talked about $m_{\text{evap}}$ as this variable will be crucial in the next section for the modelling of vapor. We calculate it based on the change in the latent heat due to energy change:
-
-$$
-m_{\text{evap},j} = m_{j}\frac{H_{\text{latent,new}} - H_{\text{latent,old}}}{E_{\text{vaporization}}}
+T_{\text{water,gp},k} = T_{\text{water,ambient}} + \frac{\min(E_{\text{gp},k}, E_{\text{heating}})}{m c_{w}}
 $$
 
 $$
-H_{\text{latent,new}} = H_{\text{latent,new}}(E_{\text{new},j})
+H_{\text{latent,gp},k} = \max(E_{\text{gp},k} - E_{\text{heating}}, 0)
+$$
+
+**Then, heat transfer from fire to water, $\Delta H_{\text{gp},k} \geq 0$, is calculated. We assume that heat transfer occurs only if fire temperature in the *GP Grid Cell* $k$ is greater than the maximum particle temperature:**
+
+$$
+\Delta H_{\text{gp},k} \gt 0 \iff T_{\text{fire,gp},k} \gt T_{\text{water,boiling}}
 $$
 
 $$
-H_{\text{latent,old}} = H_{\text{latent,old}}(E_{\text{old},j})
+\Delta H_{\text{gp},k} = 0 \iff T_{\text{fire,gp},k} \leq T_{\text{water,boiling}}
 $$
 
-The assumption is that we associate full mass $m_{j}$ with particles having energy $E_{j} \leq E_{\text{heating}}$ but for particles with $E_{j} \gt E_{\text{heating}}$ we have a linear decrease in mass, i.e. for $E_{j} = E_{\text{heating}}$ mass is still $m_{j}$ but for $E_{j} = E_{\text{max}}$ mass is $0$ and for values in between it changes linearly.
+In other words, in the simulation we do not worry about the case when heat is transferred from water to fire and **we assume only one-way heat transfer, i.e. from fire to water**.
 
-Note that $m_{j}$ is simply a scaling constant so to avoid small numbers in calculations we can assume the relationship given below and use another, manually tuned scaling constant later if needed:
+One more thing that we do is to **check if $\rho_{\text{gp},k} = \rho_{\text{pg},k} = 0$** as we do not process undefined cells. If this is the case we set $\Delta H_{\text{gp},k} = 0$.
+
+When heat transfer can occur and should be non-zero **we assume a simplified, conduction-like heat transfer from fire to water**:
 
 $$
-m_{\text{evap},j} = \frac{H_{\text{latent,new}} - H_{\text{latent,old}}}{E_{\text{vaporization}}}
+\frac{d(\Delta H_{\text{gp},k})}{dt} = k_{\text{heat,transfer}}A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})
 $$
 
-Also, it turns out that it is better to always use the same, unchanged constant mass $m_{j}$ for SPH particle calculations instead of physically correct mass which decreases as particle increases its latent heat. This is because experiments showed that using variable mass of particles, i.e. mass that goes decreases to zero, makes the particles unstable and they often blow up when mass is gets smaller and smaller.
+Here $k_{\text{heat,transfer}}$ is a tunable parameter used to control the speed of heat transfer and $A_{k}$ is the area of *GP Grid Cell* $k$ through which we assume that heat transfer occurs.
+
+**Heat transfer in the current frame** (also called heat transfer budget from now on) is:
+
+$$
+\Delta H_{\text{gp},k} = k_{\text{heat,transfer}}A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
+$$
+
+**It is recalculated each frame, we do not store it**, i.e. we assume that if there is some heat transfer unused by water in the current frame, then we forget about it and e.g. assume that it is lost to the environment.
+
+If we have $\Delta H_{\text{gp},k}$ for the current frame, **we use it differently depending on two cases**:
+
+* (1) if $T_{\text{water,gp},k} \lt T_{\text{water,boiling}}$, then it is used to increase the temperature of particles
+
+$$
+T_{\text{water,gp},k} \text{ += } \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
+$$
+
+* (2) otherwise it is used to increase the latent heat of particles
+
+$$
+H_{\text{latent,gp},k} \text{ += } \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
+$$
+
+The value of $\Delta H_{\text{used}}$ represents how much heat from heat transfer budget for the current frame has been used to increase the temperature of water. It is calculated using the current energy of particles and the desirable energy of particles that they need to reach the boiling point:
+
+$$
+\Delta H_{\text{used}} = \min(\Delta H_{\text{gp},k}, E_{\text{heating}} - \min(E_{\text{gp},k}, E_{\text{heating}}))
+$$
+
+A special case (already covered by the above equations) is when the temperature of particles is almost at its boiling limit and the current heat transfer budget is bigger than we need to reach this boiling limit. Then, after increasing the temperature of particles, some of the heat transfer budget remains unused. This entire leftover is in that case used to increase the latent heat of particles.
+
+We can see that $k_{\text{heat,transfer}}$ controls both the speed of heating and the speed of vaporization. However, **it may be good to be able to control heating and vaporization of water separately, using two different paramters, one for heating and one for vaporization**. Indeed, instead of the above equations in the simulation we use:
+
+$$
+\frac{d(\Delta H_{\text{gp},k})}{dt} = A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})
+$$
+
+$$
+\Delta H_{\text{gp},k} = A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
+$$
+
+$$
+T_{\text{water,gp},k} \text{ += } k_{\text{heating}} \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
+$$
+
+$$
+H_{\text{latent,gp},k} \text{ += } k_{\text{vaporization}} \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
+$$
+
+$$
+\Delta H_{\text{used}} = \min(\Delta H_{\text{gp},k}, E_{\text{heating}} - \min(E_{\text{gp},k}, E_{\text{heating}}))
+$$
+
+Here $k_{\text{heating}}$ and $k_{\text{vaporization}}$ are tunable paramters controlling the speed of heating and the speed of vaporization respectively.
+
+**Based on updated temperature and updated latent heat we compute updated energy:**
+
+$$
+E_{\text{gp},k}^{\text{new}} = [m c_{\text{water}} (T_{\text{water,gp},k} - T_{\text{water,ambient}})] + H_{\text{latent,gp},k}
+$$
+
+**Delta particle energy is also calculated based on how much the updated energy increased compared to the original one (before the updates):**
+
+$$
+\Delta E_{\text{gp},k} = E_{\text{gp},k}^{\text{new}} - E_{\text{gp},k}^{\text{old}}
+$$
+
+**Finally, $\Delta E_{\text{gp},k}$, $E_{\text{gp},k}^{\text{new}}$, $\Delta H_{\text{gp},k}$ and $\rho_{\text{gp},k}$ are stored in the *GP Grid Cell* $k$**. Later, particle ${i}$ near this cell reads the values of $\Delta E_{\text{gp},k}$, $E_{\text{gp},k}^{\text{new}}$, $\Delta H_{\text{gp},k}$ stored there and uses them in the weighted sum formulas presented earlier to calculate $\Delta E_{i}$, $E_{i}^{\text{new}}$ and $\Delta H_{i}$. As we remember, $\rho_{\text{gp},k}$ is used to discard undefined grid cells.
+
+The work on the grid has been finished and now it is time for the particles to increase their energies somehow. **Inspired by PIC-FLIP blending we calculate the new energy of particle $i$ using linear interpolation between PIC-style update and FLIP-style update**:
+
+$$
+E_{i}^{n} = (1 - t)(E_{i}^{n - 1} + \Delta E_{i}) + tE_{i}^\text{new}
+$$
+
+Here superscripts $^{n}$ and $^{n - 1}$ are used to differentiate between the energi of particle $i$ in the current frame and in the previous frame, respectively.
+
+As for $t$, $t \in [0,1]$, it is a tunable parameter, an interpolation factor. **When its values are near zero, we get grainy, noisy energy updates**, i.e. particles which are near one another can have very different temperatures and latent heats and die at very different times when subjected to heating and evaporation due to fire. **When its values are near one, we get smoother energy updates**, i.e. most particles which are near one another will have similar, pretty much the same energy and die at approximately the same time.
+
+In practice, experiments showed that even relatively small values of $t$, values near but greater than $0$, already smooth the energies pretty strongly.
+
+**The idea behind this blending is to make sure the energies are as grainy as possible to preserve details (smoothing causes the details to be lost) but to make them smooth enough so that as many particles as possible die at approximately the same time. We want the particles to die at the same time when interacting with fire because experiments showed that dying particles in general are the source of instabilities. If we make particles disappear one by one, it can cause particles to start moving very rapidly and even blow up sometimes. Experiments showed that if we make them disappear in bigger groups, at similar moments, then they seem to be more stable.**
+
+**One final reminder is that, for safety, we should perform particle energy update only when $\Delta H_{i} \gt 0$. The condition that energy should be updated only if $\Delta H_{i} \gt 0$ is actually pretty important. Let's remind ourselves that this condition is satisfied only whem the temperature of fire is strictly greater than the temperature of water. Because, in general, the temperature of fire is and should be greater than the maximum temperature of water, the regions where $\Delta H_{i} \gt 0$ actually represent the regions which are near fire, regions where fire is stronger and even visibly burning on screen. All other regions, in general, have some default ambient temperature equal to the ambient temperature of water.**
+
+**It turns out that particle updates based on the values read from *GP Grid* are not very accurate and in practice the energies of many particles do not always change due to heat transfer between fire and water but due to varying energy values of particles in the nearest grid cells and due to inaccuracies caused by weighted sums blending. In general, *GP Grid* updates proved to both artificially loose and create energy. This is why we want to limit ourselves and make the energy updates occur in both limited time and space. We want to not let the inaccuracies grow and we want to have as few of them as possible. So we limit ourselves and turn on energy updates only in the regions near fire (limited space). Apart from this, we know that fire-water interaction will also be pretty rapid (limited time). The idea is that those regions which are near fire are marked by the non-zero values of $\Delta H_{i} \gt 0$, as explained earlier, and are suppossed to be in general the regions where the fire is strong and visibly burning on screen. All of this means that far from fire the energies of particles stay constant (and it is important for them to stay constant far from fire because otherwise we will get undesirable formation of vapor plumes as it will be described in more detail in the next section).**
+
+And finally, we should also talk a little bit about $m_{i}^{\text{evap}}$ as this variable will be crucial in the next section for the modelling of vapor plumes. **We calculate it based on the change in the latent heat due to energy update**:
+
+$$
+m_{i}^{\text{evap}} = m \frac{H_{\text{latent},i}^{n} - H_{\text{latent},i}^{n - 1}}{E_{\text{vaporization}}}
+$$
+
+$$
+H_{\text{latent},i}^{n} = \max(E_{i}^{n} - E_{\text{heating}}, 0)
+$$
+
+$$
+H_{\text{latent},i}^{n - 1} = \max(E_{i}^{n - 1} - E_{\text{heating}}, 0)
+$$
+
+**It works like this. For particle $i$ we assume the full mass $m$ (which is constant and the same for all particles) if the particle $i$ satisfies $E_{i} \leq E_{\text{heating}}$. But if the particle $i$ satisfies $E_{i} \gt E_{\text{heating}}$ we assume a linear decrease in mass $m$. In other words, for $E_{i} \leq E_{\text{heating}}$ the mass of the particle is still $m$, for $E_{i} = E_{\text{max}}$ mass is $0$ and for values in between mass changes linearly. Or, shortly: mass decreases when latent heat increases.**
+
+Note that $m$ is simply a scaling constant, so to avoid potentially really small numbers in the calculations we can assume the relationship given below and, if needed, use another, manually tuned, scaling constant later:
+
+$$
+m_{i}^{\text{evap}} = \frac{H_{\text{latent},i}^{n} - H_{\text{latent},i}^{n - 1}}{E_{\text{vaporization}}}
+$$
+
+**Also, it turns out that it is better to always use the same, unchanged constant mass $m$ for SPH particle calculations, instead of physically correct mass which decreases as latent heat increases. This is because experiments showed that using variable mass, i.e. mass that goes to zero, makes the particles unstable and they often blow up when their masses get smaller and smaller.**
+
 ## Vapor plumes formation
 
 Another visual effect that we want to model is the formation of smoke-ish plumes which are suppossed to represent condensed water vapor and should appear when the water is evaporating, i.e. losing mass.
@@ -318,16 +396,16 @@ $$
 \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} = k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})
 $$
 
-The second one (the most important one) is evaporation. We reuse the same term $m_{\text{evap,pg}}\rho_{\text{pg}}$ as in the case of vapor formation. The bigger, the stronger the extinguishing.
+The second one (the most important one) is vaporization. We reuse the same term $m_{\text{evap,pg}}\rho_{\text{pg}}$ as in the case of vapor formation. The bigger, the stronger the extinguishing.
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{evaporation}} = k_{\text{evaporation}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{vaporization}} = k_{\text{vaporization}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}
 $$
 
 The third one, I am not sure how to call it. It is an auxiliary term. We use it because the previous two terms are directly dependent on the heat transfer from fire to water which itself is directly dependent on the temperature difference between fire and water. This means that the more the fire gets extinguished and lowers its temperature, the difference in temperatures in fire and water gets smaller and smaller which makes heat transfer smaller and smaller which finally makes the two extinguishing termns above smaller and smaller. In the end it just means that with the above two terms it is hard to extinguish weak fires and achieve 100\% extinguish mask overlayed on the fuel mask. To counteract this we introduce an auxiliary extinguishing term which is non-zero only if there is some water present and becomes relevant, i.e. with values significantly greater than zero, when the previous two terms approach zero. The formula for this behaviour that proved to work well is:
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} = \frac{k_{\text{aux}}\rho_{\text{pg}}}{[k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})] + [k_{\text{evaporation}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}] + 1.0}
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} = \frac{k_{\text{aux}}\rho_{\text{pg}}}{[k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})] + [k_{\text{vaporization}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}] + 1.0}
 $$
 
 The number one in the denominator is used to prevent divisions by zero.
@@ -338,10 +416,10 @@ $$
 \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}} = -k_{\text{reignite}}
 $$
 
-Parameters $k_{\text{cooling}}$, $k_{\text{evaporation}}$, $k_{\text{aux}}$, $k_{\text{reignite}}$ are tunable parameters.
+Parameters $k_{\text{cooling}}$, $k_{\text{vaporization}}$, $k_{\text{aux}}$, $k_{\text{reignite}}$ are tunable parameters.
 
 The total rate of change of extinguish mask is then:
 
 $$
-\frac{dm_{\text{extinguish}}}{dt} = \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{evaporation}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}}
+\frac{dm_{\text{extinguish}}}{dt} = \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{vaporization}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}}
 $$
