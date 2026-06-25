@@ -24,7 +24,6 @@ func _ready() -> void:
 	assert(water.pg_gp_size == fire_smoke.pg_gp_size, "Fire, Smoke and Water must have the same particles->grid and grid->particles viewports sizes")
 	assert((water.particle_temp_ambient == fire_smoke.particle_temp_ambient) and (fire_smoke.particle_temp_ambient == fire_smoke.smoke_temp_ambient) and (fire_smoke.smoke_temp_ambient == fire_smoke.fire_temp_ambient), "Ambient temperatures must match")
 	assert((water.particle_temp_max == fire_smoke.particle_temp_max), "Max temperatures must match")
-	assert(water.particle_temp_max < fire_smoke.fire_temp_extinguish, "Boiling temp should be smaller than extinguish temp (due to the assumption that heat transfer occurs only until the fire cools down to the particles' boiling temp, otherwise extinguish temp would never be reached due to the fire's interaction with water)")
 	
 	water.canvas_layer.visible = false
 	

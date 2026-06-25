@@ -18,5 +18,5 @@ void fragment() {
 	//COLOR = vec4(value > u_fire_vis_fuel_threshold ? 1.0 : 0.0, texture(u_fire_smoke_temperature_advect, UV).r > u_fire_vis_temp_threshold ? 1.0 : 0.0, texture(u_extinguish_mask, UV).r, 0.5);
 	//COLOR = vec4(0.0, (value - 300.0) / (2000.0 - 300.0), 0.0, 0.33);
 	vec2 extinguish_masks = texture(u_extinguish_mask, UV).rg;
-	COLOR = vec4(extinguish_masks.r, extinguish_masks.g, splash_mask.r, 0.33);
+	COLOR = vec4(extinguish_masks.r, extinguish_masks.r >= 1.0 ? 1.0 : 0.0, splash_mask.r, 0.33);
 }

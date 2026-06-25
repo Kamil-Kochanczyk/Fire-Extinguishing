@@ -10,7 +10,6 @@ uniform highp sampler2D u_fire_temperature_extinguish : filter_nearest, repeat_d
 uniform float u_timestep;
 uniform float u_extinguish_strength = 1.0;
 uniform float u_reignition_strength = 1.0;
-uniform float u_fire_temp_extinguish = 600.0;    // Kelvin
 uniform float u_fire_temp_ambient = 500.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
 uniform bool u_init_state = true;
@@ -39,10 +38,10 @@ void fragment() {
 		// stationary mask = can be either 0 or 1 (represents a boolean)
 		
 		highp float prev_moving_mask = prev_extinguish_masks.r;
-		highp float prev_boolean_mask = prev_extinguish_masks.g;
+		//highp float prev_boolean_mask = prev_extinguish_masks.g;
 		
 		highp float new_moving_mask = prev_moving_mask;
-		highp float new_boolean_mask = prev_boolean_mask;
+		//highp float new_boolean_mask = prev_boolean_mask;
 		
 		// if this cell is not extinguished
 		//if (prev_stationary_mask < 1.0) {
@@ -56,7 +55,7 @@ void fragment() {
 			
 			highp float cooling_contribution = 0.1 * delta_temp;
 			highp float evaporation_contribution = 1000.0 * evaporated_mass * particle_density;
-			highp float wetness_contribution = particle_density / (cooling_contribution + evaporation_contribution + 1.0);
+			highp float wetness_contribution = (1.0 * particle_density) / (cooling_contribution + evaporation_contribution + 1.0);
 			highp float total_contribution = cooling_contribution + evaporation_contribution + wetness_contribution;
 			
 			// water extinguishes
@@ -68,12 +67,12 @@ void fragment() {
 				// if not, fire reignites
 				new_moving_mask -= u_reignition_strength * u_timestep;
 			}
-			else {
+			//else {
 				
 				// otherwise, the cell is marked as extinguished
-				new_moving_mask = 1.0;
-				new_boolean_mask = 1.0;
-			}
+				//new_moving_mask = 1.0;
+				//new_boolean_mask = 1.0;
+			//}
 		}
 			//else {
 				//
@@ -96,6 +95,6 @@ void fragment() {
 		//}
 
 		//COLOR = vec4(new_extinguish_mask, (extinguished_temp < u_fire_temp_extinguish) ? 1.0 : 0.0, 0.0, 1.0);
-		COLOR = vec4(clamp(new_moving_mask, 0.0, 1.0), clamp(new_boolean_mask, 0.0, 1.0), 0.0, 1.0);
+		COLOR = vec4(clamp(new_moving_mask, 0.0, 1.0), 0.0, 0.0, 1.0);
 	}
 }

@@ -136,7 +136,6 @@ extends Node2D
 @export var fire_temp_ambient: float = 300.0
 @export var fire_temp_max: float = 2000.0
 @export var fire_temp_burn: float = 2000.0
-@export var fire_temp_extinguish: float = 400.0
 @export var smoke_temp_ambient: float = 300.0
 @export var smoke_temp_max: float = 500.0
 @export var particle_temp_ambient: float = 300.0
@@ -324,7 +323,6 @@ func fire_smoke_ready() -> void:
 	Engine.max_fps = 120
 	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
-	#assert(fire_temp_extinguish < fire_default_vis_temp_threshold, "Extinguish temp should be smaller than vis temp threshold")
 	
 	for vp in get_tree().get_nodes_in_group("ViewportPipeline"):
 		# this line affects only the viewports created manually, not the ones created in this script
@@ -360,12 +358,10 @@ func fire_smoke_ready() -> void:
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_extinguish", fire_temp_extinguish)
 	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
@@ -658,15 +654,9 @@ func init_slider_callbacks() -> void:
 		fire_curr_vel_abs_val_limit = new_value
 	
 	slider_callbacks_dict["FireVisTempThresholdHSlider"] = func(new_value: float) -> void:
-		# this param is only for tweaking the fuel threshold
-		# it helps to identify the regions to be extinguished
-		# i.e. regions where the fire has temperature greater than the extinguish temperature
-		# this is to ensure the extinguishing happens due to heat transfer to water
-		# and not due to the fact that the fire naturally is cooled below extinguished temperature due to dissipation
-		var new_val: float = max(new_value, ceil(fire_temp_extinguish + 1e-6))
-		fire_vis_temp_threshold_value.text = str(new_val)
-		fire_vis_temp_threshold_h_slider.value = new_val
-		fire_curr_vis_temp_threshold = new_val
+		fire_vis_temp_threshold_value.text = str(new_value)
+		fire_vis_temp_threshold_h_slider.value = new_value
+		fire_curr_vis_temp_threshold = new_value
 	
 	slider_callbacks_dict["FireWaterHeatingSpeedHSlider"] = func(new_value: float) -> void:
 		fire_water_heating_speed_value.text = str(new_value)

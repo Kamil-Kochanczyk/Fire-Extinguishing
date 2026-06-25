@@ -8,7 +8,6 @@ uniform highp float u_water_heating_speed = 250.0;
 uniform highp float u_water_vaporization_speed = 250.0;
 uniform float u_fire_temp_ambient = 500.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
-uniform float u_fire_temp_extinguish = 400.0;    // Kelvin
 uniform float u_particle_temp_ambient = 300.0;    // Kelvin
 uniform float u_particle_temp_max = 373.0;    // Kelvin
 uniform highp float u_mass;

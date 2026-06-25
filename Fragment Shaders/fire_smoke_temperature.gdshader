@@ -48,7 +48,7 @@ void fragment() {
 			//fire_temp_new += (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
 			//fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 		//}
-		
+
 		fire_temp_new += (rho_fuel * u_fire_temp_burn * u_fire_temp_release_rate * u_timestep);
 		fire_temp_new = clamp(fire_temp_new, u_fire_temp_ambient, u_fire_temp_max);
 

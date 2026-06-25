@@ -20,7 +20,6 @@ script = ExtResource("1_wcyfl")
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("3_rq2oy")]
 pressure_jacobi_iterations = 20
 pg_gp_size = Vector2i(96, 54)
-fire_temp_extinguish = 600.0
 
 [node name="WaterCompatible" parent="." instance=ExtResource("2_wcyfl")]
 sim_steps_per_frame = 3

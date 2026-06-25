@@ -163,7 +163,6 @@ shader_parameter/u_water_heating_speed = 250.0
 shader_parameter/u_water_vaporization_speed = 250.0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
-shader_parameter/u_fire_temp_extinguish = 400.0
 shader_parameter/u_particle_temp_ambient = 300.0
 shader_parameter/u_particle_temp_max = 373.0
 shader_parameter/u_mass = 0.0
@@ -221,7 +220,6 @@ shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_extinguish_strength = 1.0
 shader_parameter/u_reignition_strength = 1.0
-shader_parameter/u_fire_temp_extinguish = 600.0
 shader_parameter/u_fire_temp_ambient = 500.0
 shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_init_state = true
@@ -1310,8 +1308,8 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 1.0
-step = 0.01
+max_value = 0.2
+step = 0.001
 value = 0.1
 
 [node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]

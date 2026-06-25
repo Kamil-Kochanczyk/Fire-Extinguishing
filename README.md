@@ -13,7 +13,7 @@ To learn more about the subsimulations, check the above links as they will not b
 First, some guiding physical facts:
 * Evaporating water looses its mass and disappears because it becomes a gass, i.e. vapor.
 * Vapor itself is invisible but after some time has passed since evaporation, this invisible gas condenses into visible smoke-ish plumes.
-* Heat loss is the main reason why water can extinguish fire so well. Heating and, especially, vaporization of water requires enormous amounts energy to be delivered. When water appears near fire, fire looses much of its energy to heat and vaporize water. If fire energy becomes sufficiently small, then the fire cannot sustain itself and dies.
+* Heat loss is the main reason why water can extinguish fire so well. Heating and, especially, vaporization of water requires enormous amounts energy to be delivered. When water appears near fire, fire looses much of its energy to heat and vaporize water. If fire energy becomes sufficiently small, then the fire cannot sustain itself and dies. Another reason why water extinguishes fire is oxygen dillution, i.e. the reduction of the amount of oxygen around the fire due to vapor formation.
 
 ## Painting
 
@@ -239,7 +239,78 @@ Based on the above we can now explain why the condition $\Delta H_{j} \gt 0$ is 
 
 There is one important limitation of the above approach, however. If we used a separate smoke subsimulation, i.e. with separate variables, like velocity, just for the vapor we would have full control over it. By using the same existing subsimulation for simulation of both the smoke and the vapor we loose a little bit of control over the vapor. This is because both smoke and vapor use the same velocity field and, for example, when we have a predefined smoke source which makes it move quickly upwards and when we have a vapor that is tuned to move slowing downwards when injected, we get the desired vapor behavior only in the regions where there is no smoke. In the regions where there is also smoke, i.e. where the two blend, the velocity of the smoke will be visually inherited by the vapor as the variable $\rho_{\text{vapor}}$ will be advected along a very quick velocity near the smoke region which will give the visual result of vapor moving quickly with the smoke even though we specified it to be slow.
 
-## Flame extinguishment
+## Flame extinguishing
 
-Now, we assume that the fire in the given region is extinguished if its temperature falls below some predefined threshold $T_{\text{extinguish}}$. If this condition is satisfied in the given region, the boolean extinguish mask is set to true in that region and prevents the temperature from being injected in this region. This mask is set only in those places where the fuel inject rate $\frac{d\rho_{\text{fuel}}}{dt}$ is non-zero. However, in order for this to work, the original fire model needs to be tweaked a little bit. In the fire/smoke subsimulation, the fire constantly overwrites its temperature using the max function in the equation $T = \text{max}(T, \rho_{\text{fuel}} * T_{\text{burn}})$. This needs to be changed into a continuous update scheme using the derivative of the temperature so that the fire and water can "wrestle" to see whether water is strong enough to drop fire's temperature sufficiently, i.e. below the extinguishing threshold. Thus, the new equation is $\frac{dT}{dt} = \rho_{\text{fuel}} \cdot T_{burn} \cdot k_{\text{release}}$, where $k_{\text{release}}$ is a tunable constant defining how fast the heat is introduced into the system by the fuel. Another thing to keep in mind is that the fire naturally cools down due to fuel and temperature dissipation. This means that we need to somehow differentiate between "natural fire cooling" and "fire cooling due to water". One simple solution for this is to track two instances of the same fire: one which reacts to water and one which does not react to water. In order to say whether the extinguishing occurred or not, we compare the temperature of the fire which reacts to water to the temperature of the fire which does not react to water. This may allow us to see the temperature of the fire "as if there was not any water" to find regions which are suppossed to have high temperatures but for some reason have low temperatures (this reason is assumed to be the water which "steals" the temperature from the fire). However, this approach is not implemented because it is not effective and requires additional fire subsimulation to be performed along the existing fire/smoke and water subsimulations. Therefore, we do an approximate but simpler idea. We note that fire fuel is not affected by the extinguish mask generally follows the same steps during its lifetime as fire temperaturem, i.e. looking at the visualized fuel and temperature, they look similar. We can thus tune a fire fuel threshold, $\rho_{\text{vis}}$, and the idea is that regions where $\rho_{\text{fuel}} > \rho_{\text{vis}}$ indicate the regions where the fire temperature is suppossed to be high enough so that we can see it and much higher than the extinguish threshold. And we extinguish only such regions. This approach is only approximation and can pose problems with total (100%) fire extinguishment (as there can be regions where the fuel does not satisfy this condition and temperature is indeed still injected there) but it is cheap and can give desired results with appropriate parameter tuning.
- 
+Final visual effect that we want to model is fire extinguishment upon interacting with water. There are many approaches that we can take but the one that turned out to work the best in practice is the approach described below.
+
+The first thing we do is change the combustion model a little bit. This is because the original model overwrites fire's temperature in each by using the max function:
+
+$$
+T_{\text{fire}} = \text{max}(T_{\text{fire}}, \rho_{\text{fuel}} * T_{\text{burn}})
+$$
+
+Instead, we would like to have a model where each variable is updated using the timestep as this helps in modelling continuous changes like gradual extinguishment or reignition. This is why we modify the above equation and use it to contribute to the rate of change fire temperature:
+
+$$
+\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{inject}} = \rho_{\text{fuel}} \cdot T_{burn} \cdot k_{\text{release}}
+$$
+
+Here $k_{\text{release}}$ is a tunable parameter defining how fast the heat is introduced into the system by the fuel.
+
+With this change in place, we can now model the responsiveness of fire temperature to the heat stolen by water:
+
+$$
+\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{extinguish}} = -\left( k_{\text{sensitivity}} \cdot \Delta H_{\text{gp},i} \right)
+$$
+
+Here $k_{\text{sensitivity}}$ is another tunable parameter which defines how much fire is cooled when it contacts water.
+
+The above is just used to provide a visual feedback, it is not the direct mechanism of extinguishment. The proper exitnguishment is done not by attacking the temperature of the fire itself but by attacking the fuel injection mask. Fuel injection mask provides fuel -> fuel provides temperature -> temperature gives visual fire. Som, removing fuel injection mask = removing visual fire. This is why we wish to attack the very base of this chain.
+
+We introduce a new variable, an extinguish mask $m_{\text{extinguish}}$, $0 \leq m_{\text{extinguish}} \leq 1$. When $m_{\text{extinguish}} = 0$ it means that fire in this region is not extinguished. When $m_{\text{extinguish}} = 1$ it means that fire in this region is completely extiguished. Values in between blend linearly between the two edge cases.
+
+With extinguish mask we alter the equation for fuel injection:
+
+$$
+(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} = k_{\text{fuel,inject}} \cdot (1 - m_{\text{extinguish}})
+$$
+
+Here $k_{\text{fuel,inject}}$ is the constant fuel inject rate painted by the fuel brush.
+
+Extinguish mask itself is initialized to zero at the very beginning. It is increased or decreased but only in the regions where the painted fuel mask is non-zero, i.e. in places where there is a continuous fuel injection rate specified. When water interacts with fire, it is increased with some rate dependent on the water properties and this way we can model gradual extinguishing. To model gradual reignition we also make the extinguish mak decrease its values on its own. In other words, fire makes the extinguish mask go to zero while water makes the extinguish mask go to one. We assume that if water is strong enough to "beat" fire and make the extiguish mask reach the value one, then the fire in the given region is extinguished and stays extinguished until we e.g. reset the simulation with a key press or something similar. That is, when the extinguish mask reaches the value of one, it is no longer increased nor decreased, it stays at this value, and the fire in this region is extinguished, until manual reset.
+
+The rate at which water extinguishes fire is modelled using three phenomena.
+
+The first one is cooling which is modelled as the difference between fire temperature before and after $\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{extinguish}}$ has been applied to reduce fire temperature. The bigger, the stronger the extinguishing.
+
+$$
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} = k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})
+$$
+
+The second one (the most important one) is evaporation. We reuse the same term $m_{\text{evap,pg}}\rho_{\text{pg}}$ as in the case of vapor formation. The bigger, the stronger the extinguishing.
+
+$$
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{evaporation}} = k_{\text{evaporation}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}
+$$
+
+The third one, I am not sure how to call it. It is an auxiliary term. We use it because the previous two terms are directly dependent on the heat transfer from fire to water which itself is directly dependent on the temperature difference between fire and water. This means that the more the fire gets extinguished and lowers its temperature, the difference in temperatures in fire and water gets smaller and smaller which makes heat transfer smaller and smaller which finally makes the two extinguishing termns above smaller and smaller. In the end it just means that with the above two terms it is hard to extinguish weak fires and achieve 100\% extinguish mask overlayed on the fuel mask. To counteract this we introduce an auxiliary extinguishing term which is non-zero only if there is some water present and becomes relevant, i.e. with values significantly greater than zero, when the previous two terms approach zero. The formula for this behaviour that proved to work well is:
+
+$$
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} = \frac{k_{\text{aux}}\rho_{\text{pg}}}{[k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})] + [k_{\text{evaporation}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}] + 1.0}
+$$
+
+The number one in the denominator is used to prevent divisions by zero.
+
+The rate at which fire reignites on its own is given by.
+
+$$
+\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}} = -k_{\text{reignite}}
+$$
+
+Parameters $k_{\text{cooling}}$, $k_{\text{evaporation}}$, $k_{\text{aux}}$, $k_{\text{reignite}}$ are tunable parameters.
+
+The total rate of change of extinguish mask is then:
+
+$$
+\frac{dm_{\text{extinguish}}}{dt} = \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{evaporation}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}}
+$$
