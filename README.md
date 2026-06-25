@@ -2,101 +2,132 @@
 
 This project is a 2D, real-time, physics-based fire extinguishing simulation running on the GPU.
 
-It consists of two subsimulations: my fire/smoke simulation (https://github.com/Kamil-Kochanczyk/Fire-Smoke) and my water simulation (https://github.com/Kamil-Kochanczyk/Fluid-Smoke-Fire-Water). They both work together to produce three visual effects when water particles start interacting with fire/smoke grid: water disappearing, smoke/vapor plumes forming, fire dying.
+It consists of two subsimulations: my fire/smoke simulation (https://github.com/Kamil-Kochanczyk/Fire-Smoke) and my water simulation (https://github.com/Kamil-Kochanczyk/Fluid-Smoke-Fire-Water). They work together to produce three visual effects when water particles start interacting with fire/smoke grids: water disappearing, vapor plumes forming, fire dying.
 
-To learn more about the subsimulations, check the above links as they will not be described here. Here we will only talk about how to expand them so that they communicate and interact with each other to simulate fire extinguishing.
+Check the above links to learn more about the subsimulations. Here we will only talk about how to extend them so that they can communicate and interact with each other to simulate fire extinguishing.
 
 # Fire extinguishing model
 
 ## Physical basis
 
-First, some guiding physical facts:
-* Evaporating water looses its mass and disappears because it becomes a gass, i.e. vapor.
-* Vapor itself is invisible but after some time has passed since evaporation, this invisible gas condenses into visible smoke-ish plumes.
-* Heat loss is the main reason why water can extinguish fire so well. Heating and, especially, vaporization of water requires enormous amounts energy to be delivered. When water appears near fire, fire looses much of its energy to heat and vaporize water. If fire energy becomes sufficiently small, then the fire cannot sustain itself and dies. Another reason why water extinguishes fire is oxygen dillution, i.e. the reduction of the amount of oxygen around the fire due to vapor formation.
+* Evaporating water looses its mass and disappears because it becomes a gass, i.e. water vapor.
+* Water vapor itself is invisible. However, after some time has passed since the formation of this invisible gas, this invisible gas condenses into visible smoke-ish plumes which we sometimes coloquially call water vapor. This condensed gas will be simply called vapor from now on.
+* Heat loss is the main reason why water can extinguish fire so well. Heating and (especially) vaporization of water steals enormous amounts energy from fire. When water appears near fire, fire looses much of its energy to heat and vaporize water. If fire energy becomes sufficiently small, then the fire cannot sustain itself and dies. Another reason why water extinguishes fire is oxygen dillution, i.e. the reduction of the amount of oxygen around fire due to vapor formation.
 
 ## Painting
 
-Fire and smoke in the fire/smoke subsimulation can only appear on screen continuously (without immediately disappearing) if they have continuous predefined sources. A good idea is to be able to "draw" and/or "erase" them on screen using "brushes" and/or "erasers" as if in a graphics editor. This allows to create fire and smoke in any place on screen, tweak their sizes, strength, location etc.
+Fire and smoke in the fire/smoke subsimulation can only appear on screen continuously (without immediately disappearing) if they have continuous predefined sources (in practice it means that in the original subsimulation a mouse button has to be held continuously to maintain fire and smoke on screen). **A good idea is to be able to "draw" and/or "erase" them on screen using "brushes" and/or "erasers" as if in a graphics editor.** This allows to create fire and smoke in any place on screen and easily tweak their size, strength, location etc.
 
-We thus extend the algorithm of the origianl fire/smoke subsimulation. We add the possibility to define several variables by drawing/erasing them on screen with brushes/erasers. Those variables are:
+**We thus extend the algorithm of the original fire/smoke subsimulation by adding the possibility to define several variables by drawing/erasing them on screen with brushes/erasers.** Those variables are listed below.
 
-* fire fuel injection rate $(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}}$ which contributes to the fire fuel's rate of change $\frac{d\rho_{\text{fuel}}}{dt}$
-* smoke density injection rate $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$ which contributes to the smoke density's rate of change $\frac{d\rho_{smoke}}{dt}$
-* smoke temperature heating injection rate $(\frac{dT_{\text{smoke,h}}}{dt})_{\text{inject}}$ which contributes to the smoke temperature's rate of change $\frac{dT_{\text{smoke,h}}}{dt}$
-* smoke temperature cooling injection rate $(\frac{dT_{\text{smoke,c}}}{dt})_{\text{inject}}$ which contributes to the smoke temperature's rate of change $\frac{dT_{\text{smoke,c}}}{dt}$.
+* Fire fuel injection rate $(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}}$
+  * Contributes to the fire fuel's rate of change, $\frac{d\rho_{\text{fuel}}}{dt} = (\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} + \ldots$
+* Smoke density injection rate $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$
+  * Contributes to the smoke density's rate of change, $\frac{d\rho_{smoke}}{dt} = (\frac{d\rho_{smoke}}{dt})_{\text{inject}} + \ldots$
+* Smoke temperature heating injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$
+  * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}} + \ldots$
+* Smoke temperature cooling injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}}$
+  * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}} + \ldots$
 
-Each variable gets its own brush and eraser. We assume that $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$ and $(\frac{dT_{\text{smoke,h}}}{dt})_{\text{inject}}$ are edited with the same brush/eraser. This gives us three brushes and three erasers in total, one for each variable.
+Each variable gets its own brush and eraser. We assume that $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$ and $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$ are edited with the same brush/eraser. This gives us three brushes and three erasers in total, one for each variable.
 
-Every brush/eraser has its strength and radius which can be changed at any time. Wherever we draw a variable, its value there becomes non-zero and, depending on the strength and radius of the brush, we can draw big and strong fires and smokes which quickly heat in some regions and quickly cool in other regions. Eraser works in the opposite way, i.e. it makes the value of the variable go towards zero and can make fire and smoke more subtle both visually and in movement.
+Every brush/eraser has its strength and radius which can be changed at any time. Strength determines how big values of the corresponding variable will be drawn on screen or how much of it will be erased from screen. Radius determines the region where the values will be drawn or erased. The values of the drawn variables are assumed to be non-negative.
+
+Wherever we draw a variable with its brush, its value there becomes non-zero and, depending on the strength and radius of the brush, we can draw big, strong fires/smokes which quickly heat in some regions and small, cold fires/smokes which quickly cool in other regions. Eraser works in the opposite way, i.e. it makes the value of the variable go towards zero and can make fire/smoke more subtle both visually and in movement.
 
 ## Eulerian-Lagrangian communication
-Since fire/smoke uses eulerian grids and water uses lagrangian particles, we need to find a way for both to communicate with each other, i.e. exchange information such as variables.
+Since fire/smoke uses eulerian grids and water uses lagrangian particles, we need to find a way for both to communicate with each other, i.e. exchange information, e.g. variables.
 
-This is done by introducing two new grids. To differentiate them from the eulerian grids used to simulate fire and smoke let's call them communication grids.
+This is done by **introducing two new grids**. To differentiate them from the eulerian grids used to simulate fire and smoke let's call them **communication grids**. Those grids  will be called ***PG Grid*** and ***GP Grid***.
 
-The first communication grid, let's call it PG, is used for (lagrangian particles -> eulerian grid) communication. In other words, water particles write their properties to this grid so that fire/smoke can later read them. For example, if each particle stored its current temperature, PG grid would allow fire/smoke to sample this PG grid to estimate/approximate the temperature of particles in each fire/smoke eulerian grid cell.
+The first communication grid, ***PG Grid*, is used for (lagrangian particles $\rightarrow$ eulerian grids) communication**. In other words, water particles write their properties to this grid so that fire/smoke can later read them. For example, if particles stored their current temperatures as one of their properties, *PG grid* would allow particles to contribute their temperature to *PG Grid Cells* and would allow fire/smoke to later sample *PG Grid Cells* to estimate/approximate the temperature of particles in these cells and by that estimate/approximate the temperature of particles in the corresponding fire/smoke eulerian grid cells.
 
-The second communication grid, let's call it GP, is used for  (eulerian grid -> lagrangian particles) communication. It is the opposite of PG grid, i.e. water particles read some properties from this grid while fire/smoke writes some properties to this grid. For example, if fire/smoke were suppossed to increase/decrease the temperature of particles, it would first read their current temperature from PG grid, apply some delta to it, and save the updated values in GP grid so that particles can later read them and therefore update their temperatures.
+The second communication grid, ***GP Grid*, is used for  (eulerian grids -> lagrangian particles) communication**. It is the opposite of *PG Grid*, i.e. water particles read some properties from this grid while fire/smoke writes some properties to this grid. For example, if fire/smoke were suppossed to increase/decrease the temperature of particles, it would first read their current temperature from *PG Grid*, apply some delta to it, and save the updated values in *GP Grid* so that particles can later read them and therefore update their temperatures.
 
- We choose to set both PG and GP grids to have the same size. This size can actually be different from the size of the eulerian grids used in the origianl fire/smoke subsimulation.
+For simplicity **we set the sizes of *PG Grid* and *GP Grid* to be the same**. This constant size **can actually be different from the size of the eulerian grids** used in the original fire/smoke subsimulation.
  
- Since the communication grids are grids, reading from them and writing to them does not pose any problems to fire/smoke eulerian grids (we just use simple samplers).
+Since communication grids are grids, and since eulerian grids are grids, reading from communication grids and writing to communication grids does not pose any problems to eulerian grids (we just use simple samplers, like nearest neighbor sampling or linear sampling, depending on whether communication grids and eulerian grids are actually of the same size or not).
 
- However, a bigger problem is with water particles. There are a few ideas as to how water particles can read from or write to the communication grids but one solution that proved to work the best (i.e. solution which is the most accurate and most resistant to numerical dissipation) is the weighted sums with bilinear interpolation weights (because we work in 2D).
+A bigger problem is with water particles. How are they supposed to read from or write to communication grids? There are a few ideas  but **one solution that proved to work the best (i.e. solution which is the most accurate and most resistant to numerical dissipation) is the weighted sums with bilinear interpolation weights** (bilinear because we work in 2D).
 
- To be more precise, when a particle wants to write its property to PG grid, it distributes this property to the four neighboring grid cells (grid cell centers) using bilinear interpolation weights.
+The **bilinear interpolation weights** in the normalized square where the normalized coordinates are $u$ and $v$ are:
 
- The bilinear interpolation weights in the normalized square are:
+$$w_{1} = (1 - u)(1 - v)$$
+$$w_{2} = u(1 - v)$$
+$$w_{3} = (1 - u)v$$
+$$w_{4} = uv$$
 
- $$w_{1} = (1 - u)(1 - v)$$
- $$w_{2} = u(1 - v)$$
- $$w_{3} = (1 - u)v$$
- $$w_{4} = uv$$
+Those weights **can actually be collapsed into one formula** dependent on the horizontal distance $d_{x}$ and vertical distance $d_{y}$ between the particle $i$ and the given grid cell $k$ (the center of grid cell $k$) (both distances should be in normalized units):
 
- Those can actually be written using one formula dependent on the horizontal distance $d_{x}$ and vertical distance $d_{y}$ between the particle $j$ and the given grid cell $i$ (grid cell's center):
+$$w_{ki} = (1 - d_{x})(1 - d_{y})$$
 
- $$w_{ij} = (1 - d_{x})(1 - d_{y})$$
+**When a particle wants to write its property to *PG Grid*, it distributes this property to the four neighboring grid cells (grid cell centers) using the four bilinear interpolation weights.**
 
- This means that instead of performing bilinear interpolation scattering for each particle, we can perform bilinear interpolation gathering for each PG grid cell. It allows us to avoid atomic operations and race conditions between multiple particles wanting to write their contribution to the same PG grid cell.
+However, because we have one formula independent of the type of neighbor (types are: top-left, top-right, bottom-right or bottom-left), **instead of performing bilinear interpolation *scattering* (```for each``` particle), we can perform bilinear interpolation *gathering* (```for each``` *PG Grid Cell*)**. It allows us to avoid atomic operations and race conditions between multiple particles wanting to write their contribution to the same *PG Grid Cells*.
+
+The only thing we need to do is to **find the closest, neighboring particles for each *PG Grid Cell*, i.e. their neighborhoods, so that they can iterate over the particles within their neighborhoods to gather their contributions using the distance-dependent formula for bilinear interpolation weights**. The neighborhood of a *PG Grid Cell* $k$ is defined as all particles falling within the distance of 1 grid cell (equivalently: 1 pixel, 1 texel) from the *PG Grid Cell* $k$. This is because only those particles will have the *PG Grid Cell* $k$ as one of their four neighbors to which they will contribute their properties. This region can be viewed as a rectangle defined by the center of *PG Grid Cell* $k$ and the centers of its 8 neighboring *PG Grid Cells*. To find particles falling within this region we take advantage of the neighborhood search grid used in the water subsimulation. In the water subsimulation the neighborhood search grid is used to find the neighborhood of each particle. However, the neighborhood of a particle is defined differently (using the smoothing radius $h$) from the neighborhood of a *PG Grid Cell*. This means that we have to map the neighborhood search grid to the *PG Grid*. To be more precise, what we do is we find the intersection of neighborhood serach grid with the rectangular region around *PG Grid Cell* $k$ described earlier to find all particles within this region and to iterate over them to gather their contributions to the *PG Grid Cell* $k$.
+
+Using the bilinear interpolation weight $w_{ki}$, in each frame, *PG Grid Cell* $k$ therefore gathers the properties from all of its neighboring particles $i$ so that fire/smoke can later read those properties and do something based on them. The properties which are gathered are listed below.
+
+**Particle properties written to *PG Grid Cell* $k$**:
+
+* density $\rho_{\text{pg},k}$
+
+$$
+\rho_{\text{pg},k} = \sum_{i \in N(k)} w_{ki}
+$$
+
+* energy $E_{\text{pg},k}$
+
+$$
+E_{\text{pg},k} = \frac{1}{\rho_{\text{pg},k}}\sum_{i \in N(k)} w_{ki}E_{i}
+$$
+
+* evaporated mass $m_{\text{pg},k}^{\text{evap}}$
+
+$$
+m_{\text{pg},k}^{\text{evap}} = \frac{1}{\rho_{\text{pg},k}}\sum_{i \in N(k)} w_{ki}m_{i}^{\text{evap}}
+$$
+
+This is all regarding *PG Grid*. Now *GP Grid*.
+
+Since we assumed the same sizes of *PG Grid* and *GP Grid*, when we need the values from *PG Grid* to be transferred to *GP Grid* we simply have $\rho_{\text{gp},k} = \rho_{\text{pg},k}$, $E_{\text{gp},k} = E_{\text{pg},k}$, $m_{\text{gp},k}^{\text{evap}} = m_{\text{pg},k}^{\text{evap}}$, i.e. the values from *PG Grid* can be directly passed to *GP Grid* without any interpolation.
+
+*GP Grid* is used this time not to write particle properties but to read them. **When a particle wants to read some property from *GP Grid*, it performs the weighted sum with bilinear interpolation weights just like before.** This time however it is simpler as it just requires finding the nearest four neighboring *GP Grid Cells* for each particle and use the weights $w_{1}, w_{2}, w_{3}, w_{4}$ to calculate the desired particle property, without having to worry about race conditions (because read-only operation does not require synchronisation or tricks like *gather* instead of *scatter*).
+
+In each frame, the properties that are written by fire/smoke to *GP Grid Cell* $k$ and read later by particles are listed below.
+
+**Particle properties read from *GP Grid Cell* $k$**:
  
- The only thing we need to do is to find the closest, neighboring particles for each PG grid cell, i.e. their neighborhoods. The neighborhood of a PG grid cell is defined as all particles falling within the distance of 1 pixel (or 1 texel) from the given PG grid cell. This is because only those particles will have the given PG grid cell as one of their four neighbors to which they will contribute their properties. To find the neighborhood of each PG grid cell we take advantage of the neighborhood search grid used in the water subsimulation to find the neighborhood of each particle. However, the neighborhood of a particle and the neighborhood search grid are defined differently (using the smoothing radius $h$). This means that we have to map the neighborhood search grid to the PG grid, i.e. find their intersection around the given PG grid cell, to efficiently find all particles contributing to the given PG grid cell.
+* delta particle energy $\Delta E_{\text{gp},k}$
 
- Using the bilinear interpolation weight $w$, in each frame, a PG grid cell $i$ therefore gathers the properties from its neighboring particles $j$ so that fire/smoke can later read those properties and do something based on them: density $\rho_{\text{pg},i}$, energy $E_{\text{pg},i}$ and evaporated mass $m_{\text{evap,pg},i}$.
+$$
+\Delta E_{i} = \frac{w_{1}\Delta E_{\text{gp,k1}} + w_{2}\Delta E_{\text{gp,k2}} + w_{3}\Delta E_{\text{gp,k3}} + w_{4}\Delta E_{\text{gp,k4}}}{w_{1} + w_{2} + w_{3} + w_{4}}
+$$
 
- Density is calculated for each PG grid cell as follows:
+* new (modified, updated) particle energy $E_{\text{gp},k}^{\text{new}}$
 
- $$
-\rho_{\text{pg},i} = \sum_{j \in N(i)} w_{ij}
- $$
+$$
+E_{i}^{\text{new}} = \frac{w_{1}E_{\text{gp,k1}}^{\text{new}} + w_{2}E_{\text{gp,k2}}^{\text{new}} + w_{3}E_{\text{gp,k3}}^{\text{new}} + w_{4}E_{\text{gp,k4}}^{\text{new}}}{w_{1} + w_{2} + w_{3} + w_{4}}
+$$
 
- Energy is calculated as follows:
+* heat transfer amount from fire to water $\Delta H_{\text{gp},k}$
 
- $$
-E_{\text{pg},i} = \frac{\sum_{j \in N(i)} w_{ij}E_{j}}{\rho_{\text{pg},i}}
- $$
+$$
+\Delta H_{i} = \frac{w_{1}\Delta H_{\text{gp,k1}} + w_{2}\Delta H_{\text{gp,k2}} + w_{3}\Delta H_{\text{gp,k3}} + w_{4}\Delta H_{\text{gp,k4}}}{w_{1} + w_{2} + w_{3} + w_{4}}
+$$
 
-Evaporated mass is calculated as follows:
+* particle density $\rho_{\text{gp},k}$
 
- $$
-m_{\text{evap,pg},i} = \frac{\sum_{j \in N(i)} w_{ij}m_{\text{evap},j}}{\rho_{\text{pg},i}}
- $$
+$$
+\rho_{\text{gp},k} = \rho_{\text{pg},k}
+$$
 
-Since we assumed the same sizes of PG and GP grids, we also have $\rho_{\text{gp},i} = \rho_{\text{pg},i}$, $E_{\text{pg},i} = E_{\text{gp},i}$, $m_{\text{evap,pg},i}$, i.e. the values from PG grid can be directly passed to GP grid.
+Here subscripts $_{\text{k1}}$, $_{\text{k2}}$, $_{\text{k3}}$, $_{\text{k4}}$ denote four surrounding *GP Grid Cells* (neighbors) of particle $i$.
 
- When a particle wants to read some property from GP grid, it similarly performs the weighted sum with bilinear interpolation weights. This is simple as it just requires finding the nearest four neighboring GP grid cells for each particle and use the weights $w_{1}, w_{2}, w_{3}, w_{4}$ to calculate the desired property.
+Particle density in case of *GP Grid* is actually not used to calculate any particle property, its role is different. **Particle density is used to discard from weighted sums those *GP Grid Cells* which contain no particles at all, i.e. those *GP Grid Cells* where $\rho_{\text{gp},k} = \rho_{\text{pg},k} = 0$**. We discard such grid cells from the weighted sum as **we assume that wherever there are no particles, their properties are undefined there**. Moreover, **not discarding such grid cells would cause problems with numerical dissipation** (reading zeros from cells increases numerical dissipation).
 
- In each frame, the properties that are written by fire/smoke to a GP grid cell $i$ and read later by water are the following four properties: delta particle energy $\Delta E_{\text{gp},i}$, new (modified, updated) particle energy $E_{\text{gp,new},i}$, heat transfer amount from fire to water $\Delta H_{\text{gp},i}$ and finally particle density $\rho_{\text{gp},i}$.
-
- $\Delta E_{j}$, $E_{\text{new},j}$ and $\Delta H_{j}$ are calculated by each particle $j$ using the same weighted sum formula below:
-
- $$
-q_{j} = \frac{w_{1}q_{\text{gp,1}} + w_{2}q_{\text{gp,2}} + w_{3}q_{\text{gp,3}} + w_{4}q_{\text{gp,4}}}{w_{1} + w_{2} + w_{3} + w_{4}}
- $$
-
-Here $q_{j}$ denotes one of the three beforementioned quantities while $q_{\text{gp,1}}, q_{\text{gp,2}}, q_{\text{gp,3}}, q_{\text{gp,4}}$ denote the quantities of the four surrounding GP neighbors of the particle.
-
-As for particle density we have $\rho_{\text{gp},i} = \rho_{\text{pg},i}$. Particle density in case of GP grid is used to discard those GP grid cells which do not containg any particle, i.e. those GP grid cells where $\rho_{\text{gp},i} = \rho_{\text{pg},i} = 0$. We discard such grid cells from the weighted sum as we assume that wherever there are no particles, their properties are undefined there. Moreover, not discarding such grid cells would cause problems with numerical dissipation.
+Here, 25.06.2026
 
 ## Water evaporation
 
