@@ -222,7 +222,7 @@ $$
 
 A special case (already covered by the above equations) is when the temperature of particles is almost at its boiling limit and the current heat transfer budget is bigger than we need to reach this boiling limit. Then, after increasing the temperature of particles, some of the heat transfer budget remains unused. This entire leftover is in that case used to increase the latent heat of particles.
 
-We can see that $k_{\text{heat,transfer}}$ controls both the speed of heating and the speed of vaporization. However, **it may be good to be able to control heating and vaporization of water separately, using two different paramters, one for heating and one for vaporization**. Indeed, instead of the above equations in the simulation we use:
+We can see that $k_{\text{heat,transfer}}$ controls both the speed of heating and the speed of vaporization. However, **it may be good to be able to control heating and vaporization of water separately, using two different parameters, one for heating and one for vaporization**. Indeed, instead of the above equations in the simulation we use:
 
 $$
 \frac{d(\Delta H_{\text{gp},k})}{dt} = A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})
@@ -244,7 +244,7 @@ $$
 \Delta H_{\text{used}} = \min(\Delta H_{\text{gp},k}, E_{\text{heating}} - \min(E_{\text{gp},k}, E_{\text{heating}}))
 $$
 
-Here $k_{\text{heating}}$ and $k_{\text{vaporization}}$ are tunable paramters controlling the speed of heating and the speed of vaporization respectively.
+Here $k_{\text{heating}}$ and $k_{\text{vaporization}}$ are tunable parameters controlling the speed of heating and the speed of vaporization respectively.
 
 **Based on updated temperature and updated latent heat we compute updated energy:**
 
