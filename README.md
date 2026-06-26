@@ -367,76 +367,82 @@ This is a crucial assumption because, as we explained earlier, inaccuracies that
 
 ## Flame extinguishing
 
-Final visual effect that we want to model is fire extinguishment upon interacting with water. There are many approaches that we can take but the one that turned out to work the best in practice is the approach described below.
+Final visual effect that we want to model is fire extinguishing upon interacting with water.
 
-The first thing we do is change the combustion model a little bit. This is because the original model overwrites fire's temperature in each by using the max function:
+There are many approaches that we can take but the one that turned out to work the best in practice is the approach described below.
 
-$$
-T_{\text{fire}} = \text{max}(T_{\text{fire}}, \rho_{\text{fuel}} * T_{\text{burn}})
-$$
-
-Instead, we would like to have a model where each variable is updated using the timestep as this helps in modelling continuous changes like gradual extinguishment or reignition. This is why we modify the above equation and use it to contribute to the rate of change fire temperature:
+**The first thing we do is we change the combustion model a little bit. This is because the original model overwrites fire's temperature in each frame by using the max function:**
 
 $$
-\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{inject}} = \rho_{\text{fuel}} \cdot T_{burn} \cdot k_{\text{release}}
+T_{\text{fire}} = \text{max}(T_{\text{fire}}, \rho_{\text{fuel}} T_{\text{burn}})
 $$
 
-Here $k_{\text{release}}$ is a tunable parameter defining how fast the heat is introduced into the system by the fuel.
+Instead, **we would like to have a model where each variable is updated using the timestep, as this helps in modelling continuous changes of variables naturally**, like gradual extinguishing or gradual reignition.
 
-With this change in place, we can now model the responsiveness of fire temperature to the heat stolen by water:
-
-$$
-\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{extinguish}} = -\left( k_{\text{sensitivity}} \cdot \Delta H_{\text{gp},i} \right)
-$$
-
-Here $k_{\text{sensitivity}}$ is another tunable parameter which defines how much fire is cooled when it contacts water.
-
-The above is just used to provide a visual feedback, it is not the direct mechanism of extinguishment. The proper exitnguishment is done not by attacking the temperature of the fire itself but by attacking the fuel injection mask. Fuel injection mask provides fuel -> fuel provides temperature -> temperature gives visual fire. Som, removing fuel injection mask = removing visual fire. This is why we wish to attack the very base of this chain.
-
-We introduce a new variable, an extinguish mask $m_{\text{extinguish}}$, $0 \leq m_{\text{extinguish}} \leq 1$. When $m_{\text{extinguish}} = 0$ it means that fire in this region is not extinguished. When $m_{\text{extinguish}} = 1$ it means that fire in this region is completely extiguished. Values in between blend linearly between the two edge cases.
-
-With extinguish mask we alter the equation for fuel injection:
+**This is why we modify the above equation and use it to define the injection term of fire's temperature:**
 
 $$
-(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} = k_{\text{fuel,inject}} \cdot (1 - m_{\text{extinguish}})
+\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{inject}} = k_{\text{fire}}^{\text{release}} \rho_{\text{fuel}} T_{burn}
+$$
+
+Here $k_{\text{fire}}^{\text{release}}$ is a tunable parameter defining how fast the heat is introduced into the system by the fuel.
+
+**With this change in place, we can now model the responsiveness of fire's temperature to the heat stolen by water particles:**
+
+$$
+\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{water,drop}} = - k_{\text{fire,temperature}}^{\text{drop}} \Delta H_{\text{gp}}
+$$
+
+Here $k_{\text{fire,temperature}}^{\text{drop}}$ is another tunable parameter which defines how strongly fire is cooled when it contacts water. As for $\Delta H_{\text{gp}}$, it is the amount of heat transfer from fire to water in the current cell and fire reads it from *GP Grid*.
+
+The above is just used to provide visual feedback, it is not the mechanism of extinguishing. The exitnguishing is done not by attacking the temperature of fire but by attacking the fuel injection mask. Fuel injection mask provides fuel, fuel provides temperature and temperature provides visual fire. So, **removing fuel injection mask should directly remove visual fire**.
+
+Our approach is to **introduce a new eulerian grid variable, an extinguish mask $M_{\text{ext}}$, $0 \leq M_{\text{ext}} \leq 1$**. When $M_{\text{ext}} = 0$, it means that fire in the given region is not extinguished. When $M_{\text{ext}} = 1$, it means that fire in the given region is completely extiguished. Values in between blend linearly between the two edge cases.
+
+With extinguish mask we can alter the equation for fuel injection so that **the more fire is extinguished in the given region, the less fuel is injected there and thus less temperature is injected there and therefore visual fire becomes weaker there**:
+
+$$
+(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} = (1 - M_{\text{ext}}) k_{\text{fuel,inject}}
 $$
 
 Here $k_{\text{fuel,inject}}$ is the constant fuel inject rate painted by the fuel brush.
 
-Extinguish mask itself is initialized to zero at the very beginning. It is increased or decreased but only in the regions where the painted fuel mask is non-zero, i.e. in places where there is a continuous fuel injection rate specified. When water interacts with fire, it is increased with some rate dependent on the water properties and this way we can model gradual extinguishing. To model gradual reignition we also make the extinguish mak decrease its values on its own. In other words, fire makes the extinguish mask go to zero while water makes the extinguish mask go to one. We assume that if water is strong enough to "beat" fire and make the extiguish mask reach the value one, then the fire in the given region is extinguished and stays extinguished until we e.g. reset the simulation with a key press or something similar. That is, when the extinguish mask reaches the value of one, it is no longer increased nor decreased, it stays at this value, and the fire in this region is extinguished, until manual reset.
+**Extinguish mask itself is initialized to zero at the very beginning. It can be updated, i.e. increased or decreased, but only in the regions where the painted fuel mask is non-zero, i.e. in places where there is a continuous fuel injection rate specified. When water interacts with fire, extinguish mask is increased with some rate dependent on the water properties. In this way we can model gradual extinguishing. To model gradual reignition we also make extinguish mask decrease on its own. In other words, water pushes extinguish mask to reach $1$ while fire pushes extinguish mask to reach $0$. We assume that if water is strong enough to "beat" fire and make extiguish mask reach the value of $1$ in the given region, then fire is extinguished there and stays extinguished until we e.g. reset the simulation with a key press. That is, when extinguish mask reaches the value of $1$, it is no longer increased nor decreased, it stays at this value, and the fire in this region is extinguished, until manual reset.**
 
 The rate at which water extinguishes fire is modelled using three phenomena.
 
-The first one is cooling which is modelled as the difference between fire temperature before and after $\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{extinguish}}$ has been applied to reduce fire temperature. The bigger, the stronger the extinguishing.
+**The first one is cooling** which is modelled as the difference between fire temperature before, $T_{\text{fire,before}}$, and fire temperature after, $T_{\text{fire,after}}$, temperature drop due to water, $\left(\frac{dT_{\text{fire}}}{dt}\right)_{\text{water,drop}}$, has been applied. The bigger the cooling, the stronger the extinguishing:
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} = k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})
+\left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{cool}} = k_{\text{cool}} (T_{\text{fire,before}} - T_{\text{fire,after}})
 $$
 
-The second one (the most important one) is vaporization. We reuse the same term $m_{\text{evap,pg}}\rho_{\text{pg}}$ as in the case of vapor formation. The bigger, the stronger the extinguishing.
+**The second one (the most important one) is vaporization.** We reuse the same term, $m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}$, as in the case of vapor formation. The bigger the evaporation, the stronger the extinguishing:
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{vaporization}} = k_{\text{vaporization}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}
+\left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{evap}} = k_{\text{evap}} m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}
 $$
 
-The third one, I am not sure how to call it. It is an auxiliary term. We use it because the previous two terms are directly dependent on the heat transfer from fire to water which itself is directly dependent on the temperature difference between fire and water. This means that the more the fire gets extinguished and lowers its temperature, the difference in temperatures in fire and water gets smaller and smaller which makes heat transfer smaller and smaller which finally makes the two extinguishing termns above smaller and smaller. In the end it just means that with the above two terms it is hard to extinguish weak fires and achieve 100\% extinguish mask overlayed on the fuel mask. To counteract this we introduce an auxiliary extinguishing term which is non-zero only if there is some water present and becomes relevant, i.e. with values significantly greater than zero, when the previous two terms approach zero. The formula for this behaviour that proved to work well is:
+**The third one, I am not sure how to call it, is an auxiliary term.** We use it because the previous two terms are indirectly dependent on the heat transfer from fire to water which itself is directly dependent on whether the temperature of fire is above the boiling temperature of water. This means that the more the fire gets extinguished and the more it lowers its temperature, the heat transfer from fire to water gets smaller and smaller which finally makes the two extinguishing terms above smaller and smaller. In the end it just means that with the above two terms it is hard to extinguish weak fires and achieve 100\% extinguish mask overlayed on the fuel mask.
+
+To counteract this, we introduce an auxiliary extinguishing term which is non-zero only if there is some water present in the given cell. This auxiliary term becomes relevant (i.e. gets values significantly greater than zero) when the previous two terms become irrelevant (i.e. approach zero). It is suppossed to turn on mainly when the main fire has already been extinguished but there are still some regions of fuel mask that have not been properly extinguished by the previous two terms. It makes it possible to extinguish them and achieve nice and clean 100% extinguishing. The formula encoding this behaviour that proved to work well is (the number one in the denominator is used to prevent divisions by zero):
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} = \frac{k_{\text{aux}}\rho_{\text{pg}}}{[k_{\text{cooling}} \cdot (T_{\text{fire,before}} - T_{\text{fire,after}})] + [k_{\text{vaporization}} \cdot m_{\text{evap,pg}}\rho_{\text{pg}}] + 1.0}
+\left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{aux}} = \frac{k_{\text{aux}}\rho_{\text{pg}}}{\left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{cool}} + \left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{evap}} + 1}
 $$
 
-The number one in the denominator is used to prevent divisions by zero.
-
-The rate at which fire reignites on its own is given by.
+**The rate at which fire reignites on its own is given by:**
 
 $$
-\left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}} = -k_{\text{reignite}}
+\left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{reig}} = -k_{\text{reig}}
 $$
 
-Parameters $k_{\text{cooling}}$, $k_{\text{vaporization}}$, $k_{\text{aux}}$, $k_{\text{reignite}}$ are tunable parameters.
+Parameters $k_{\text{cool}}$, $k_{\text{evap}}$, $k_{\text{aux}}$, $k_{\text{reig}}$ are tunable parameters.
 
 The total rate of change of extinguish mask is then:
 
 $$
-\frac{dm_{\text{extinguish}}}{dt} = \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{cooling}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{vaporization}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{aux}} + \left( \frac{dm_{\text{extinguish}}}{dt} \right)_{\text{reignite}}
+\frac{dM_{\text{ext}}}{dt} = \left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{cool}} + \left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{evap}} + \left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{aux}} + \left( \frac{dM_{\text{ext}}}{dt} \right)_{\text{reig}}
 $$
+
+The end.
