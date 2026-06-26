@@ -446,3 +446,209 @@ $$
 $$
 
 The end.
+
+# The algorithm
+
+Below is the simplified pseudocode for the fire extinguishing simulation:
+
+```python
+while true:
+
+    # Update fire, then water
+    # I guess it could also be the other way around
+    fire_smoke_update(dt)
+    water_update(dt)
+
+    # Render:
+    # - fire using a lookup texture (Plack's Law)
+	# - smoke using its density
+    # - the blend of fire and smoke using their color components
+    # - water using the smoothed density field obtained from the texture which stores positions of particles
+	render_fire()
+    render_smoke()
+    render_fire_smoke_blend()
+    render_water(blur(texture))
+```
+
+```python
+fire_smoke_update(dt):
+
+    # 1. Read particle properties from PG Grid
+    rho_pg, e_pg, m_evap_pg = read_pg()
+
+	# 2. Advect velocity fields (move velocity along itself)
+	fire_velocity = advect(fire_velocity, fire_velocity, dt)
+    smoke_velocity = advect(smoke_velocity, smoke_velocity, dt)
+
+    # 3. Draw/Erase splash masks using brushes/erasers
+    draw_erase(fire_fuel_mask)
+    draw_erase(smoke_density_and_heating_mask)
+    draw_erase(smoke_cooling_mask)
+
+    # 4. Splash fire fuel, vapor density and smoke density
+    fire_fuel += splash_fire_fuel(fire_fuel_mask, extinguish_mask, dt)
+    delta_vapor_density = splash_vapor_density(rho_pg, m_evap_pg, dt)
+    vapor_density += delta_vapor_density
+    smoke_density += delta_vapor_density
+    smoke_density += splash_smoke_density(smoke_density_and_heating_mask, dt)
+
+    # 5. Add fire temperature, vapor temperature and smoke temperature
+	fire_temp += add_fire_temp(fire_fuel, dt)
+    smoke_temp += add_vapor_temp(rho_pg, m_evap_pg)
+	smoke_temp += add_smoke_temp(smoke_density_and_heating_mask, dt)
+
+    # 6. Dissipate fire fuel, vapor density and smoke density
+    fire_fuel -= dissipate_fire_fuel(fire_fuel_dissipation_rate, dt)
+    vapor_density -= dissipate_smoke_density(smoke_density_dissipation_rate, dt)
+    smoke_density -= dissipate_smoke_density(smoke_density_dissipation_rate, dt)
+
+    # 7. Dissipate fire temperature and smoke temperature
+	fire_temp -= dissipate_fire_temp(fire_temp_cool_rate, dt)
+	smoke_temp -= cool_smoke_temp(smoke_temp_cool_rate, dt)
+    smoke_temp -= cool_smoke_temp(smoke_cooling_mask, dt)
+
+    # 8. Write particle properties to GP Grid
+    d_e_gp, e_new_gp, d_h_gp, rho_gp = update_water_energy(fire_temp, rho_pg, e_pg)
+
+    # 9. Drop fire temperature due to its interaction with water and store the drop
+    fire_temp_drop = drop_due_to_water(d_h_gp, dt)
+    fire_temp -= fire_temp_drop
+
+    # 10. Update extinguish mask (increasing = extinguishing, decreasing = reignition)
+    cool_contribution = get_cool_contribution(fire_temp_drop)
+    evap_contribution = get_evap_contribution(rho_pg, m_evap_pg)
+    aux_contribution = get_aux_contribution(rho_pg, cool_contribution, evap_contribution)
+    extinguish_mask += incr_extinguish_mask(cool_contribution, evap_contribution, aux_contribution, dt)
+    extinguish_mask -= decr_extinguish_mask(extinguish_mask < 1.0, reignition_rate, dt)
+
+	# 11. Apply external forces
+	fire_velocity += apply_forces(fire_external_forces, dt)
+	smoke_velocity += apply_forces(smoke_external_forces, dt)
+
+	# 12. Set boundary conditions for velocities
+	fire_velocity = set_velocity_boundaries(fire_velocity)
+    smoke_velocity = set_velocity_boundaries(smoke_velocity)
+
+	# 13. Compute divergences of velocity fields
+	fire_divergence = compute_divergence(fire_velocity)
+    smoke_divergence = compute_divergence(smoke_velocity)
+
+	# 14. Solve Poisson equations for pressure using Jacobi method
+	fire_pressure = solve_pressure_poisson(fire_divergence, iterations)
+    smoke_pressure = solve_pressure_poisson(smoke_divergence, iterations)
+
+	# 15. Set boundary conditions for pressures
+	fire_pressure = set_pressure_boundaries(fire_pressure)
+    smoke_pressure = set_pressure_boundaries(smoke_pressure)
+
+	# 16. Subtract pressure gradients to enforce incompressibility
+	fire_velocity = subtract_gradient(fire_velocity, fire_pressure)
+    smoke_velocity = subtract_gradient(smoke_velocity, smoke_pressure)
+
+	# 17. Advect temperatures along the corresponding velocity fields
+	fire_temp = advect(fire_temp, fire_velocity, dt)
+    smoke_temp = advect(smoke_temp, smoke_velocity, dt)
+    
+	# 18. Advect fire fuel, smoke density and vapor density along the corresponding velocity fields
+	fire_fuel = advect(fire_fuel, fire_velocity, dt)
+    smoke_density = advect(smoke_density, smoke_velocity, dt)
+    vapor_density = advect(vapor_density, smoke_velocity, dt)
+```
+
+```python
+water_update(dt):
+
+	# 1. Read particle properties from GP Grid
+    for particle in particles:
+        read_gp_1 = [d_e_gp_1, e_new_gp_1, d_h_gp_1, rho_gp_1] = read_gp(gp_neighbor_1)
+        read_gp_2 = [d_e_gp_2, e_new_gp_2, d_h_gp_2, rho_gp_2] = read_gp(gp_neighbor_2)
+        read_gp_3 = [d_e_gp_3, e_new_gp_3, d_h_gp_3, rho_gp_3] = read_gp(gp_neighbor_3)
+        read_gp_4 = [d_e_gp_4, e_new_gp_4, d_h_gp_4, rho_gp_4] = read_gp(gp_neighbor_4)
+        d_e, e_new, d_h = bilerp_weighted_sum(read_gp_1, read_gp_2, read_gp_3, read_gp_4)
+        new_energy = update_energy(old_energy, d_e, e_new, d_h, lerp_factor)
+        energy = new_energy
+        evaporated_mass = get_evaporated_mass(new_energy, old_energy)
+    
+    # 2. Increase ages
+    increase_ages()
+
+    # 3. Kill particles that reached their energy limits or reached their lifetime limits
+	kill_particles(energies, ages)
+
+	# 4. Spawn new particles (initialize their properties)
+	spawn_particles()
+
+	# 5. Neighborhood search
+	hashes = compute_hashes()
+    sorted_hashes, sorted_positions = sort(hashes, positions)
+    start, end = compute_start_end(sorted_hashes)
+
+	# 6. Compute densities
+	densities = compute_densities()
+
+    # 7. Compute near densities
+    near_densities = compute_near_densities()
+
+	# 8. Compute pressures
+	pressures = compute_pressures()
+
+    # 9. Compute near pressures
+    near_pressures = compute_near_pressures()
+
+	# 10. Compute vorticities
+	vorticities = compute_vorticities()
+
+	# 11. Compute forces
+    forces = 0
+	forces += compute_pressure_force()
+    forces += compute_near_pressure_force()
+    forces += compute_viscosity_force()
+    forces += compute_gravity_force()
+    forces += compute_user_disturbance_force()
+    forces += compute_surface_tension_force()
+    forces += compute_vorticity_confinement_force()
+
+	# 12. Compute acceleration
+    a = compute_acceleration(forces, densities)
+
+    # 13. Compute adhesive acceleration
+    for sdf in sdfs:
+        a += compute_adhesive_acceleration(sdf)
+
+    # 14. Integrate velocities
+	velocities = integrate(velocities, dt)
+
+    # 15. Apply XSPH smoothing
+    velocities = xsph(velocities)
+
+    # 16. Damp and clamp velocities
+    velocities = damp(velocities)
+    velocities = clamp(velocities)
+
+    # 17. Integrate positions
+    positions = integrate(positions, dt)
+
+    # 18. Perform SDF collision responses
+    for sdf in sdfs:
+        positions, velocities = collide_using_sdf(sdf, positions, velocities)
+
+    # 19. Boundary conditions
+    positions, velocities = boundary_conditions(positions, velocities)
+
+    # 20. Write particle properties to PG Grid (gather particle contributions)
+    for cell in pg_grid:
+        rho_pg_sum = 0
+        e_pg_sum = 0
+        m_evap_pg_sum = 0
+        for particle in cell_neighbors:
+            w = get_bilerp_weight(particle_position, cell_center_position)
+            rho_pg_sum += w
+            e_pg_sum += w * particle_energy
+            m_evap_pg_sum += w * particle_evaporated_mass
+        rho_pg = rho_pg_sum
+        e_pg = e_pg_sum / rho_pg
+        m_evap_pg = m_evap_pg_sum / rho_pg
+
+	# 21. Store the positions in the texture for rendering purposes
+    store_positions(positions, texture)
+```

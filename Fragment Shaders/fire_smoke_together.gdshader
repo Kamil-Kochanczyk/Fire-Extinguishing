@@ -9,10 +9,10 @@ void fragment() {
 	vec4 smoke_color = texture(u_smoke_vis, UV);
 	
 	float max_fire_component = max(fire_color.r, max(fire_color.g, fire_color.b));
-	float smoke_densiy = texture(u_fire_fuel_smoke_density_advect, UV).g;
+	float smoke_density = texture(u_fire_fuel_smoke_density_advect, UV).g;
 	
 	vec4 final = mix(smoke_color, fire_color, max_fire_component);
-	final.a = max(max_fire_component, smoke_densiy);
+	final.a = max(max_fire_component, smoke_density);
 	
 	COLOR = final;
 }
