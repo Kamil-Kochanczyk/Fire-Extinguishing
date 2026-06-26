@@ -22,14 +22,14 @@ Fire and smoke in the fire/smoke subsimulation can only appear on screen continu
 
 * Fire fuel injection rate $(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}}$
   * Contributes to the fire fuel's rate of change, $\frac{d\rho_{\text{fuel}}}{dt} = (\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} + \ldots$
-* Smoke density injection rate $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$
-  * Contributes to the smoke density's rate of change, $\frac{d\rho_{smoke}}{dt} = (\frac{d\rho_{smoke}}{dt})_{\text{inject}} + \ldots$
+* Smoke density injection rate $(\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}}$
+  * Contributes to the smoke density's rate of change, $\frac{d\rho_{\text{smoke}}}{dt} = (\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}} + \ldots$
 * Smoke temperature heating injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$
   * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}} + \ldots$
 * Smoke temperature cooling injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}}$
   * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}} + \ldots$
 
-Each variable gets its own brush and eraser. We assume that $(\frac{d\rho_{smoke}}{dt})_{\text{inject}}$ and $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$ are edited with the same brush/eraser. This gives us three brushes and three erasers in total, one for each variable.
+Each variable gets its own brush and eraser. We assume that $(\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}}$ and $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$ are edited with the same brush/eraser. This gives us three brushes and three erasers in total, one for each variable.
 
 Every brush/eraser has its strength and radius which can be changed at any time. Strength determines how big values of the corresponding variable will be drawn on screen or how much of it will be erased from screen. Radius determines the region where the values will be drawn or erased. The values of the drawn variables are assumed to be non-negative.
 
@@ -150,9 +150,9 @@ Here $m$ is the (constant) mass of each particle, $c_{\text{water}} = 4184 \frac
 $$E_{\text{vaporization}} = m L_{\text{water}}
 $$
 
-Here $L_{w} = 2264705 \frac{J}{kg}$ is the specific latent heat of vaporization of water.
+Here $L_{\text{water}} = 2264705 \frac{J}{kg}$ is the specific latent heat of vaporization of water.
 
-The energy $E_{i}$ of particle $i$ is **first initialized to $0$**. It is **then increased by the energy (heat) transfer from fire to water**. Currently **energy loss is not modeled**, i.e. $E_{i}$ can only increase and cannot decrease. When particle $i$ starts interacting with fire **it steals fire's energy (heat) to increase its own energy**. If $0 \leq E_{i} \leq E_{\text{heating}}$, then **we interpret it as the particle being in the heating stage, i.e. the stage when its temperature is being increased**. If $E_{\text{heating}} \lt E_{i} \leq E_{\text{max}}$, then **we interpret it as the particle being in the vaporization stage, i.e. the stage when its mass is being lost**. When $E_{i}$ reaches its **maximum possible value, then the particle is killed** as we assume that this is when the total vaporization occurs and the entire mass is lost.
+The energy $E_{i}$ of particle $i$ is **first initialized to $0$**. It is **then increased by the energy (heat) transfer from fire to water**. Currently, for simplicity, **energy loss is not modeled**, i.e. $E_{i}$ can only increase and cannot decrease. When particle $i$ starts interacting with fire **it steals fire's energy (heat) to increase its own energy**. If $0 \leq E_{i} \leq E_{\text{heating}}$, then **we interpret it as the particle being in the heating stage, i.e. the stage when its temperature is being increased**. If $E_{\text{heating}} \lt E_{i} \leq E_{\text{max}}$, then **we interpret it as the particle being in the vaporization stage, i.e. the stage when its mass is being lost**. When $E_{i}$ reaches its **maximum possible value, then the particle is killed** as we assume that this is when the total vaporization occurs and the entire mass is lost.
 
 The fact that vaporization is the main reason why water is such a good extinguishing agent is encoded in the fact that in the simulation $E_{\text{heating}} \lt\lt E_{\text{vaporization}}$.
 
@@ -160,10 +160,10 @@ The energy $E_{i}$ is first transferred from particle $i$ to *PG Grid*, later it
 
 The **update scheme performed on the *GP Grid*** is described below.
 
-First of all, **the current energy of particles stored in this cell is remembered for later use as $E_{\text{gp},k}^{\text{old}} = E_{\text{gp},k}$ and the temperature and the latent heat of particles in the *GP Grid Cell* $k$ are calculated**:
+First of all, **the temperature and the latent heat of particles in the *GP Grid Cell* $k$ are calculated**:
 
 $$
-T_{\text{water,gp},k} = T_{\text{water,ambient}} + \frac{\min(E_{\text{gp},k}, E_{\text{heating}})}{m c_{w}}
+T_{\text{water,gp},k} = T_{\text{water,ambient}} + \frac{\min(E_{\text{gp},k}, E_{\text{heating}})}{m c_{\text{water}}}
 $$
 
 $$
@@ -180,9 +180,9 @@ $$
 \Delta H_{\text{gp},k} = 0 \iff T_{\text{fire,gp},k} \leq T_{\text{water,boiling}}
 $$
 
-In other words, in the simulation we do not worry about the case when heat is transferred from water to fire and **we assume only one-way heat transfer, i.e. from fire to water**.
+In other words, in the simulation we do not worry about the case when heat is transferred from water to fire and **we assume only one-way heat transfer, i.e. from fire to water**. Because fire visualization is directly based on the temperature of fire, heat transfer form water to fire could theoretically make the fire visible on screen just due to water losing its energy and we do not want that.
 
-One more thing that we do is to **check if $\rho_{\text{gp},k} = \rho_{\text{pg},k} = 0$** as we do not process undefined cells. If this is the case we set $\Delta H_{\text{gp},k} = 0$.
+One more thing that we do is to **check if $\rho_{\text{gp},k} = \rho_{\text{pg},k} = 0$** as we do not process undefined cells.
 
 When heat transfer can occur and should be non-zero **we assume a simplified, conduction-like heat transfer from fire to water**:
 
@@ -195,7 +195,7 @@ Here $k_{\text{heat,transfer}}$ is a tunable parameter used to control the speed
 **Heat transfer in the current frame** (also called heat transfer budget from now on) is:
 
 $$
-\Delta H_{\text{gp},k} = k_{\text{heat,transfer}}A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
+\Delta H_{\text{gp},k} \approx k_{\text{heat,transfer}}A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
 $$
 
 **It is recalculated each frame, we do not store it**, i.e. we assume that if there is some heat transfer unused by water in the current frame, then we forget about it and e.g. assume that it is lost to the environment.
@@ -205,13 +205,13 @@ If we have $\Delta H_{\text{gp},k}$ for the current frame, **we use it different
 * (1) if $T_{\text{water,gp},k} \lt T_{\text{water,boiling}}$, then it is used to increase the temperature of particles
 
 $$
-T_{\text{water,gp},k} \text{ += } \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
+T_{\text{water,gp},k}^{\text{new}} =  T_{\text{water,gp},k} + \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
 $$
 
-* (2) otherwise it is used to increase the latent heat of particles
+* (2) if $T_{\text{water,gp},k} = T_{\text{water,boiling}}$, then it is used to increase the latent heat of particles
 
 $$
-H_{\text{latent,gp},k} \text{ += } \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
+H_{\text{latent,gp},k}^{\text{new}} =  H_{\text{latent,gp},k} + \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
 $$
 
 The value of $\Delta H_{\text{used}}$ represents how much heat from heat transfer budget for the current frame has been used to increase the temperature of water. It is calculated using the current energy of particles and the desirable energy of particles that they need to reach the boiling point:
@@ -229,15 +229,15 @@ $$
 $$
 
 $$
-\Delta H_{\text{gp},k} = A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
+\Delta H_{\text{gp},k} \approx A_{k}(T_{\text{fire,gp},k} - T_{\text{water,gp},k})dt
 $$
 
 $$
-T_{\text{water,gp},k} \text{ += } k_{\text{heating}} \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
+T_{\text{water,gp},k}^{\text{new}} = T_{\text{water,gp},k} + k_{\text{heating}} \frac{\Delta H_{\text{used}}}{m c_{\text{water}}}
 $$
 
 $$
-H_{\text{latent,gp},k} \text{ += } k_{\text{vaporization}} \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
+H_{\text{latent,gp},k}^{\text{new}} = H_{\text{latent,gp},k} + k_{\text{vaporization}} \min(\Delta H_{\text{gp},k} - \Delta H_{\text{used}}, E_{\text{vaporization}} - H_{\text{latent,gp},k})
 $$
 
 $$
@@ -249,13 +249,13 @@ Here $k_{\text{heating}}$ and $k_{\text{vaporization}}$ are tunable paramters co
 **Based on updated temperature and updated latent heat we compute updated energy:**
 
 $$
-E_{\text{gp},k}^{\text{new}} = [m c_{\text{water}} (T_{\text{water,gp},k} - T_{\text{water,ambient}})] + H_{\text{latent,gp},k}
+E_{\text{gp},k}^{\text{new}} = [m c_{\text{water}} (T_{\text{water,gp},k}^{\text{new}} - T_{\text{water,ambient}})] + H_{\text{latent,gp},k}^{\text{new}}
 $$
 
 **Delta particle energy is also calculated based on how much the updated energy increased compared to the original one (before the updates):**
 
 $$
-\Delta E_{\text{gp},k} = E_{\text{gp},k}^{\text{new}} - E_{\text{gp},k}^{\text{old}}
+\Delta E_{\text{gp},k} = E_{\text{gp},k}^{\text{new}} - E_{\text{gp},k}
 $$
 
 **Finally, $\Delta E_{\text{gp},k}$, $E_{\text{gp},k}^{\text{new}}$, $\Delta H_{\text{gp},k}$ and $\rho_{\text{gp},k}$ are stored in the *GP Grid Cell* $k$**. Later, particle ${i}$ near this cell reads the values of $\Delta E_{\text{gp},k}$, $E_{\text{gp},k}^{\text{new}}$, $\Delta H_{\text{gp},k}$ stored there and uses them in the weighted sum formulas presented earlier to calculate $\Delta E_{i}$, $E_{i}^{\text{new}}$ and $\Delta H_{i}$. As we remember, $\rho_{\text{gp},k}$ is used to discard undefined grid cells.
@@ -266,17 +266,21 @@ $$
 E_{i}^{n} = (1 - t)(E_{i}^{n - 1} + \Delta E_{i}) + tE_{i}^\text{new}
 $$
 
-Here superscripts $^{n}$ and $^{n - 1}$ are used to differentiate between the energi of particle $i$ in the current frame and in the previous frame, respectively.
+Here superscripts $^{n}$ and $^{n - 1}$ are used to differentiate between the energy of particle $i$ in the current frame and in the previous frame, respectively.
 
-As for $t$, $t \in [0,1]$, it is a tunable parameter, an interpolation factor. **When its values are near zero, we get grainy, noisy energy updates**, i.e. particles which are near one another can have very different temperatures and latent heats and die at very different times when subjected to heating and evaporation due to fire. **When its values are near one, we get smoother energy updates**, i.e. most particles which are near one another will have similar, pretty much the same energy and die at approximately the same time.
+As for $t$, $t \in [0,1]$, it is a tunable parameter, an interpolation factor. **When its values are near zero, we get grainy, noisy, FLIP-like energy updates**, i.e. particles which are near one another can have very different temperatures and latent heats and die at very different times when subjected to heating and evaporation due to fire. **When its values are near one, we get smoother, PIC-like energy updates**, i.e. most particles which are near one another will have similar, pretty much the same energy and die at approximately the same time.
 
 In practice, experiments showed that even relatively small values of $t$, values near but greater than $0$, already smooth the energies pretty strongly.
 
-**The idea behind this blending is to make sure the energies are as grainy as possible to preserve details (smoothing causes the details to be lost) but to make them smooth enough so that as many particles as possible die at approximately the same time. We want the particles to die at the same time when interacting with fire because experiments showed that dying particles in general are the source of instabilities. If we make particles disappear one by one, it can cause particles to start moving very rapidly and even blow up sometimes. Experiments showed that if we make them disappear in bigger groups, at similar moments, then they seem to be more stable.**
+**The idea behind this blending is to make sure the energies are as grainy as possible to preserve details (smoothing causes the details to be lost) but to make them smooth enough so that as many particles as possible die at approximately the same time. We want the particles to die at the same time when interacting with fire because experiments showed that dying particles in general are the source of instabilities. If we make particles disappear one by one, it can cause particles to start moving very rapidly and even blow up sometimes. Experiments also showed that if we make them disappear in bigger groups, at similar moments, then they seem to be more stable.**
 
-**One final reminder is that, for safety, we should perform particle energy update only when $\Delta H_{i} \gt 0$. The condition that energy should be updated only if $\Delta H_{i} \gt 0$ is actually pretty important. Let's remind ourselves that this condition is satisfied only whem the temperature of fire is strictly greater than the temperature of water. Because, in general, the temperature of fire is and should be greater than the maximum temperature of water, the regions where $\Delta H_{i} \gt 0$ actually represent the regions which are near fire, regions where fire is stronger and even visibly burning on screen. All other regions, in general, have some default ambient temperature equal to the ambient temperature of water.**
+**One final reminder is that, for safety, we should perform particle energy update only when $\Delta H_{i} \gt 0$. This condition that energy should be updated only if $\Delta H_{i} \gt 0$ is actually pretty important. Let's remind ourselves that this condition is satisfied only when the temperature of fire is strictly greater than the maximum temperature of water. Because, in general, the temperature of fire is and should be greater than the maximum temperature of water, the regions where $\Delta H_{i} \gt 0$ actually represent the regions which are near fire, regions where fire is stronger and even visibly burning on screen. All other regions, in general, have some default ambient temperature equal to the ambient temperature of water.**
 
-**It turns out that particle updates based on the values read from *GP Grid* are not very accurate and in practice the energies of many particles do not always change due to heat transfer between fire and water but due to varying energy values of particles in the nearest grid cells and due to inaccuracies caused by weighted sums blending. In general, *GP Grid* updates proved to both artificially loose and create energy. This is why we want to limit ourselves and make the energy updates occur in both limited time and space. We want to not let the inaccuracies grow and we want to have as few of them as possible. So we limit ourselves and turn on energy updates only in the regions near fire (limited space). Apart from this, we know that fire-water interaction will also be pretty rapid (limited time). The idea is that those regions which are near fire are marked by the non-zero values of $\Delta H_{i} \gt 0$, as explained earlier, and are suppossed to be in general the regions where the fire is strong and visibly burning on screen. All of this means that far from fire the energies of particles stay constant (and it is important for them to stay constant far from fire because otherwise we will get undesirable formation of vapor plumes as it will be described in more detail in the next section).**
+**Let's explain why this condition is important by assuming that we do not care about it the energy updates occur unconditionally. Energy updates based on the values read from *GP Grid*, in general, may not be accurate for a particle. In practice, the energy of the particle does not always change due to heat transfer between fire and water. When smoothing is involved, the energy can be updated even when no heat transfer occurs because of varying energy values of other particles in the nearest grid cells. This can both artificially loose and create energy.**
+
+**This is why we want to limit ourselves and make the energy updates occur in both limited time and space. We want to take away the time for the inaccuracies to grow and we want to have as few inaccuracies as possible. So, we limit ourselves and turn on energy updates only in the regions near fire (limited space). We also know that fire-water interaction will be pretty rapid and particle will pretty quickly die (limited time). The idea is that those regions which are near fire are marked by the condition $\Delta H_{i} \gt 0$, as explained earlier, and are suppossed to be in general the regions where the fire is strong and visibly burning on screen.**
+
+**All of this means that, even with smoothing, the energies of particles stay constant when the particles are far from fire. And it is important for them to stay constant (or to not increase uncontrollably, to be more precise) far from fire because otherwise we may get undesirable formation of vapor plumes as it will be described in more detail in the next section.**
 
 And finally, we should also talk a little bit about $m_{i}^{\text{evap}}$ as this variable will be crucial in the next section for the modelling of vapor plumes. **We calculate it based on the change in the latent heat due to energy update**:
 
@@ -304,49 +308,62 @@ $$
 
 ## Vapor plumes formation
 
-Another visual effect that we want to model is the formation of smoke-ish plumes which are suppossed to represent condensed water vapor and should appear when the water is evaporating, i.e. losing mass.
+Another visual effect that we want to model is the formation of smoke-ish plumes which are suppossed to represent condensed water vapor and should appear when the water is evaporating, i.e. losing its mass.
 
-To do this we take advantage of the existing fire/smoke subsimulation. It can already simulate the natural smoke which forms during fires. We have much freedom in choosing  where this smoke appears, how big and aggressive it is and what color it has. As for condensed water vapor, we can also view it as a kind of smoke. The difference is that we assume that condensed water vapor is a highly specific type of smoke. We assume that it has a very light, white-ish color, is injected only when water is evaporating/loosing mass and its intensity depends on how much water there is. But we do not create another, separate smoke subsimulation just to simulate this specific kind of smoke as this would be inefficient.
+To model this we take advantage of the existing fire/smoke subsimulation. It can already simulate the smoke which naturally forms during fires. We have much freedom in choosing  where this smoke appears, how big and aggressive it is and what color it has.
 
-Instead, we introduce a new variable to the smoke algorithm. Let's call this variable $\rho_{\text{vapor}}$, $0 \leq \rho_{\text{vapor}} \leq 1$. We can interpret it as the density of the vapor or as a fuzzy boolean variable which tells us how 'vapor-ish' the smoke is or as the strength of the 'vaporness' of the smoke at any given region. Its main role is to help visually mark the vapor using a different color and blend it with the normal smoke's color.
+**As for condensed water vapor, we can also view it as a kind of smoke. The difference is that we assume that condensed water vapor is a highly specific type of smoke. We assume that it has a very light, white-ish color, is injected only when water is evaporating/loosing mass and its intensity depends on how much water is evaporating.**
 
-This variable is updated according to:
+**This basically means that we want to have two different types of smoke. The first one (the original one, the one that naturally forms during fires, the one which is already simulated by the original subsimulation) will be simply called "smoke". The second one (condensed water vapor) will be simply called "vapor".**
+
+**What we can do is use the same algorithm for simulating both.**
+
+**But we do not create another, separate subsimulation just to simulate vapor as this would be inefficient.**
+
+**Instead, we introduce a new variable to the smoke algorithm. Let's call this variable $\rho_{\text{vapor}}$, $0 \leq \rho_{\text{vapor}} \leq 1$. We can interpret it as the density of vapor or as a fuzzy boolean variable which tells us how "vapor-ish" smoke is or as the strength of the "vaporness" of smoke at any given region. Its main role is to help visually distinguish vapor from smoke using a white-ish color, and to blend this white-ish color with the normal smoke's color.**
+
+**This variable is a new eulerian grid variable and is updated according to:**
 
 $$
-\frac{d\rho_{\text{vapor}}}{dt} = -(\mathbf{u} \cdot \nabla)\rho_{\text{vapor}} + m_{\text{evap,pg}}\rho_{\text{pg}}k_{\text{vapor,density,inject}} - k_{\text{vapor,density,dissipate}}
+\frac{d\rho_{\text{vapor}}}{dt} = -(\mathbf{u}_{\text{smoke}} \cdot \nabla)\rho_{\text{vapor}} + k_{\text{vapor,density}}^{\text{inject}}m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}
 $$
 
-The blending between vapor color and smoke color is done according to:
+**The blending between smoke color and vapor color is done according to:**
 
 $$
 C_{\text{final}} = (1 - \rho_{\text{vapor}})C_{\text{smoke}} + \rho_{\text{vapor}}C_{\text{vapor}}
 $$
 
-Each timestep the injection term also contributes to the smoke density $\rho_{\text{smoke}}$ so that the vapor can appear on screen:
+**Each timestep the injection term also contributes to the smoke density $\rho_{\text{smoke}}$ so that the vapor can appear on screen:**
 
 $$
-\rho_{smoke} += m_{\text{evap,pg}}\rho_{\text{pg}}k_{\text{vapor,density,inject}}dt
+\rho_{\text{smoke}}^{\text{new}} = \rho_{\text{smoke}} + k_{\text{vapor,density}}^{\text{inject}}m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}dt
 $$
 
-Each timestep the injection term also contributes to the smoke temeperature $T_{smoke}$ so that the vapor can either quickly rise up or slowly fall down:
+**Each timestep the injection term also contributes to the smoke temperature $T_{\text{smoke}}$ so that the vapor can either quickly rise up or slowly fall down:**
 
 $$
-T_{smoke} += m_{\text{evap,pg}}\rho_{\text{pg}}k_{\text{vapor,temperature,inject}}dt
+T_{\text{smoke}}^{\text{new}} = T_{\text{smoke}} + k_{\text{vapor,temperature}}^{\text{inject}}m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}dt
 $$
 
-Here $m_{\text{evap,pg}}$ and $\rho_{\text{pg}}$ are the values read by the smoke from the PG grid, while $k_{\text{vapor,density,inject}}$ and $k_{\text{vapor,density,dissipate}}$ are tunable parameters controlling the strength of injection and dissipation of $\rho_{\text{vapor}}$, respectively while $k_{\text{vapor,temperature,inject}}$ is also a tunable parameter which controls the strength of vapor's temperature injection.
+Here $m_{\text{pg}}^{\text{evap}}$ and $\rho_{\text{pg}}$ are the values that smoke reads from *PG Grid*. Moving on, $k_{\text{vapor,density}}^{\text{inject}}$ is a tunable parameter controlling the strength of injection of $\rho_{\text{vapor}}$. Finally, $k_{\text{vapor,temperature}}^{\text{inject}}$ is also a tunable parameter which controls the strength of vapor's temperature injection.
 
-The equations above are suppossed to encode the following behaviors of vapor:
+Additionally, even though it is not stated in the above equations, **$\rho_{\text{vapor}}$ should dissipate with the same rate as $\rho_{\text{smoke}}$**.
 
-* $\rho_{\text{vapor}}$ is advected along the smoke's velocity field so that we can keep track of which smoke regions are vapor as oppossed to natural smoke by coloring it differently; its injection and dissipation help blend between the two naturally
-* the injection term:
-  * causes the vapor to appear (density injection) and to start moving due to buoyancy (temperature injection)
-  * works only when there is some water evaporating, i.e. only when $m_{\text{evap,pg}} \gt 0$
-  * injects more density and temperature if there is more water being evaporated, i.e. more evaporating water = more vapor, the term responsible for this is the product $m_{\text{evap,pg}}\rho_{\text{pg}}$, it was found experimentally and turned out to give this desired result
+The equations above are suppossed to encode **the following behaviors of vapor**:
 
-Based on the above we can now explain why the condition $\Delta H_{j} \gt 0$ is important for the formation of vapor. Let's remind ourselves that this condition is used to ensure that particle energies are updated only near the regions of strong/visible fire. Far from fire particle energies are not updated. Because evaporated mass is calculated based on change in latent heats, and change in latent heats is directly related to change in energy, this means that far from fire evaporated masses will always be zero, i.e. the mass will only evaporate near the fire, where the heat transfer occurs. This is a crucial assumption because, as we explained earlier, inaccuracies that arise when using PG and GP grids can cause wrong updates of energies, i.e. they do not always monotonically increase their energies, sometimes they may oscillate a bit while increasing. This can cause wrong changes in energy and therefore wrong changes in latent heats and because of this wrong values of evaporated masses and wrong visual effects of vapor appearing when it should not and in quantities that are not correct. By ensuring that energies change only near the regions of fire, we make the assumption that water only evaporates near fire which is a simplification but provides more control over the visual effects.
+* $\rho_{\text{vapor}}$ is advected along the smoke's velocity field so that we can keep track of which regions are smoke vs which regions are vapor so that we can color them appropriately
+* the injection and dissipation of $\rho_{\text{vapor}}$ helps blend between the two colors naturally
+* the injection contribution to $\rho_{\text{smoke}}$ causes the vapor to appear (density injection)
+* the injection contribution to $T_{\text{smoke}}$ causes the vapor to start moving due to buoyancy (temperature injection)
+* the injection works only when there is some water in the cell and only when this water is evaporating, i.e. only when $m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}} \gt 0$
+* the more evaporating water there is in the cell, the more density and temperature is injected, i.e. more evaporating water = more vapor; the term responsible for this is the product $m_{\text{pg}}^{\text{evap}}\rho_{\text{pg}}$, it was found experimentally and turned out to give this desired behaviour
 
-There is one important limitation of the above approach, however. If we used a separate smoke subsimulation, i.e. with separate variables, like velocity, just for the vapor we would have full control over it. By using the same existing subsimulation for simulation of both the smoke and the vapor we loose a little bit of control over the vapor. This is because both smoke and vapor use the same velocity field and, for example, when we have a predefined smoke source which makes it move quickly upwards and when we have a vapor that is tuned to move slowing downwards when injected, we get the desired vapor behavior only in the regions where there is no smoke. In the regions where there is also smoke, i.e. where the two blend, the velocity of the smoke will be visually inherited by the vapor as the variable $\rho_{\text{vapor}}$ will be advected along a very quick velocity near the smoke region which will give the visual result of vapor moving quickly with the smoke even though we specified it to be slow.
+Based on the above we can now explain why the condition $\Delta H_{i} \gt 0$ is important for the formation of vapor. Let's remind ourselves that this condition is used to ensure that particle energies are updated only near the regions of strong/visible fire. Far from fire the energies of particles are not updated. **Because evaporated masses are calculated based on changes in latent heats, and changes in latent heats are directly related to changes in energy, this means that far from fire evaporated masses will always stay constant, they will always stay zero in our case. In other words, the mass will only evaporate near the fire, where the heat transfer occurs.**
+
+This is a crucial assumption because, as we explained earlier, inaccuracies that arise when using *GP Grid* can cause undesirable updates of energies and therefore undesirable changes in latent heats. **Because of these undesirable changes,  evaporated masses will appear when we do not want them and will give us wrong visual effects of vapor appearing when it should not and in quantities that are not correct.** By ensuring that energies change only near the regions of fire, we make the assumption that water only evaporates near fire which is a simplification but provides more control over the visual effects of the simulation.
+
+**There is one important limitation of the approach with $\rho_{\text{vapor}}$** described here. If we used a separate smoke subsimulation (i.e. with separate variables, e.g. velocity) to simulate vapor, thus completely decoupling vapor from smoke, we would have full control over vapor. **By using the same existing subsimulation for both smoke and vapor, we loose a little bit of control over vapor.** This is because both smoke and vapor use the same velocity field. For example, when we have (1) a predefined smoke which moves quickly upwards and (2) a vapor that is tuned to move slowly downwards when injected, we get the desired vapor behavior only in the regions where there is no smoke whatsoever. In the regions where there is some smoke and there is some vapor, i.e. where the two blend, the big velocity of smoke is visually inherited by vapor as the variable $\rho_{\text{vapor}}$ is advected along the very quick velocity field near the smoke region. This gives the visual result of vapor moving quickly with smoke even though we specified vapor to be slow.
 
 ## Flame extinguishing
 
