@@ -146,7 +146,7 @@ var clamp_shader: Shader = load("res://Fragment Shaders/clamp.gdshader")
 var pressure_jacobi_n_shader: Shader = load("res://Fragment Shaders/pressure_jacobi_n.gdshader")
 var pressure_boundary_n_shader: Shader = load("res://Fragment Shaders/pressure_constant_boundary_n.gdshader")
 
-var pressure_init_viewport_idx: int = 13    # child index of the root node, counted from the top
+var pressure_init_viewport_idx: int = 17    # child index of the root node, counted from the top
 var pressure_boundary_last: SubViewport = null
 
 var left_button_clicked: bool = false

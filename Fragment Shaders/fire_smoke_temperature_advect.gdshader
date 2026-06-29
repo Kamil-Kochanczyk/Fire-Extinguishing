@@ -2,7 +2,6 @@ shader_type canvas_item;
 render_mode blend_disabled;
 
 uniform highp sampler2D u_velocity_div_free : filter_nearest, repeat_disable;
-uniform highp sampler2D u_fire_smoke_temperature : filter_nearest, repeat_disable;
 uniform highp float u_timestep;
 uniform highp float u_fire_temp_ambient = 500.0;    // Kelvin
 uniform highp float u_fire_temp_max = 2000.0;    // Kelvin
