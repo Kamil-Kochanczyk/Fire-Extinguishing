@@ -463,7 +463,7 @@ while true:
     # - fire using a lookup texture (Plack's Law)
 	# - smoke using its density
     # - the blend of fire and smoke using their color components
-    # - water using the smoothed density field obtained from the texture which stores positions of particles
+    # - water using the smoothed density field obtained from the texture which stores the positions of particles
 	render_fire()
     render_smoke()
     render_fire_smoke_blend()
@@ -533,7 +533,7 @@ fire_smoke_update(dt):
 	fire_divergence = compute_divergence(fire_velocity)
     smoke_divergence = compute_divergence(smoke_velocity)
 
-	# 14. Solve Poisson equations for pressure using Jacobi method
+	# 14. Solve Poisson equations for pressures using Jacobi method
 	fire_pressure = solve_pressure_poisson(fire_divergence, iterations)
     smoke_pressure = solve_pressure_poisson(smoke_divergence, iterations)
 
@@ -545,14 +545,14 @@ fire_smoke_update(dt):
 	fire_velocity = subtract_gradient(fire_velocity, fire_pressure)
     smoke_velocity = subtract_gradient(smoke_velocity, smoke_pressure)
 
-	# 17. Advect temperatures along the corresponding velocity fields
-	fire_temp = advect(fire_temp, fire_velocity, dt)
-    smoke_temp = advect(smoke_temp, smoke_velocity, dt)
-    
-	# 18. Advect fire fuel, smoke density and vapor density along the corresponding velocity fields
+	# 17. Advect fire fuel, smoke density and vapor density along the corresponding velocity fields
 	fire_fuel = advect(fire_fuel, fire_velocity, dt)
     smoke_density = advect(smoke_density, smoke_velocity, dt)
     vapor_density = advect(vapor_density, smoke_velocity, dt)
+
+	# 18. Advect temperatures along the corresponding velocity fields
+	fire_temp = advect(fire_temp, fire_velocity, dt)
+    smoke_temp = advect(smoke_temp, smoke_velocity, dt)
 ```
 
 ```python
@@ -652,3 +652,5 @@ water_update(dt):
 	# 21. Store the positions in the texture for rendering purposes
     store_positions(positions, texture)
 ```
+
+The pseudocode above assumes WCSPH for simulating water. PCISPH can be used as well, analogicallly as it is described in the original water subsimulation.
