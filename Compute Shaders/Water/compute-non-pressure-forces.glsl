@@ -152,9 +152,9 @@ void main() {
                     // near pressure force (purely repulsive, anti-clumping)
                     float rho_j_near = near_densities[j];
                     float p_j_near = params.stiffness_near * rho_j_near;
-                    // float p_sym_term_near = ((p_i_near + p_j_near) / (2.0 * rho_j_near));    // if using this term, remove the rho_i multiplier in the calculation of f_pressure_near below
-                    float p_sym_term_near = (p_i_near / (rho_i_near * rho_i_near)) + (p_j_near / (rho_j_near * rho_j_near));    // if using this term, include the rho_i multiplier in the calculation of f_pressure_near below
-                    vec2 f_pressure_near = (scaling_near * scaling_near * scaling_near) * rho_i * params.mass * p_sym_term_near * (-gradient_W);
+                    // float p_sym_term_near = ((p_i_near + p_j_near) / (2.0 * rho_j_near));    // if using this term, remove the rho_i_near multiplier in the calculation of f_pressure_near below
+                    float p_sym_term_near = (p_i_near / (rho_i_near * rho_i_near)) + (p_j_near / (rho_j_near * rho_j_near));    // if using this term, include the rho_i_near multiplier in the calculation of f_pressure_near below
+                    vec2 f_pressure_near = (scaling_near * scaling_near * scaling_near) * rho_i_near * params.mass * p_sym_term_near * (-gradient_W);
                     non_pressure_force += f_pressure_near;
 
                     // viscosity force (viscosity term in Navier-Stokes)
