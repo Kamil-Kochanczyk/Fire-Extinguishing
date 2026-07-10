@@ -18,10 +18,10 @@ Check the above links to learn more about the subsimulations. Here we will only 
 
 Fire and smoke in the fire/smoke subsimulation can only appear on screen continuously (without immediately disappearing) if they have continuous predefined sources (in practice it means that in the original subsimulation a mouse button has to be held continuously to maintain fire and smoke on screen). **A good idea is to be able to "draw" and/or "erase" them on screen using "brushes" and/or "erasers" as if in a graphics editor.** This allows to create fire and smoke in any place on screen and easily tweak their size, strength, location etc.
 
-**We thus extend the algorithm of the original fire/smoke subsimulation by adding the possibility to define several variables by drawing/erasing them on screen with brushes/erasers.** Those variables are listed below.
+**We thus extend the algorithm of the original fire/smoke subsimulation by adding the possibility to define the variable representing fire fuel injection rate by drawing/erasing it on screen with brushes/erasers.** Fire fuel injection rate is $(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}}$ and it contributes to the fire fuel's rate of change, $\frac{d\rho_{\text{fuel}}}{dt} = (\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} + \ldots$. This variable gets its own brush and eraser. Its brush/eraser has some strength and some radius which can be changed at any time. Strength determines how big values of the variable will be drawn on screen or how much of it will be erased from screen. Radius determines the region where the values will be drawn or erased. The values of the drawn variable are assumed to be non-negative. Wherever we draw it with the brush, its value there becomes non-zero and, depending on the strength and radius of the brush, we can draw big, strong fires/smokes which quickly heat in some regions and small, cold fires/smokes which quickly cool in other regions. Eraser works in the opposite way, i.e. it makes the value of the variable go towards zero and can make fire/smoke more subtle both visually and in movement.
 
-* Fire fuel injection rate $(\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}}$
-  * Contributes to the fire fuel's rate of change, $\frac{d\rho_{\text{fuel}}}{dt} = (\frac{d\rho_{\text{fuel}}}{dt})_{\text{inject}} + \ldots$
+In the previous versions of the simulation the following variables also had their brushes/erasers:
+
 * Smoke density injection rate $(\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}}$
   * Contributes to the smoke density's rate of change, $\frac{d\rho_{\text{smoke}}}{dt} = (\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}} + \ldots$
 * Smoke temperature heating injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$
@@ -29,11 +29,17 @@ Fire and smoke in the fire/smoke subsimulation can only appear on screen continu
 * Smoke temperature cooling injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}}$
   * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}} + \ldots$
 
-Each variable gets its own brush and eraser. We assume that $(\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}}$ and $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}}$ are edited with the same brush/eraser. This gives us three brushes and three erasers in total, one for each variable.
+However, smoke temperature cooling injection rate has been left out for simplicity. As for smoke density injection rate and smoke temperature heating injection rate, they have been discarded because it is better to make smoke's intensity and temperature dependent on fire instead of making smoke a completely independent phenomenon. It has been therefore assumed that smoke appears in the simulation due to fire via the relationship:
 
-Every brush/eraser has its strength and radius which can be changed at any time. Strength determines how big values of the corresponding variable will be drawn on screen or how much of it will be erased from screen. Radius determines the region where the values will be drawn or erased. The values of the drawn variables are assumed to be non-negative.
+$$
+(\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}} = k_{\text{smoke}}^{\text{inject}}\rho_{\text{fuel}}
+$$
 
-Wherever we draw a variable with its brush, its value there becomes non-zero and, depending on the strength and radius of the brush, we can draw big, strong fires/smokes which quickly heat in some regions and small, cold fires/smokes which quickly cool in other regions. Eraser works in the opposite way, i.e. it makes the value of the variable go towards zero and can make fire/smoke more subtle both visually and in movement.
+$$
+(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,heat}} = k_{\text{smoke,temperature}}^{\text{inject}}\rho_{\text{fuel}}
+$$
+
+Here $k_{\text{smoke}}^{\text{inject}}$ and $k_{\text{smoke,temperature}}^{\text{inject}}$ are tunable constants controlling the speed of injection.
 
 ## Eulerian-Lagrangian communication
 Since fire/smoke uses eulerian grids and water uses lagrangian particles, we need to find a way for both to communicate with each other, i.e. exchange information, e.g. variables.
@@ -482,30 +488,27 @@ fire_smoke_update(dt):
 
     # 3. Draw/Erase splash masks using brushes/erasers
     draw_erase(fire_fuel_mask)
-    draw_erase(smoke_density_and_heating_mask)
-    draw_erase(smoke_cooling_mask)
 
-    # 4. Splash fire fuel, vapor density and smoke density
+    # 4. Splash fire fuel, smoke density and vapor density
     fire_fuel += splash_fire_fuel(fire_fuel_mask, extinguish_mask, dt)
+    smoke_density += splash_smoke_density(fire_fuel, dt)
     delta_vapor_density = splash_vapor_density(rho_pg, m_evap_pg, dt)
     vapor_density += delta_vapor_density
     smoke_density += delta_vapor_density
-    smoke_density += splash_smoke_density(smoke_density_and_heating_mask, dt)
 
-    # 5. Add fire temperature, vapor temperature and smoke temperature
+    # 5. Add fire temperature, smoke temperature and vapor temperature 
 	fire_temp += add_fire_temp(fire_fuel, dt)
+    smoke_temp += add_smoke_temp(fire_fuel, dt)
     smoke_temp += add_vapor_temp(rho_pg, m_evap_pg)
-	smoke_temp += add_smoke_temp(smoke_density_and_heating_mask, dt)
 
-    # 6. Dissipate fire fuel, vapor density and smoke density
+    # 6. Dissipate fire fuel, smoke density and vapor density
     fire_fuel -= dissipate_fire_fuel(fire_fuel_dissipation_rate, dt)
-    vapor_density -= dissipate_smoke_density(smoke_density_dissipation_rate, dt)
     smoke_density -= dissipate_smoke_density(smoke_density_dissipation_rate, dt)
+    vapor_density -= dissipate_smoke_density(smoke_density_dissipation_rate, dt)
 
     # 7. Dissipate fire temperature and smoke temperature
 	fire_temp -= dissipate_fire_temp(fire_temp_cool_rate, dt)
-	smoke_temp -= cool_smoke_temp(smoke_temp_cool_rate, dt)
-    smoke_temp -= cool_smoke_temp(smoke_cooling_mask, dt)
+	smoke_temp -= dissipate_smoke_temp(smoke_temp_cool_rate, dt)
 
     # 8. Write particle properties to GP Grid
     d_e_gp, e_new_gp, d_h_gp, rho_gp = update_water_energy(fire_temp, rho_pg, e_pg)

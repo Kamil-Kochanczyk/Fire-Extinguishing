@@ -54,6 +54,7 @@ shader = ExtResource("5_rqihb")
 shader_parameter/lod = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_tosn6"]
+resource_local_to_scene = true
 shader = ExtResource("6_jf7k4")
 shader_parameter/u_water_density_threshold = 0.5
 shader_parameter/u_edge_softness = 0.1

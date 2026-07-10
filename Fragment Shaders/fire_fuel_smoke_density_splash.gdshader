@@ -8,6 +8,7 @@ uniform highp sampler2D u_extinguish_mask : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_smoke_temperature_advect : filter_nearest, repeat_disable;
 uniform float u_timestep;
 uniform float u_vapor_density_splash_strength = 1.0;
+uniform float u_density_heating_splash_strength = 10.0;
 uniform float u_density_dissipation_rate = 0.05;
 uniform float u_fire_temp_ambient = 500.0;    // Kelvin
 uniform float u_heating_energy_cost;    // J
@@ -35,13 +36,13 @@ void fragment() {
 		highp float evaporated_mass = particle_density_evaporated_mass.y;
 
 		//highp float is_vapor_new = (particles_latent_heat > 0.0 && fire_temp > u_fire_temp_ambient && u_vapor_density_splash_strength > 0.0) ? 1.0 : 0.0;
-		
+
 		float extinguish_mask = texture(u_extinguish_mask, UV).r;
-		
+
 		rho_fuel += (1.0 - extinguish_mask) * splash_mask.r * u_timestep;
 		rho_fuel = clamp(rho_fuel, 0.0, 1.0);
 
-		rho_density += splash_mask.g * u_timestep;
+		rho_density += rho_fuel * u_density_heating_splash_strength * u_timestep;
 		highp float vapor_delta = evaporated_mass * particle_density * u_vapor_density_splash_strength * u_timestep;
 		rho_density += vapor_delta;
 		is_vapor += vapor_delta;

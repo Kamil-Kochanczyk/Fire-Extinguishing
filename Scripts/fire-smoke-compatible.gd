@@ -92,10 +92,7 @@ extends Node2D
 
 @onready var smoke_disturbance_radius_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer/SmokeDisturbanceRadiusValue
 @onready var smoke_disturbance_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer/SmokeDisturbanceStrengthValue
-@onready var smoke_density_and_heating_splash_radius_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer/SmokeDensityAndHeatingSplashRadiusValue
 @onready var smoke_density_and_heating_splash_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer/SmokeDensityAndHeatingSplashStrengthValue
-@onready var smoke_cooling_splash_radius_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer/SmokeCoolingSplashRadiusValue
-@onready var smoke_cooling_splash_strength_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer/SmokeCoolingSplashStrengthValue
 @onready var smoke_density_dissipation_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer/SmokeDensityDissipationValue
 @onready var smoke_temperature_dissipation_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer/SmokeTemperatureDissipationValue
 @onready var smoke_vorticity_scale_value: Label = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer/SmokeVorticityScaleValue
@@ -109,10 +106,7 @@ extends Node2D
 
 @onready var smoke_disturbance_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceRadiusHBoxContainer/SmokeDisturbanceRadiusMarginContainer/SmokeDisturbanceRadiusHSlider
 @onready var smoke_disturbance_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDisturbanceStrengthHBoxContainer/SmokeDisturbanceStrengthMarginContainer/SmokeDisturbanceStrengthHSlider
-@onready var smoke_density_and_heating_splash_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashRadiusHBoxContainer/SmokeDensityAndHeatingSplashRadiusMarginContainer/SmokeDensityAndHeatingSplashRadiusHSlider
 @onready var smoke_density_and_heating_splash_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityAndHeatingSplashStrengthHBoxContainer/SmokeDensityAndHeatingSplashStrengthMarginContainer/SmokeDensityAndHeatingSplashStrengthHSlider
-@onready var smoke_cooling_splash_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashRadiusHBoxContainer/SmokeCoolingSplashRadiusMarginContainer/SmokeCoolingSplashRadiusHSlider
-@onready var smoke_cooling_splash_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeCoolingSplashStrengthHBoxContainer/SmokeCoolingSplashStrengthMarginContainer/SmokeCoolingSplashStrengthHSlider
 @onready var smoke_density_dissipation_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeDensityDissipationHBoxContainer/SmokeDensityDissipationMarginContainer/SmokeDensityDissipationHSlider
 @onready var smoke_temperature_dissipation_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeTemperatureDissipationHBoxContainer/SmokeTemperatureDissipationMarginContainer/SmokeTemperatureDissipationHSlider
 @onready var smoke_vorticity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVorticityScaleHBoxContainer/SmokeVorticityScaleMarginContainer/SmokeVorticityScaleHSlider
@@ -130,9 +124,9 @@ extends Node2D
 
 @onready var smoke_custom_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeColorPickerHBoxContainer/SmokeCustomToggleMarginContainer/SmokeCustomToggleHBoxContainer/SmokeCustomColorPickerButton
 
-@export var pressure_jacobi_iterations: int = 25
+@export var pressure_jacobi_iterations: int = 20
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
-@export var pg_gp_size: Vector2i = Vector2i(256, 256)
+@export var pg_gp_size: Vector2i = Vector2i(96, 54)
 @export var fire_temp_ambient: float = 300.0
 @export var fire_temp_max: float = 2000.0
 @export var fire_temp_burn: float = 2000.0
@@ -221,12 +215,12 @@ var fire_default_disturbance_strength: float = 2.5
 var fire_default_splash_radius: float = 0.05
 var fire_default_splash_strength: float = 7.5
 var fire_default_fuel_dissipation: float = 0.925
-var fire_default_fuel_burn_strength: float = 0.05
-var fire_default_temperature_release_rate: float = 10.0
-var fire_default_temperature_dissipation: float = 10000.0
-var fire_default_temperature_cool_exponent: float = 1.0
-var fire_default_vorticity_scale: float = 5.0
-var fire_default_buoyancy_strength: float = 10.0
+var fire_default_fuel_burn_strength: float = 0.13
+var fire_default_temperature_release_rate: float = 7.5
+var fire_default_temperature_dissipation: float = 5000.0
+var fire_default_temperature_cool_exponent: float = 4.0
+var fire_default_vorticity_scale: float = 15.0
+var fire_default_buoyancy_strength: float = 3.0
 var fire_default_vel_abs_val_limit: float = 1.0
 var fire_default_vis_temp_threshold: float = 750.0    # auxiliary variable so that we can see which temperatures we see on screen
 var fire_default_water_heating_speed: float = 50.0
@@ -264,15 +258,15 @@ var fire_curr_custom_color_toggled_on: bool = fire_default_custom_color_toggled_
 
 var smoke_default_disturbance_radius: float = 0.005
 var smoke_default_disturbance_strength: float = 2.5
-var smoke_default_density_and_heating_splash_radius: float = 0.05
-var smoke_default_density_and_heating_splash_strength: float = 10.0
-var smoke_default_cooling_splash_radius: float = 0.2
-var smoke_default_cooling_splash_strength: float = 10.0
+#var smoke_default_density_and_heating_splash_radius: float = 0.05
+var smoke_default_density_and_heating_splash_strength: float = 7.5
+#var smoke_default_cooling_splash_radius: float = 0.2
+#var smoke_default_cooling_splash_strength: float = 10.0
 var smoke_default_density_dissipation: float = 0.05
-var smoke_default_temperature_dissipation: float = 0.05
-var smoke_default_vorticity_scale: float = 5.0
-var smoke_default_dense_down_force: float = 0.1
-var smoke_default_hot_up_force: float = 2.0
+var smoke_default_temperature_dissipation: float = 0.3
+var smoke_default_vorticity_scale: float = 8.0
+var smoke_default_dense_down_force: float = 0.05
+var smoke_default_hot_up_force: float = 1.0
 var smoke_default_vel_abs_val_limit: float = 1.0
 var smoke_default_vapor_density_splash_strength: float = 100.0
 var smoke_default_vapor_heating_splash_strength: float = 100.0
@@ -287,10 +281,10 @@ var smoke_default_custom_color: Color = Color.WHITE
 
 var smoke_curr_disturbance_radius: float = smoke_default_disturbance_radius
 var smoke_curr_disturbance_strength: float = smoke_default_disturbance_strength
-var smoke_curr_density_and_heating_splash_radius: float = smoke_default_density_and_heating_splash_radius
+#var smoke_curr_density_and_heating_splash_radius: float = smoke_default_density_and_heating_splash_radius
 var smoke_curr_density_and_heating_splash_strength: float = smoke_default_density_and_heating_splash_strength
-var smoke_curr_cooling_splash_radius: float = smoke_default_cooling_splash_radius
-var smoke_curr_cooling_splash_strength: float = smoke_default_cooling_splash_strength
+#var smoke_curr_cooling_splash_radius: float = smoke_default_cooling_splash_radius
+#var smoke_curr_cooling_splash_strength: float = smoke_default_cooling_splash_strength
 var smoke_curr_density_dissipation: float = smoke_default_density_dissipation
 var smoke_curr_temperature_dissipation: float = smoke_default_temperature_dissipation
 var smoke_curr_vorticity_scale: float = smoke_default_vorticity_scale
@@ -320,7 +314,7 @@ var particle_vaporization_energy_cost: float
 var particle_total_energy_cost: float
 
 func fire_smoke_ready() -> void:
-	Engine.max_fps = 120
+	#Engine.max_fps = 120
 	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
 	
@@ -443,13 +437,15 @@ func fire_smoke_process(delta: float) -> void:
 	velocity_forces_sprite.material.set("shader_parameter/u_smoke_beta", smoke_curr_hot_up_force)
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_splash_radius", fire_curr_splash_radius)
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_splash_strength", fire_curr_splash_strength)
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_radius", smoke_curr_density_and_heating_splash_radius)
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_strength", smoke_curr_density_and_heating_splash_strength)
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_radius", smoke_curr_cooling_splash_radius)
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_strength", smoke_curr_cooling_splash_strength)
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_radius", smoke_curr_density_and_heating_splash_radius)
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_strength", smoke_curr_density_and_heating_splash_strength)
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_radius", smoke_curr_cooling_splash_radius)
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_splash_strength", smoke_curr_cooling_splash_strength)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_vapor_density_splash_strength", smoke_curr_vapor_density_splash_strength)
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_density_heating_splash_strength", smoke_curr_density_and_heating_splash_strength)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_density_dissipation_rate", smoke_curr_density_dissipation)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_release_rate", fire_curr_temperature_release_rate)
+	fire_smoke_temperature_sprite.material.set("shader_parameter/u_density_heating_splash_strength", smoke_curr_density_and_heating_splash_strength)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_dissipation_rate", smoke_curr_temperature_dissipation)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_vapor_heating_splash_strength", smoke_curr_vapor_heating_splash_strength)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_gamma_fuel", fire_curr_fuel_dissipation)
@@ -491,15 +487,15 @@ func fire_smoke_process(delta: float) -> void:
 			else:
 				stop_disturbing_smoke_velocity()
 			
-			if left_button_clicked:
-				splash_smoke_density_heat_smoke_temperature(screen_to_uv(display), !shift_key_pressed)
-			else:
-				stop_splashing_smoke_density_heating_smoke_temperature()
+			#if left_button_clicked:
+				#splash_smoke_density_heat_smoke_temperature(screen_to_uv(display), !shift_key_pressed)
+			#else:
+				#stop_splashing_smoke_density_heating_smoke_temperature()
 			
-			if middle_button_clicked:
-				cool_smoke_temperature(screen_to_uv(display), !shift_key_pressed)
-			else:
-				stop_cooling_smoke_temperature()
+			#if middle_button_clicked:
+				#cool_smoke_temperature(screen_to_uv(display), !shift_key_pressed)
+			#else:
+				#stop_cooling_smoke_temperature()
 	
 	fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
 
@@ -693,25 +689,25 @@ func init_slider_callbacks() -> void:
 		smoke_disturbance_strength_h_slider.value = new_value
 		smoke_curr_disturbance_strength = new_value
 	
-	slider_callbacks_dict["SmokeDensityAndHeatingSplashRadiusHSlider"] = func(new_value: float) -> void:
-		smoke_density_and_heating_splash_radius_value.text = str(new_value)
-		smoke_density_and_heating_splash_radius_h_slider.value = new_value
-		smoke_curr_density_and_heating_splash_radius = new_value
+	#slider_callbacks_dict["SmokeDensityAndHeatingSplashRadiusHSlider"] = func(new_value: float) -> void:
+		#smoke_density_and_heating_splash_radius_value.text = str(new_value)
+		#smoke_density_and_heating_splash_radius_h_slider.value = new_value
+		#smoke_curr_density_and_heating_splash_radius = new_value
 	
 	slider_callbacks_dict["SmokeDensityAndHeatingSplashStrengthHSlider"] = func(new_value: float) -> void:
 		smoke_density_and_heating_splash_strength_value.text = str(new_value)
 		smoke_density_and_heating_splash_strength_h_slider.value = new_value
 		smoke_curr_density_and_heating_splash_strength = new_value
 	
-	slider_callbacks_dict["SmokeCoolingSplashRadiusHSlider"] = func(new_value: float) -> void:
-		smoke_cooling_splash_radius_value.text = str(new_value)
-		smoke_cooling_splash_radius_h_slider.value = new_value
-		smoke_curr_cooling_splash_radius = new_value
+	#slider_callbacks_dict["SmokeCoolingSplashRadiusHSlider"] = func(new_value: float) -> void:
+		#smoke_cooling_splash_radius_value.text = str(new_value)
+		#smoke_cooling_splash_radius_h_slider.value = new_value
+		#smoke_curr_cooling_splash_radius = new_value
 	
-	slider_callbacks_dict["SmokeCoolingSplashStrengthHSlider"] = func(new_value: float) -> void:
-		smoke_cooling_splash_strength_value.text = str(new_value)
-		smoke_cooling_splash_strength_h_slider.value = new_value
-		smoke_curr_cooling_splash_strength = new_value
+	#slider_callbacks_dict["SmokeCoolingSplashStrengthHSlider"] = func(new_value: float) -> void:
+		#smoke_cooling_splash_strength_value.text = str(new_value)
+		#smoke_cooling_splash_strength_h_slider.value = new_value
+		#smoke_curr_cooling_splash_strength = new_value
 	
 	slider_callbacks_dict["SmokeDensityDissipationHSlider"] = func(new_value: float) -> void:
 		smoke_density_dissipation_value.text = str(new_value)
@@ -833,10 +829,10 @@ func reset_params() -> void:
 	
 	slider_callbacks_dict["SmokeDisturbanceRadiusHSlider"].call(smoke_default_disturbance_radius)
 	slider_callbacks_dict["SmokeDisturbanceStrengthHSlider"].call(smoke_default_disturbance_strength)
-	slider_callbacks_dict["SmokeDensityAndHeatingSplashRadiusHSlider"].call(smoke_default_density_and_heating_splash_radius)
+	#slider_callbacks_dict["SmokeDensityAndHeatingSplashRadiusHSlider"].call(smoke_default_density_and_heating_splash_radius)
 	slider_callbacks_dict["SmokeDensityAndHeatingSplashStrengthHSlider"].call(smoke_default_density_and_heating_splash_strength)
-	slider_callbacks_dict["SmokeCoolingSplashRadiusHSlider"].call(smoke_default_cooling_splash_radius)
-	slider_callbacks_dict["SmokeCoolingSplashStrengthHSlider"].call(smoke_default_cooling_splash_strength)
+	#slider_callbacks_dict["SmokeCoolingSplashRadiusHSlider"].call(smoke_default_cooling_splash_radius)
+	#slider_callbacks_dict["SmokeCoolingSplashStrengthHSlider"].call(smoke_default_cooling_splash_strength)
 	slider_callbacks_dict["SmokeDensityDissipationHSlider"].call(smoke_default_density_dissipation)
 	slider_callbacks_dict["SmokeTemperatureDissipationHSlider"].call(smoke_default_temperature_dissipation)
 	slider_callbacks_dict["SmokeVorticityScaleHSlider"].call(smoke_default_vorticity_scale)
@@ -882,21 +878,21 @@ func stop_splashing_fire_fuel() -> void:
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_splash_position", Vector2(-1.0, -1.0))
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_eraser_off", 1)
 
-func splash_smoke_density_heat_smoke_temperature(splash_position: Vector2, eraser_off: bool) -> void:
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_position", splash_position)
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_eraser_off", int(eraser_off))
+#func splash_smoke_density_heat_smoke_temperature(splash_position: Vector2, eraser_off: bool) -> void:
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_position", splash_position)
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_eraser_off", int(eraser_off))
 
-func stop_splashing_smoke_density_heating_smoke_temperature() -> void:
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_position", Vector2(-1.0, -1.0))
-	splash_mask_sprite.material.set("shader_parameter/u_density_heating_eraser_off", 1)
+#func stop_splashing_smoke_density_heating_smoke_temperature() -> void:
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_splash_position", Vector2(-1.0, -1.0))
+	#splash_mask_sprite.material.set("shader_parameter/u_density_heating_eraser_off", 1)
 
-func cool_smoke_temperature(cool_position: Vector2, eraser_off: bool) -> void:
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_mouse_position", cool_position)
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_eraser_off", int(eraser_off))
+#func cool_smoke_temperature(cool_position: Vector2, eraser_off: bool) -> void:
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_mouse_position", cool_position)
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_eraser_off", int(eraser_off))
 
-func stop_cooling_smoke_temperature() -> void:
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_mouse_position", Vector2(-1.0, -1.0))
-	splash_mask_sprite.material.set("shader_parameter/u_cooling_eraser_off", 1)
+#func stop_cooling_smoke_temperature() -> void:
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_mouse_position", Vector2(-1.0, -1.0))
+	#splash_mask_sprite.material.set("shader_parameter/u_cooling_eraser_off", 1)
 
 func set_up_pressure_jacobi() -> void:
 	# set up PressureJacobiN-PressureBoundaryN pairs
@@ -1463,3 +1459,6 @@ func plancks_law_normalized(wavelength: float, temperature: float, m_max: float,
 func set_obstacle(polygon: Polygon2D) -> void:
 	obstacle_polygon_2d = polygon
 	polygon.reparent(obstacles_raw_viewport)
+
+func get_obstacle_sampler() -> SubViewport:
+	return obstacles_raw_viewport

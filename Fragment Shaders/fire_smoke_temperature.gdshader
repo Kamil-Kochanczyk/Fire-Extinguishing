@@ -5,7 +5,7 @@ uniform highp sampler2D u_particles_to_grid : filter_linear, repeat_disable;
 uniform highp sampler2D u_obstacles_raw : filter_nearest, repeat_disable;
 uniform highp sampler2D u_splash_mask : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_fuel_smoke_density_splash : filter_nearest, repeat_disable;
-//uniform highp sampler2D u_extinguish_mask_helper : filter_nearest, repeat_disable;
+uniform highp sampler2D u_extinguish_mask : filter_nearest, repeat_disable;
 uniform highp sampler2D u_fire_fuel_smoke_density_advect : filter_nearest, repeat_disable;
 
 uniform bool u_init_state = true;
@@ -16,8 +16,8 @@ uniform float u_fire_temp_max = 2000.0;    // Kelvin
 uniform highp float u_smoke_temp_ambient = 300.0;    // Kelvin
 uniform highp float u_smoke_temp_max = 500.0;    // Kelvin
 uniform float u_fire_temp_release_rate = 7.5;
+uniform float u_density_heating_splash_strength = 10.0;
 uniform float u_smoke_temp_dissipation_rate = 0.05;
-
 uniform float u_vapor_heating_splash_strength = 1.0;
 uniform float u_heating_energy_cost;    // J
 
@@ -63,10 +63,10 @@ void fragment() {
 		}
 		else {
 			smoke_temp_new = smoke_temp_previous;
-			smoke_temp_new += splash_mask.g * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			smoke_temp_new += rho_fuel * u_density_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			highp float vapor_delta = evaporated_mass * particle_density * u_vapor_heating_splash_strength * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new += vapor_delta;
-			smoke_temp_new -= splash_mask.b * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
+			//smoke_temp_new -= splash_mask.b * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new -= u_smoke_temp_dissipation_rate * (u_smoke_temp_max - u_smoke_temp_ambient) * u_timestep;
 			smoke_temp_new = clamp(smoke_temp_new, u_smoke_temp_ambient, u_smoke_temp_max);
 		}

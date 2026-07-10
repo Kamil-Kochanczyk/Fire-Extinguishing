@@ -78,7 +78,7 @@ extends Node2D
 
 ## [%]
 ## How many particles are mortal.
-@export var mortal_particles_amount: float = 1.0
+@export var mortal_particles_amount: float = 0.5
 
 ## [%]
 ## How many mortal particles start the simulation as alive.
@@ -86,15 +86,15 @@ extends Node2D
 
 ## [%]
 ## How many immortal particles start the simulation as alive.
-@export var init_alive_immortal_particles_amount: float = 0.0
+@export var init_alive_immortal_particles_amount: float = 1.0
 
 ## [seconds]
 ## Lower bound for random lifetime of mortal particles.
-@export var mortal_particle_lifetime_min: float = 2.0
+@export var mortal_particle_lifetime_min: float = 3.0
 
 ## [seconds]
 ## Upper bound for random lifetime of mortal particles.
-@export var mortal_particle_lifetime_max: float = 3.0
+@export var mortal_particle_lifetime_max: float = 5.0
 
 ## [K]
 ## Default (initial) temperature.
@@ -105,17 +105,17 @@ extends Node2D
 @export var particle_temp_max: float = 373.0
 
 ## Size of particles->grid and grid->particles viewports.
-@export var pg_gp_size: Vector2i = Vector2i(256, 256)
+@export var pg_gp_size: Vector2i = Vector2i(96, 54)
 #endregion
 
 #region real-time tweakables
-var water_main_color: Color = Color(0.0, 0.413, 0.66, 1.0)
-var water_tint_color: Color = Color(0.0, 0.652, 0.85, 1.0)
+var water_main_color: Color = Color(0.0, 0.762, 0.672, 1.0)
+var water_tint_color: Color = Color(0.0, 1.0, 0.883, 1.0)
 var particle_color: Color = Color.RED    # predefined, used to encode the density in the R channel
 var particle_vis_size: float = 0.25
 var rest_density: float = 1.0
 var stiffness: float = 10.0
-var stiffness_near: float = 2.0
+var stiffness_near: float = 1.0
 var viscosity_scale: float = 0.0005
 var xsph_scale: float = 0.03
 var vorticity_scale: float = 1.5
@@ -126,12 +126,12 @@ var adhesion_scale: float = 0.3
 var gravity_multiplier: float = 1.0
 var damping: float = 0.9999
 var bounds_damping: float = 0.5
-var vel_clamp: float = 3.0
+var vel_clamp: float = 20.0
 var mouse_interaction_radius: float = 0.25
 var mouse_interaction_strength: float = 25.0
-var glass_movement_speed: float = 200.0    # px / s
-var glass_rotation_speed: float = 3.141    # radians / s
-var glass_scaling_speed: Vector2 = Vector2(3.0, 3.0)    # px / s
+var glass_movement_speed: float = 50.0    # px / s
+var glass_rotation_speed: float = 3.141 / 3.0    # radians / s
+var glass_scaling_speed: Vector2 = Vector2(0.9, 0.9)    # px / s
 var spawn_rate: float = 32000.0     # particles / s
 var spawn_random_offset_range: int = 16    # in particle_spacing units
 var spawn_init_vel: Vector2 = Vector2(0.0, 0.0)
@@ -3889,3 +3889,6 @@ func get_extinguishing_data() -> Array[float]:
 
 func get_obstacle() -> Polygon2D:
 	return glass
+
+func set_obstacle_sampler(obstacles_raw_viewport: SubViewport) -> void:
+	upscaled_texture_rect.material.set("shader_parameter/u_obstacles_raw", obstacles_raw_viewport.get_texture())
