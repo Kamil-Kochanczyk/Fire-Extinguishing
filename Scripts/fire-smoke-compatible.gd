@@ -1,9 +1,6 @@
 class_name FireSmokeCompatible
 extends Node2D
 
-@onready var tmp_display_viewport: SubViewport = $TmpDisplayViewport
-@onready var tmp_sprite: Sprite2D = $TmpDisplayViewport/Sprite2D
-
 @onready var particles_to_grid_texture_rect: TextureRect = $ParticlesToGridViewport/TextureRect
 @onready var velocity_sprite: Sprite2D = $VelocityViewport/Sprite2D
 @onready var splash_mask_sprite: Sprite2D = $SplashMaskViewport/Sprite2D
@@ -21,6 +18,7 @@ extends Node2D
 @onready var plancks_law_sprite: Sprite2D = $PlancksLawViewport/Sprite2D
 @onready var smoke_vis_sprite: Sprite2D = $SmokeVisViewport/Sprite2D
 @onready var grid_to_particles_texture_rect: TextureRect = $GridToParticlesViewport/TextureRect
+@onready var extinguish_mask_overlay_sprite: Sprite2D = $ExtinguishMaskOverlayViewport/Sprite2D
 
 @onready var particles_to_grid_viewport: SubViewport = $ParticlesToGridViewport
 @onready var obstacles_raw_viewport: SubViewport = $ObstaclesRawViewport
@@ -36,6 +34,7 @@ extends Node2D
 @onready var smoke_vis_viewport: SubViewport = $SmokeVisViewport
 @onready var fire_smoke_together_viewport: SubViewport = $FireSmokeTogetherViewport
 @onready var grid_to_particles_viewport: SubViewport = $GridToParticlesViewport
+@onready var extinguish_mask_overlay_viewport: SubViewport = $ExtinguishMaskOverlayViewport
 
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var display: Sprite2D = $Display
@@ -211,8 +210,8 @@ var curr_display_index: int = -1
 var curr_params_panel: MarginContainer = null
 
 var fire_default_disturbance_radius: float = 0.005
-var fire_default_disturbance_strength: float = 2.5
-var fire_default_splash_radius: float = 0.05
+var fire_default_disturbance_strength: float = 0.0
+var fire_default_splash_radius: float = 0.025
 var fire_default_splash_strength: float = 7.5
 var fire_default_fuel_dissipation: float = 0.925
 var fire_default_fuel_burn_strength: float = 0.13
@@ -225,8 +224,8 @@ var fire_default_vel_abs_val_limit: float = 1.0
 var fire_default_vis_temp_threshold: float = 750.0    # auxiliary variable so that we can see which temperatures we see on screen
 var fire_default_water_heating_speed: float = 50.0
 var fire_default_water_vaporization_speed: float = 500.0
-var fire_default_temp_drop_sensitivity: float = 2500.0
-var fire_default_extinguish_strength: float = 0.1
+var fire_default_temp_drop_sensitivity: float = 1000.0
+var fire_default_extinguish_strength: float = 0.01
 var fire_default_reignition_strength: float = 0.02
 
 var fire_default_obstacle_toggled_on: bool = true
@@ -257,7 +256,7 @@ var fire_curr_baked_color_toggled_on: bool = fire_default_baked_color_toggled_on
 var fire_curr_custom_color_toggled_on: bool = fire_default_custom_color_toggled_on
 
 var smoke_default_disturbance_radius: float = 0.005
-var smoke_default_disturbance_strength: float = 2.5
+var smoke_default_disturbance_strength: float = 0.0
 #var smoke_default_density_and_heating_splash_radius: float = 0.05
 var smoke_default_density_and_heating_splash_strength: float = 7.5
 #var smoke_default_cooling_splash_radius: float = 0.2
@@ -268,8 +267,8 @@ var smoke_default_vorticity_scale: float = 8.0
 var smoke_default_dense_down_force: float = 0.05
 var smoke_default_hot_up_force: float = 1.0
 var smoke_default_vel_abs_val_limit: float = 1.0
-var smoke_default_vapor_density_splash_strength: float = 100.0
-var smoke_default_vapor_heating_splash_strength: float = 100.0
+var smoke_default_vapor_density_splash_strength: float = 10.0
+var smoke_default_vapor_heating_splash_strength: float = 10.0
 var smoke_default_min_albedo: float = 0.0
 var smoke_default_max_albedo: float = 0.1
 
@@ -306,6 +305,9 @@ var slider_callbacks_dict: Dictionary = {}
 var toggle_callbacks_dict: Dictionary = {}
 var color_picker_button_callbacks_dict: Dictionary = {}
 
+var FIXED_DT: float = 1.0 / 120.0
+#var time_accumulator: float = 0.0
+
 var particle_mass: float
 var particle_specific_heat_capacity: float
 var particle_specific_latent_heat_vaporization: float
@@ -313,9 +315,7 @@ var particle_heating_energy_cost: float
 var particle_vaporization_energy_cost: float
 var particle_total_energy_cost: float
 
-func fire_smoke_ready() -> void:
-	#Engine.max_fps = 120
-	
+func fire_smoke_ready() -> void:	
 	assert(pressure_jacobi_iterations > 0, "At least one iteration is required for pressure solving")
 	
 	for vp in get_tree().get_nodes_in_group("ViewportPipeline"):
@@ -408,21 +408,24 @@ func fire_smoke_ready() -> void:
 	
 	reset_params()
 
-func fire_smoke_process(delta: float) -> void:
+func fire_smoke_process(_delta: float) -> void:
+	#time_accumulator += delta
 	
-	tmp_sprite.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
+	#while time_accumulator >= FIXED_DT:
 	
-	velocity_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_smoke_temperature_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_fuel_burn_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_temperature_cool_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_timestep", delta)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_timestep", delta)
-	extinguish_mask_sprite.material.set("shader_parameter/u_timestep", delta)
-	velocity_forces_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_smoke_temperature_advect_sprite.material.set("shader_parameter/u_timestep", delta)
-	fire_fuel_smoke_density_advect_sprite.material.set("shader_parameter/u_timestep", delta)
+	#tmp_sprite.material.set("shader_parameter/u_fire_vis_temp_threshold", fire_curr_vis_temp_threshold)
+	
+	velocity_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_smoke_temperature_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_fuel_burn_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_temperature_cool_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	grid_to_particles_texture_rect.material.set("shader_parameter/u_timestep", FIXED_DT)
+	extinguish_mask_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	velocity_forces_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_smoke_temperature_advect_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
+	fire_fuel_smoke_density_advect_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
 	
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_heating_speed", fire_curr_water_heating_speed)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_water_vaporization_speed", fire_curr_water_vaporization_speed)
@@ -496,6 +499,8 @@ func fire_smoke_process(delta: float) -> void:
 				#cool_smoke_temperature(screen_to_uv(display), !shift_key_pressed)
 			#else:
 				#stop_cooling_smoke_temperature()
+			
+		#time_accumulator -= FIXED_DT
 	
 	fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
 

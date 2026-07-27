@@ -35,10 +35,6 @@ layout(set = 0, binding = 7, std430) restrict readonly buffer IsAlive {
     uint is_alive[];
 };
 
-// layout(set = 0, binding = 8, std430) restrict readonly buffer Temperatures {
-//     float temperatures[];
-// };
-
 layout(set = 0, binding = 8, std430) restrict readonly buffer Energies {
     float energies[];
 };

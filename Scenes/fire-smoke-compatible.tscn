@@ -1,4 +1,4 @@
-[gd_scene load_steps=106 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=104 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -26,7 +26,7 @@
 [ext_resource type="PackedScene" uid="uid://8ytan70082j4" path="res://Scenes/gradient-editor.tscn" id="21_5kuns"]
 [ext_resource type="Shader" uid="uid://hl1nakw6w7o1" path="res://Fragment Shaders/modify_particle_temperature.gdshader" id="21_hbe1w"]
 [ext_resource type="Texture2D" uid="uid://jx5qiufhrwxj" path="res://Fire Color Spectrum/plancks_law.png" id="23_xnvxc"]
-[ext_resource type="Shader" uid="uid://6soyjqo217c7" path="res://Fragment Shaders/tmp.gdshader" id="24_kid1v"]
+[ext_resource type="Shader" uid="uid://6soyjqo217c7" path="res://Fragment Shaders/extinguish_mask_overlay.gdshader" id="24_kid1v"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kid1v"]
 shader = ExtResource("2_cwdux")
@@ -363,12 +363,6 @@ shader_parameter/u_fire_fuel_smoke_density_advect = SubResource("ViewportTexture
 [sub_resource type="ViewportTexture" id="ViewportTexture_5u06a"]
 viewport_path = NodePath("PlancksLawViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_ipvjk"]
-viewport_path = NodePath("ExtinguishMaskViewport")
-
-[sub_resource type="ViewportTexture" id="ViewportTexture_vueri"]
-viewport_path = NodePath("FireSmokeTemperatureAdvectViewport")
-
 [sub_resource type="ViewportTexture" id="ViewportTexture_ccjs0"]
 viewport_path = NodePath("SplashMaskViewport")
 
@@ -376,12 +370,9 @@ viewport_path = NodePath("SplashMaskViewport")
 resource_local_to_scene = true
 shader = ExtResource("24_kid1v")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_ccjs0")
-shader_parameter/u_fire_smoke_temperature_advect = SubResource("ViewportTexture_vueri")
-shader_parameter/u_extinguish_mask = SubResource("ViewportTexture_ipvjk")
-shader_parameter/u_fire_vis_temp_threshold = 750.0
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_yeig1"]
-viewport_path = NodePath("FireFuelSmokeDensityAdvectViewport")
+viewport_path = NodePath("ExtinguishMaskViewport")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_8yd1n"]
 viewport_path = NodePath("PlancksLawViewport")
@@ -435,7 +426,6 @@ disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
 size = Vector2i(1152, 648)
-render_target_clear_mode = 1
 render_target_update_mode = 4
 
 [node name="Sprite2D" type="Sprite2D" parent="ObstaclesRawViewport"]
@@ -449,7 +439,6 @@ disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
 size = Vector2i(1152, 648)
-render_target_clear_mode = 1
 render_target_update_mode = 4
 
 [node name="Sprite2D" type="Sprite2D" parent="ObstaclesEdgesViewport"]
@@ -774,7 +763,7 @@ material = SubResource("ShaderMaterial_fcd3f")
 texture = SubResource("ViewportTexture_5u06a")
 centered = false
 
-[node name="TmpDisplayViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
+[node name="ExtinguishMaskOverlayViewport" type="SubViewport" parent="." groups=["ViewportPipeline"]]
 disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
@@ -782,7 +771,7 @@ size = Vector2i(1152, 648)
 render_target_clear_mode = 1
 render_target_update_mode = 4
 
-[node name="Sprite2D" type="Sprite2D" parent="TmpDisplayViewport"]
+[node name="Sprite2D" type="Sprite2D" parent="ExtinguishMaskOverlayViewport"]
 texture_filter = 1
 texture_repeat = 1
 material = SubResource("ShaderMaterial_xnvxc")
@@ -1274,12 +1263,12 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 3000.0
 step = 10.0
-value = 2500.0
+value = 1000.0
 
 [node name="FireTempDropSensitivityValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireTempDropSensitivityHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "2500.0"
+text = "1000.0"
 
 [node name="FireExtinguishStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
@@ -1298,14 +1287,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 0.2
+max_value = 0.05
 step = 0.001
-value = 0.1
+value = 0.01
 
 [node name="FireExtinguishStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer/FireExtinguishStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.1"
+text = "0.01"
 
 [node name="FireReignitionStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/FireBottomMarginContainer/FirePanelContainer/FireMarginContainer/FireVBoxContainer"]
 layout_mode = 2
@@ -1680,12 +1669,13 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-value = 100.0
+max_value = 25.0
+value = 10.0
 
 [node name="SmokeVaporDensitySplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporDensitySplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "100.0"
+text = "10.0"
 
 [node name="SmokeVaporHeatingSplashStrengthHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2
@@ -1704,12 +1694,13 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-value = 100.0
+max_value = 25.0
+value = 10.0
 
 [node name="SmokeVaporHeatingSplashStrengthValue" type="Label" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer/SmokeVaporHeatingSplashStrengthHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "100.0"
+text = "10.0"
 
 [node name="SmokeMinAlbedoHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/SmokeBottomMarginContainer/SmokePanelContainer/SmokeMarginContainer/SmokeVBoxContainer"]
 layout_mode = 2

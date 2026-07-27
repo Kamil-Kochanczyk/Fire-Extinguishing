@@ -4,10 +4,14 @@ extends Node
 @onready var water: WaterCompatible = $WaterCompatible
 @onready var fire_smoke: FireSmokeCompatible = $FireSmokeCompatible
 
-@onready var tmp_display: Sprite2D = $TmpDisplay
+@onready var extinguish_mask_overlay: Sprite2D = $ExtinguishMaskOverlay
 @onready var texture_rect: TextureRect = $TextureRect
 
+@onready var benchmarker: Benchmarker = $Benchmarker
+
 func _ready() -> void:
+	Engine.max_fps = 120
+	
 	#var plancks_law_image: Image = fire_smoke.generate_blackbody_lookup(512, 300.0, 2000.0, 1.0, 1e7, "res://Fire Color Spectrum/plancks_law.png")
 	#texture_rect.texture = ImageTexture.create_from_image(plancks_law_image)
 	
@@ -28,12 +32,10 @@ func _ready() -> void:
 	
 	water.canvas_layer.visible = false
 	
-	#tmp_display.texture = fire_smoke.particles_to_grid_viewport.get_texture()
-	#tmp_display.texture = fire_smoke.grid_to_particles_viewport.get_texture()
-	#tmp_display.texture = fire_smoke.splash_mask_helper_viewport.get_texture()
-	tmp_display.texture = fire_smoke.tmp_display_viewport.get_texture()
+	extinguish_mask_overlay.texture = fire_smoke.extinguish_mask_overlay_viewport.get_texture()
 
 func _process(delta: float) -> void:
+	benchmarker.measure(delta)
 	fire_smoke.fire_smoke_process(delta)
 	await RenderingServer.frame_post_draw
 	water.get_grid_data()
@@ -41,9 +43,18 @@ func _process(delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_1:
+		if event.keycode == KEY_1 or event.keycode == KEY_2 or event.keycode == KEY_3:
 			fire_smoke.canvas_layer.visible = true
 			water.canvas_layer.visible = false
 		elif event.keycode == KEY_4:
 			fire_smoke.canvas_layer.visible = false
 			water.canvas_layer.visible = true
+		elif event.keycode == KEY_L:
+			water.on = not water.on
+			extinguish_mask_overlay.visible = not extinguish_mask_overlay.visible
+		elif event.keycode == KEY_B:
+			print(water.frame_counter)
+			#if not benchmarker.is_recording():
+				#benchmarker.start_new_measurement()
+			#else:
+				#benchmarker.stop_curr_measurement()

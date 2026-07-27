@@ -110,14 +110,14 @@ void fragment() {
 		highp float current_heating_energy = min(orig_particle_energy, u_heating_energy_cost);
 		highp float heating_energy_desirable = u_heating_energy_cost - current_heating_energy;
 		highp float heating_energy_used = min(heat_transfer, heating_energy_desirable);
-		modified_temperature += (u_water_heating_speed * (heating_energy_used / (u_mass * u_specific_heat_capacity)));
+		modified_temperature += ((8.0 * u_water_heating_speed) * (heating_energy_used / (u_mass * u_specific_heat_capacity)));
 		modified_temperature = clamp(modified_temperature, u_particle_temp_ambient, u_particle_temp_max);
 
 		if (modified_temperature >= u_particle_temp_max) {
 			highp float heat_transfer_remaining = heat_transfer - heating_energy_used;
 			highp float vaporization_energy_desirable = u_vaporization_energy_cost - orig_particle_latent_heat;
 			highp float vaporization_energy_used = min(heat_transfer_remaining, vaporization_energy_desirable);
-			modified_latent_heat += (u_water_vaporization_speed * vaporization_energy_used);
+			modified_latent_heat += ((8.0 * u_water_vaporization_speed) * vaporization_energy_used);
 			modified_latent_heat = clamp(modified_latent_heat, 0.0, u_vaporization_energy_cost);
 		}
 
