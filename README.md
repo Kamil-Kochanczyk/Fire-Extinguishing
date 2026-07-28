@@ -29,7 +29,7 @@ In the previous versions of the simulation the following variables also had thei
 * Smoke temperature cooling injection rate $(\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}}$
   * Contributes to the smoke temperature's rate of change, $\frac{dT_{\text{smoke}}}{dt} = (\frac{dT_{\text{smoke}}}{dt})_{\text{inject,cool}} + \ldots$
 
-However, smoke temperature cooling injection rate has been left out for simplicity. As for smoke density injection rate and smoke temperature heating injection rate, they have been discarded because it is better to make smoke's intensity and temperature dependent on fire instead of making smoke a completely independent phenomenon. It has been therefore assumed that smoke appears in the simulation due to fire via the relationship:
+However, smoke temperature cooling injection rate has been left out for simplicity but can be easily added again, if needed. As for smoke density injection rate and smoke temperature heating injection rate, they have been discarded because it is better to make smoke's intensity and temperature dependent on fire instead of making smoke a completely independent phenomenon. It has been therefore assumed that smoke appears in the simulation due to fire via the relationship:
 
 $$
 (\frac{d\rho_{\text{smoke}}}{dt})_{\text{inject}} = k_{\text{smoke}}^{\text{inject}}\rho_{\text{fuel}}

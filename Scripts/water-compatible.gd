@@ -141,7 +141,6 @@ var water_density_threshold: float = 0.2
 var edge_softness: float = 0.05
 var tint_threshold_min: float = 0.25
 var tint_threshold_max: float = 1.0
-var vis_neighborhood_search: bool = false
 #endregion
 
 #endregion
@@ -347,7 +346,6 @@ var rt_water_density_threshold: float
 var rt_edge_softness: float
 var rt_tint_threshold_min: float
 var rt_tint_threshold_max: float
-var rt_vis_neighborhood_search: bool
 
 var color_picker_button_callbacks_dict: Dictionary
 var slider_callbacks_dict: Dictionary
@@ -448,8 +446,6 @@ var curr_display_idx: int
 @onready var edge_softness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessMarginContainer/EdgeSoftnessHSlider
 @onready var tint_threshold_min_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinMarginContainer/TintThresholdMinHSlider
 @onready var tint_threshold_max_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxMarginContainer/TintThresholdMaxHSlider
-
-@onready var vis_neighborhood_search_toggle_check_box: CheckBox = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer/VisNeighborhoodSearchToggleMarginContainer/VisNeighborhoodSearchToggleCheckBox
 #endregion
 
 #region parallel radix sort predefined variables
@@ -512,8 +508,6 @@ var compute_vorticities_shader_rid: RID
 var compute_forces_shader_rid: RID
 var integrate_motion_wcsph_shader_rid: RID
 var store_particle_info_shader_rid: RID
-var store_neighbors_shader_rid: RID
-var mark_neighbors_shader_rid: RID
 var compute_non_pressure_forces_shader_rid: RID
 var compute_predicted_positions_shader_rid: RID
 var predict_densities_update_pressures_shader_rid: RID
@@ -772,7 +766,6 @@ func water_ready() -> void:
 	
 	init_color_picker_button_callbacks()
 	init_slider_callbacks()
-	init_toggle_callbacks()
 	
 	for pcpb in get_tree().get_nodes_in_group("ParamColorPickerButton"):
 		if pcpb is ColorPickerButton:
@@ -1178,7 +1171,6 @@ func init_general_predefined_variables() -> void:
 	rt_edge_softness = edge_softness
 	rt_tint_threshold_min = tint_threshold_min
 	rt_tint_threshold_max = tint_threshold_max
-	rt_vis_neighborhood_search = vis_neighborhood_search
 	
 	color_picker_button_callbacks_dict = {}
 	slider_callbacks_dict = {}
@@ -1223,101 +1215,93 @@ func init_gpu() -> void:
 	ren_rd = RenderingServer.get_rendering_device()
 	
 	#region shaders
-	var get_particle_info_shader_file = load("res://Compute Shaders/Water/get-particle-info.glsl")
+	var get_particle_info_shader_file = load("res://Compute Shaders/get-particle-info.glsl")
 	var get_particle_info_shader_spirv = get_particle_info_shader_file.get_spirv()
 	get_particle_info_shader_rid = rd.shader_create_from_spirv(get_particle_info_shader_spirv)
 	
-	var kill_particles_shader_file = load("res://Compute Shaders/Water/kill-particles.glsl")
+	var kill_particles_shader_file = load("res://Compute Shaders/kill-particles.glsl")
 	var kill_particles_shader_spirv = kill_particles_shader_file.get_spirv()
 	kill_particles_shader_rid = rd.shader_create_from_spirv(kill_particles_shader_spirv)
 	
-	var spawn_particles_shader_file = load("res://Compute Shaders/Water/spawn-particles.glsl")
+	var spawn_particles_shader_file = load("res://Compute Shaders/spawn-particles.glsl")
 	var spawn_particles_shader_spirv = spawn_particles_shader_file.get_spirv()
 	spawn_particles_shader_rid = rd.shader_create_from_spirv(spawn_particles_shader_spirv)
 	
-	var compute_hashes_shader_file = load("res://Compute Shaders/Water/compute-hashes.glsl")
+	var compute_hashes_shader_file = load("res://Compute Shaders/compute-hashes.glsl")
 	var compute_hashes_shader_spirv = compute_hashes_shader_file.get_spirv()
 	compute_hashes_shader_rid = rd.shader_create_from_spirv(compute_hashes_shader_spirv)
 	
 	#region parallel radix sort shaders
-	var histogram_shader_file = load("res://Compute Shaders/Water/histogram.glsl")
+	var histogram_shader_file = load("res://Compute Shaders/histogram.glsl")
 	var histogram_shader_spirv = histogram_shader_file.get_spirv()
 	histogram_shader_rid = rd.shader_create_from_spirv(histogram_shader_spirv)
 	
-	var counts_per_digit_shader_file = load("res://Compute Shaders/Water/counts-per-digit.glsl")
+	var counts_per_digit_shader_file = load("res://Compute Shaders/counts-per-digit.glsl")
 	var counts_per_digit_shader_spirv = counts_per_digit_shader_file.get_spirv()
 	counts_per_digit_shader_rid = rd.shader_create_from_spirv(counts_per_digit_shader_spirv)
 	
-	var pps16_shader_file = load("res://Compute Shaders/Water/pps16.glsl")
+	var pps16_shader_file = load("res://Compute Shaders/pps16.glsl")
 	var pps16_shader_spirv = pps16_shader_file.get_spirv()
 	pps16_shader_rid = rd.shader_create_from_spirv(pps16_shader_spirv)
 	
-	var scan_per_digit_shader_file = load("res://Compute Shaders/Water/scan-per-digit.glsl")
+	var scan_per_digit_shader_file = load("res://Compute Shaders/scan-per-digit.glsl")
 	var scan_per_digit_shader_spirv = scan_per_digit_shader_file.get_spirv()
 	scan_per_digit_shader_rid = rd.shader_create_from_spirv(scan_per_digit_shader_spirv)
 	
-	var combine_offsets_shader_file = load("res://Compute Shaders/Water/combine-offsets.glsl")
+	var combine_offsets_shader_file = load("res://Compute Shaders/combine-offsets.glsl")
 	var combine_offsets_shader_spirv = combine_offsets_shader_file.get_spirv()
 	combine_offsets_shader_rid = rd.shader_create_from_spirv(combine_offsets_shader_spirv)
 	
-	var scatter_shader_file = load("res://Compute Shaders/Water/scatter.glsl")
+	var scatter_shader_file = load("res://Compute Shaders/scatter.glsl")
 	var scatter_shader_spirv = scatter_shader_file.get_spirv()
 	scatter_shader_rid = rd.shader_create_from_spirv(scatter_shader_spirv)
 	#endregion
 	
-	var range_start_end_shader_file = load("res://Compute Shaders/Water/range-start-end.glsl")
+	var range_start_end_shader_file = load("res://Compute Shaders/range-start-end.glsl")
 	var range_start_end_shader_spirv = range_start_end_shader_file.get_spirv()
 	range_start_end_shader_rid = rd.shader_create_from_spirv(range_start_end_shader_spirv)
 	
-	var compute_densities_shader_file = load("res://Compute Shaders/Water/compute-densities.glsl")
+	var compute_densities_shader_file = load("res://Compute Shaders/compute-densities.glsl")
 	var compute_densities_shader_spirv = compute_densities_shader_file.get_spirv()
 	compute_densities_shader_rid = rd.shader_create_from_spirv(compute_densities_shader_spirv)
 	
-	var compute_pressures_shader_file = load("res://Compute Shaders/Water/compute-pressures.glsl")
+	var compute_pressures_shader_file = load("res://Compute Shaders/compute-pressures.glsl")
 	var compute_pressures_shader_spirv = compute_pressures_shader_file.get_spirv()
 	compute_pressures_shader_rid = rd.shader_create_from_spirv(compute_pressures_shader_spirv)
 	
-	var compute_vorticities_shader_file = load("res://Compute Shaders/Water/compute-vorticities.glsl")
+	var compute_vorticities_shader_file = load("res://Compute Shaders/compute-vorticities.glsl")
 	var compute_vorticities_shader_spirv = compute_vorticities_shader_file.get_spirv()
 	compute_vorticities_shader_rid = rd.shader_create_from_spirv(compute_vorticities_shader_spirv)
 	
-	var compute_forces_shader_file = load("res://Compute Shaders/Water/compute-forces.glsl")
+	var compute_forces_shader_file = load("res://Compute Shaders/compute-forces.glsl")
 	var compute_forces_shader_spirv = compute_forces_shader_file.get_spirv()
 	compute_forces_shader_rid = rd.shader_create_from_spirv(compute_forces_shader_spirv)
 	
-	var integrate_motion_wcsph_shader_file = load("res://Compute Shaders/Water/integrate-motion-wcsph.glsl")
+	var integrate_motion_wcsph_shader_file = load("res://Compute Shaders/integrate-motion-wcsph.glsl")
 	var integrate_motion_wcsph_shader_spirv = integrate_motion_wcsph_shader_file.get_spirv()
 	integrate_motion_wcsph_shader_rid = rd.shader_create_from_spirv(integrate_motion_wcsph_shader_spirv)
 	
-	var store_particle_info_shader_file = load("res://Compute Shaders/Water/store-particle-info.glsl")
+	var store_particle_info_shader_file = load("res://Compute Shaders/store-particle-info.glsl")
 	var store_particle_info_shader_spirv = store_particle_info_shader_file.get_spirv()
 	store_particle_info_shader_rid = rd.shader_create_from_spirv(store_particle_info_shader_spirv)
 	
-	var store_neighbors_shader_file = load("res://Compute Shaders/Water/store-neighbors.glsl")
-	var store_neighbors_shader_spirv = store_neighbors_shader_file.get_spirv()
-	store_neighbors_shader_rid = rd.shader_create_from_spirv(store_neighbors_shader_spirv)
-	
-	var mark_neighbors_shader_file = load("res://Compute Shaders/Water/mark-neighbors.glsl")
-	var mark_neighbors_shader_spirv = mark_neighbors_shader_file.get_spirv()
-	mark_neighbors_shader_rid = rd.shader_create_from_spirv(mark_neighbors_shader_spirv)
-	
-	var compute_non_pressure_forces_shader_file = load("res://Compute Shaders/Water/compute-non-pressure-forces.glsl")
+	var compute_non_pressure_forces_shader_file = load("res://Compute Shaders/compute-non-pressure-forces.glsl")
 	var compute_non_pressure_forces_shader_spirv = compute_non_pressure_forces_shader_file.get_spirv()
 	compute_non_pressure_forces_shader_rid = rd.shader_create_from_spirv(compute_non_pressure_forces_shader_spirv)
 	
-	var compute_predicted_positions_shader_file = load("res://Compute Shaders/Water/compute-predicted-positions.glsl")
+	var compute_predicted_positions_shader_file = load("res://Compute Shaders/compute-predicted-positions.glsl")
 	var compute_predicted_positions_shader_spirv = compute_predicted_positions_shader_file.get_spirv()
 	compute_predicted_positions_shader_rid = rd.shader_create_from_spirv(compute_predicted_positions_shader_spirv)
 	
-	var predict_densities_update_pressures_shader_file = load("res://Compute Shaders/Water/predict-densities-update-pressures.glsl")
+	var predict_densities_update_pressures_shader_file = load("res://Compute Shaders/predict-densities-update-pressures.glsl")
 	var predict_densities_update_pressures_shader_spirv = predict_densities_update_pressures_shader_file.get_spirv()
 	predict_densities_update_pressures_shader_rid = rd.shader_create_from_spirv(predict_densities_update_pressures_shader_spirv)
 	
-	var compute_pressure_forces_shader_file = load("res://Compute Shaders/Water/compute-pressure-forces.glsl")
+	var compute_pressure_forces_shader_file = load("res://Compute Shaders/compute-pressure-forces.glsl")
 	var compute_pressure_forces_shader_spirv = compute_pressure_forces_shader_file.get_spirv()
 	compute_pressure_forces_shader_rid = rd.shader_create_from_spirv(compute_pressure_forces_shader_spirv)
 	
-	var integrate_motion_pcisph_shader_file = load("res://Compute Shaders/Water/integrate-motion-pcisph.glsl")
+	var integrate_motion_pcisph_shader_file = load("res://Compute Shaders/integrate-motion-pcisph.glsl")
 	var integrate_motion_pcisph_shader_spirv = integrate_motion_pcisph_shader_file.get_spirv()
 	integrate_motion_pcisph_shader_rid = rd.shader_create_from_spirv(integrate_motion_pcisph_shader_spirv)
 	#endregion
@@ -2425,8 +2409,6 @@ func init_gpu() -> void:
 	# without tmp
 	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	
-	store_neighbors_uniform_set_rid = rd.uniform_set_create([store_neighbors_positions_uniform, store_neighbors_sorted_particle_indices_uniform, store_neighbors_start_indices_uniform, store_neighbors_end_indices_uniform, store_neighbors_neighbor_flags_uniform, store_neighbors_particle_pos_ener_img_uniform], store_neighbors_shader_rid, 0)
-	mark_neighbors_uniform_set_rid = rd.uniform_set_create([mark_neighbors_neighbor_flags_uniform, mark_neighbors_particle_pos_ener_img_uniform], mark_neighbors_shader_rid, 0)
 	compute_non_pressure_forces_uniform_set_rid = rd.uniform_set_create([compute_non_pressure_forces_positions_uniform, compute_non_pressure_forces_velocities_uniform, compute_non_pressure_forces_sorted_particle_indices_uniform, compute_non_pressure_forces_start_indices_uniform, compute_non_pressure_forces_end_indices_uniform, compute_non_pressure_forces_densities_uniform, compute_non_pressure_forces_vorticities_uniform, compute_non_pressure_forces_non_pressure_forces_uniform, compute_non_pressure_forces_pressures_uniform, compute_non_pressure_forces_pressure_forces_uniform, compute_non_pressure_forces_near_densities_uniform, compute_non_pressure_forces_is_alive_uniform], compute_non_pressure_forces_shader_rid, 0)
 	compute_predicted_positions_uniform_set_rid = rd.uniform_set_create([compute_predicted_positions_positions_uniform, compute_predicted_positions_velocities_uniform, compute_predicted_positions_densities_uniform, compute_predicted_positions_non_pressure_forces_uniform, compute_predicted_positions_pressure_forces_uniform, compute_predicted_positions_predicted_positions_uniform, compute_predicted_positions_is_alive_uniform, compute_predicted_positions_glass_sdf_img_uniform, compute_predicted_positions_glass_sdf_gradient_img_uniform], compute_predicted_positions_shader_rid, 0)
 	predict_densities_update_pressures_uniform_set_rid = rd.uniform_set_create([predict_densities_update_pressures_predicted_positions_uniform, predict_densities_update_pressures_sorted_particle_indices_uniform, predict_densities_update_pressures_start_indices_uniform, predict_densities_update_pressures_end_indices_uniform, predict_densities_update_pressures_predicted_densities_uniform, predict_densities_update_pressures_pressures_uniform, predict_densities_update_pressures_is_alive_uniform], predict_densities_update_pressures_shader_rid, 0)
@@ -2456,8 +2438,6 @@ func init_gpu() -> void:
 	compute_forces_pipeline_rid = rd.compute_pipeline_create(compute_forces_shader_rid)
 	integrate_motion_wcsph_pipeline_rid = rd.compute_pipeline_create(integrate_motion_wcsph_shader_rid)
 	store_particle_info_pipeline_rid = rd.compute_pipeline_create(store_particle_info_shader_rid)
-	store_neighbors_pipeline_rid = rd.compute_pipeline_create(store_neighbors_shader_rid)
-	mark_neighbors_pipeline_rid = rd.compute_pipeline_create(mark_neighbors_shader_rid)
 	compute_non_pressure_forces_pipeline_rid = rd.compute_pipeline_create(compute_non_pressure_forces_shader_rid)
 	compute_predicted_positions_pipeline_rid = rd.compute_pipeline_create(compute_predicted_positions_shader_rid)
 	predict_densities_update_pressures_pipeline_rid = rd.compute_pipeline_create(predict_densities_update_pressures_shader_rid)
@@ -2786,7 +2766,6 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 			params.encode_float(104, normalized_to_viewport_scale_factor.y)
 			params.encode_float(108, viewport_to_normalized_scale_factor.x)
 			params.encode_float(112, viewport_to_normalized_scale_factor.y)
-			params.encode_u32(116, int(rt_vis_neighborhood_search))
 			rd.compute_list_set_push_constant(compute_list, params, params.size())
 			rd.compute_list_add_barrier(compute_list)
 			rd.compute_list_dispatch(compute_list, integrate_motion_wcsph_workgroups_x, 1, 1)
@@ -2960,7 +2939,6 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 			params.encode_float(104, normalized_to_viewport_scale_factor.y)
 			params.encode_float(108, viewport_to_normalized_scale_factor.x)
 			params.encode_float(112, viewport_to_normalized_scale_factor.y)
-			params.encode_u32(116, int(rt_vis_neighborhood_search))
 			rd.compute_list_set_push_constant(compute_list, params, params.size())
 			rd.compute_list_add_barrier(compute_list)
 			rd.compute_list_dispatch(compute_list, integrate_motion_pcisph_workgroups_x, 1, 1)
@@ -2981,33 +2959,6 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 	rd.compute_list_dispatch(compute_list, store_particle_info_workgroups_x, store_particle_info_workgroups_y, 1)
 	#endregion
 	
-	#if rt_vis_neighborhood_search:
-		#
-		##region store neighbors pass
-		#rd.compute_list_bind_compute_pipeline(compute_list, store_neighbors_pipeline_rid)
-		#rd.compute_list_bind_uniform_set(compute_list, store_neighbors_uniform_set_rid, 0)
-		#params.resize(16)
-		#params.fill(0)
-		#params.encode_u32(0, particle_count)
-		#params.encode_float(4, smoothing_radius)
-		#params.encode_float(8, particle_pos_ener_img_size_f)
-		#params.encode_u32(12, verbose_particle_idx)
-		#rd.compute_list_set_push_constant(compute_list, params, params.size())
-		#rd.compute_list_add_barrier(compute_list)
-		#rd.compute_list_dispatch(compute_list, store_neighbors_workgroups_x, 1, 1)
-		##endregion
-		#
-		##region mark neighbors pass
-		#rd.compute_list_bind_compute_pipeline(compute_list, mark_neighbors_pipeline_rid)
-		#rd.compute_list_bind_uniform_set(compute_list, mark_neighbors_uniform_set_rid, 0)
-		#params.resize(16)
-		#params.fill(0)
-		#params.encode_u32(0, particle_count)
-		#params.encode_float(4, particle_pos_ener_img_size_f)
-		#rd.compute_list_set_push_constant(compute_list, params, params.size())
-		#rd.compute_list_add_barrier(compute_list)
-		#rd.compute_list_dispatch(compute_list, mark_neighbors_workgroups_x, 1, 1)
-		##endregion
 		
 	# end the list of instructions
 	rd.compute_list_end()
@@ -3145,8 +3096,6 @@ func free_gpu() -> void:
 	rd.free_rid(compute_forces_shader_rid)
 	rd.free_rid(integrate_motion_wcsph_shader_rid)
 	rd.free_rid(store_particle_info_shader_rid)
-	rd.free_rid(store_neighbors_shader_rid)
-	rd.free_rid(mark_neighbors_shader_rid)
 	rd.free_rid(compute_non_pressure_forces_shader_rid)
 	rd.free_rid(compute_predicted_positions_shader_rid)
 	rd.free_rid(predict_densities_update_pressures_shader_rid)
@@ -3492,15 +3441,6 @@ func init_slider_callbacks() -> void:
 		tint_threshold_max_h_slider.value = new_val
 		rt_tint_threshold_max = new_val
 
-func init_toggle_callbacks() -> void:
-	# for each toggle we define its corresponding callable
-	# callables are stored in a dictionary
-	# the keys are the names of the toggles
-	
-	toggle_callbacks_dict["VisNeighborhoodSearchToggleCheckBox"] = func(toggled_on: bool) -> void:
-		vis_neighborhood_search_toggle_check_box.button_pressed = toggled_on
-		rt_vis_neighborhood_search = toggled_on
-
 func reset_params() -> void:
 	color_picker_button_callbacks_dict["WaterMainColorPickerButton"].call(water_main_color)
 	color_picker_button_callbacks_dict["WaterTintColorPickerButton"].call(water_tint_color)
@@ -3537,8 +3477,6 @@ func reset_params() -> void:
 	slider_callbacks_dict["EdgeSoftnessHSlider"].call(edge_softness)
 	slider_callbacks_dict["TintThresholdMinHSlider"].call(tint_threshold_min)
 	slider_callbacks_dict["TintThresholdMaxHSlider"].call(tint_threshold_max)
-	
-	toggle_callbacks_dict["VisNeighborhoodSearchToggleCheckBox"].call(vis_neighborhood_search)
 
 func set_display() -> void:
 	display.texture = textures[curr_display_idx]

@@ -3,11 +3,7 @@ extends Node
 
 @onready var water: WaterCompatible = $WaterCompatible
 @onready var fire_smoke: FireSmokeCompatible = $FireSmokeCompatible
-
 @onready var extinguish_mask_overlay: Sprite2D = $ExtinguishMaskOverlay
-@onready var texture_rect: TextureRect = $TextureRect
-
-@onready var benchmarker: Benchmarker = $Benchmarker
 
 func _ready() -> void:
 	Engine.max_fps = 120
@@ -35,7 +31,7 @@ func _ready() -> void:
 	extinguish_mask_overlay.texture = fire_smoke.extinguish_mask_overlay_viewport.get_texture()
 
 func _process(delta: float) -> void:
-	benchmarker.measure(delta)
+	#benchmarker.measure(delta)
 	fire_smoke.fire_smoke_process(delta)
 	await RenderingServer.frame_post_draw
 	water.get_grid_data()
@@ -49,11 +45,11 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_4:
 			fire_smoke.canvas_layer.visible = false
 			water.canvas_layer.visible = true
-		elif event.keycode == KEY_L:
-			water.on = not water.on
-			extinguish_mask_overlay.visible = not extinguish_mask_overlay.visible
-		elif event.keycode == KEY_B:
-			print(water.frame_counter)
+		#elif event.keycode == KEY_L:
+			#water.on = not water.on
+			#extinguish_mask_overlay.visible = not extinguish_mask_overlay.visible
+		#elif event.keycode == KEY_B:
+			#print(water.frame_counter)
 			#if not benchmarker.is_recording():
 				#benchmarker.start_new_measurement()
 			#else:

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dywn4wursoseq"
+path="res://.godot/imported/compute-predicted-positions.glsl-d83f535b551ed15d404f5fcc19d069d5.res"
+
+[deps]
+
+source_file="res://Compute Shaders/compute-predicted-positions.glsl"
+dest_files=["res://.godot/imported/compute-predicted-positions.glsl-d83f535b551ed15d404f5fcc19d069d5.res"]
+
+[params]
+

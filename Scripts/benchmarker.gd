@@ -1,6 +1,8 @@
 class_name Benchmarker
 extends Node
 
+# measures the performance of the simulation and saves the results
+
 @export var output_path: String = "res://Benchmarking/benchmark.csv"
 
 var recording: bool = false

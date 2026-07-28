@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dkxd5fl6fjl3c"
+path="res://.godot/imported/kill-particles.glsl-03dd7935c85cc5cf29785689cbe06df9.res"
+
+[deps]
+
+source_file="res://Compute Shaders/kill-particles.glsl"
+dest_files=["res://.godot/imported/kill-particles.glsl-03dd7935c85cc5cf29785689cbe06df9.res"]
+
+[params]
+

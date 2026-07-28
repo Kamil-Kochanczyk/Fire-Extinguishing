@@ -1,4 +1,8 @@
+class_name GridVisualizer
 extends Node2D
+
+# visualizes the SPH neighborhood search grid and PG/GP communication grid
+# useful for debugging if the intersection between the grids works as expected
 
 func draw_grid(canvas: CanvasItem, grid_size: Vector2i, viewport_rect: Rect2, color: Color, line_width: float, draw_center_connections: bool = false) -> void:
 	var cell_size_x = viewport_rect.size.x / grid_size.x
@@ -36,7 +40,7 @@ func draw_grid(canvas: CanvasItem, grid_size: Vector2i, viewport_rect: Rect2, co
 				canvas.draw_line(
 					Vector2(cx1, cy),
 					Vector2(cx2, cy),
-					Color.YELLOW,
+					Color(1.0, 1.0, 0.0, 1.0),
 					line_width
 				)
 		
@@ -49,7 +53,7 @@ func draw_grid(canvas: CanvasItem, grid_size: Vector2i, viewport_rect: Rect2, co
 				canvas.draw_line(
 					Vector2(cx, cy1),
 					Vector2(cx, cy2),
-					Color.YELLOW,
+					Color(1.0, 1.0, 0.0, 1.0),
 					line_width
 				)
 
@@ -65,6 +69,6 @@ func _draw():
 	# neighborhood search grid
 	draw_grid(self, nsg_size, viewport_rect, Color(1.0, 0.0, 0.0, 1.0), 1.0, false)
 	
-	# pggp communication grid
-	#draw_grid(self, pggpcg_size, viewport_rect, Color(0.0, 1.0, 0.0, 0.0), 1.0, true)
-	draw_grid(self, pggpcg_size, viewport_rect, Color(0.0, 1.0, 0.0, 1.0), 1.0, false)
+	# PG/GP communication grid
+	draw_grid(self, pggpcg_size, viewport_rect, Color(0.0, 1.0, 0.0, 0.0), 1.0, true)    # only center connections
+	#draw_grid(self, pggpcg_size, viewport_rect, Color(0.0, 1.0, 0.0, 1.0), 1.0, false)    # default

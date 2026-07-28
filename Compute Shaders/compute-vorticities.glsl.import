@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://blqof22jwovw2"
+path="res://.godot/imported/compute-vorticities.glsl-651ad5859615c6b4a518138ee7bad767.res"
+
+[deps]
+
+source_file="res://Compute Shaders/compute-vorticities.glsl"
+dest_files=["res://.godot/imported/compute-vorticities.glsl-651ad5859615c6b4a518138ee7bad767.res"]
+
+[params]
+

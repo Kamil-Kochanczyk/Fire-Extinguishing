@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://damflc04wfed6"
+path="res://.godot/imported/combine-offsets.glsl-e73a14dce9f2ae298e1023d77534d0d2.res"
+
+[deps]
+
+source_file="res://Compute Shaders/combine-offsets.glsl"
+dest_files=["res://.godot/imported/combine-offsets.glsl-e73a14dce9f2ae298e1023d77534d0d2.res"]
+
+[params]
+

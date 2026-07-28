@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b1uo7uuo0po6j"
+path="res://.godot/imported/compute-hashes.glsl-b280faafe0b5915d507a5201f6b87926.res"
+
+[deps]
+
+source_file="res://Compute Shaders/compute-hashes.glsl"
+dest_files=["res://.godot/imported/compute-hashes.glsl-b280faafe0b5915d507a5201f6b87926.res"]
+
+[params]
+

@@ -1,7 +1,7 @@
 class_name GradientEditor
 extends Control
 
-# positions of a handle is expressed by the position of its top-left corner
+# position of a handle is expressed by the position of its top-left corner
 # so we need to use an additional offset to make its position visually "centered"
 # this offset is equal to the halfsize of the handle
 
@@ -146,7 +146,7 @@ func _process(_delta: float) -> void:
 			#print()
 			
 			# save the colors and offsets before swapping
-			# orig_offset guy is actually reduntant as it will be forgotten
+			# _orig_offset guy is actually reduntant as it will be forgotten
 			
 			var orig_color = gradient.get_color(orig_gradient_point)
 			var _orig_offset = gradient.get_offset(orig_gradient_point)

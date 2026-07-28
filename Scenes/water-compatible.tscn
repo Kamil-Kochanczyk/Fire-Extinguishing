@@ -2,15 +2,15 @@
 
 [ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
 [ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
-[ext_resource type="Texture2D" uid="uid://nvy17qohbhok" path="res://Images/white-dot.png" id="2_qq3op"]
+[ext_resource type="Texture2D" uid="uid://nvy17qohbhok" path="res://Images/white_dot.png" id="2_qq3op"]
 [ext_resource type="Shader" uid="uid://c4haf57i81360" path="res://Particle Shaders/water_particles.gdshader" id="3_qq3op"]
 [ext_resource type="Shader" uid="uid://c48ebg6d0jeej" path="res://Fragment Shaders/blur.gdshader" id="5_rqihb"]
 [ext_resource type="Shader" uid="uid://dtkum57k88kwj" path="res://Fragment Shaders/water_color.gdshader" id="6_jf7k4"]
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_k45wu"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_wojkn"]
 viewport_path = NodePath("ParticlesSubViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_as8u4"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
 viewport_path = NodePath("WaterSubViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jf7k4"]
@@ -84,7 +84,7 @@ font_size = 10
 
 [node name="WaterCompatible" type="Node2D"]
 script = ExtResource("1_slmpt")
-textures = Array[ViewportTexture]([SubResource("ViewportTexture_k45wu"), SubResource("ViewportTexture_as8u4")])
+textures = Array[ViewportTexture]([SubResource("ViewportTexture_wojkn"), SubResource("ViewportTexture_2i0ow")])
 labels = Array[String](["Particles", "Water"])
 
 [node name="GlassSDFSprite2D" type="Sprite2D" parent="."]
@@ -1147,18 +1147,3 @@ value = 1.0
 layout_mode = 2
 size_flags_vertical = 1
 text = "1.0"
-
-[node name="VisNeighborhoodSearchToggleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-
-[node name="VisNeighborhoodSearchToggle" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer"]
-layout_mode = 2
-text = "Vis Neighborhood Search"
-
-[node name="VisNeighborhoodSearchToggleMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 25
-
-[node name="VisNeighborhoodSearchToggleCheckBox" type="CheckBox" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VisNeighborhoodSearchToggleHBoxContainer/VisNeighborhoodSearchToggleMarginContainer" groups=["ParamToggle"]]
-layout_mode = 2

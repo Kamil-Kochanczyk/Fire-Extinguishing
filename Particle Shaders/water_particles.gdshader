@@ -2,18 +2,14 @@ shader_type particles;
 
 uniform highp sampler2D u_particle_pos_ener_img : filter_nearest, repeat_disable;
 uniform vec4 u_particle_color;
-//uniform vec4 u_verbose_particle_color;
-//uniform vec4 u_neighbor_particle_color;
 uniform vec2 u_n_to_v_scale_factor;
-uniform highp float u_particle_vis_size;
+uniform float u_particle_vis_size;
 uniform float u_particle_temp_ambient;
 uniform float u_particle_temp_max;
 uniform float u_heating_energy_cost;
 uniform float u_vaporization_energy_cost;
 uniform float u_mass;
 uniform float u_specific_heat_capacity;
-
-//const float THRESHOLD = 0.5;
 
 void start() {
 	// called when a particle is spawned
@@ -31,11 +27,10 @@ void process() {
 	float idx = float(INDEX);
 	ivec2 texel_pos = ivec2(int(mod(idx, size)), int(idx / size));
 	
-	// positions in normalized coordinates (viewport independent)
-	// temperatures in unnormalized coordinates
+	// positions are in normalized coordinates (viewport independent)
+	// energies are in the range [0, heating energy cost + vaporization energy cost]
 	vec4 particle_pos_ener = texelFetch(u_particle_pos_ener_img, texel_pos, 0);
 	vec2 particle_pos = particle_pos_ener.rg;
-	//float particle_temp = particle_pos_temp.b;
 	float particle_ener = particle_pos_ener.b;
 	
 	/*
@@ -62,27 +57,18 @@ void process() {
 	|     0 0 0      |    1     |
 	*/
 	
+	// position
 	// n = normalized, v = viewport (unnormalized)
 	TRANSFORM[3].xy = vec2(particle_pos.r * u_n_to_v_scale_factor.x, particle_pos.g * u_n_to_v_scale_factor.y);
 	
+	// scale
 	TRANSFORM[0].x = u_particle_vis_size;
 	TRANSFORM[1].y = u_particle_vis_size;
-	
-	//if (particle_pos.b > THRESHOLD) {
-		//// verbose particle
-		//COLOR = u_verbose_particle_color;
-	//}
-	//else if (particle_pos.a > THRESHOLD) {
-		//// neighbor particle
-		//COLOR = u_neighbor_particle_color;
-	//}
-	//else {
-		//COLOR = u_particle_color;
-	//}
 	
 	// R channel -> density
 	// G channel -> temperature
 	// B channel -> latent heat
+	// smooth transition from red, to yellow, to white differentiates between heating and vaporization stages
 	float temperature = u_particle_temp_ambient + (min(particle_ener, u_heating_energy_cost) / (u_mass * u_specific_heat_capacity));
 	float normalized_temperature = (temperature - u_particle_temp_ambient) / (u_particle_temp_max - u_particle_temp_ambient);
 	float latent_heat = max(particle_ener - u_heating_energy_cost, 0.0);

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b1khnu1xbhq8b"
+path="res://.godot/imported/range-start-end.glsl-9a792097edfe679281080ddca88ba0b1.res"
+
+[deps]
+
+source_file="res://Compute Shaders/range-start-end.glsl"
+dest_files=["res://.godot/imported/range-start-end.glsl-9a792097edfe679281080ddca88ba0b1.res"]
+
+[params]
+

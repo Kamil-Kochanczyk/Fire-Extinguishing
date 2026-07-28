@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://c4k1lndo3k2bx"
+path="res://.godot/imported/counts-per-digit.glsl-6c48339e2286880318b77620245f2f26.res"
+
+[deps]
+
+source_file="res://Compute Shaders/counts-per-digit.glsl"
+dest_files=["res://.godot/imported/counts-per-digit.glsl-6c48339e2286880318b77620245f2f26.res"]
+
+[params]
+

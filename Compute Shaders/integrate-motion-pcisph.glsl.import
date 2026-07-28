@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dfqi51e8qcvv6"
+path="res://.godot/imported/integrate-motion-pcisph.glsl-a404726a7d11bac1c26cb8d55dcfd1bc.res"
+
+[deps]
+
+source_file="res://Compute Shaders/integrate-motion-pcisph.glsl"
+dest_files=["res://.godot/imported/integrate-motion-pcisph.glsl-a404726a7d11bac1c26cb8d55dcfd1bc.res"]
+
+[params]
+

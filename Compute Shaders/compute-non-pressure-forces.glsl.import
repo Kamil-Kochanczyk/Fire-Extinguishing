@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://db8ijbaflhp6f"
+path="res://.godot/imported/compute-non-pressure-forces.glsl-58f06ce29874c8ea4689c9e46f50cdee.res"
+
+[deps]
+
+source_file="res://Compute Shaders/compute-non-pressure-forces.glsl"
+dest_files=["res://.godot/imported/compute-non-pressure-forces.glsl-58f06ce29874c8ea4689c9e46f50cdee.res"]
+
+[params]
+
