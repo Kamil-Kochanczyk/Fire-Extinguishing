@@ -3,7 +3,7 @@ render_mode blend_disabled;
 
 uniform highp float u_timestep;
 uniform highp float u_sigma_cool = 5000.0;    // rate of temperature dissipation
-uniform highp float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform highp float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform highp float u_fire_temp_max = 2000.0;    // Kelvin
 uniform float u_exponent = 1.0;
 

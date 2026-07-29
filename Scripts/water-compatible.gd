@@ -1,31 +1,91 @@
 class_name WaterCompatible
 extends Node2D
 
-#region implementation notes
-# 1. normalized vs unnormalized coordinate system
-# - we decouple the simulation domain from the viewport domain
-# - the simulation is performed within the normalized world, i.e. within the rectangle [0,1]x[0,1]
-# - this normalized world is then mapped to viewport, i.e. unnormalized, world to display it based on the viewport's size
-# - the normalized coordinate system is used to express the properties of particles 
-# - the unnormalized coordinate system is generally not used throughout this implementation with one big exception regarding SDF-related logic
-#
-# 2. mortal vs immortal & dead vs alive
-# - we divide the particles into mortal and immortal
-# - mortal particles have a limited lifetime, i.e. after some time they become dead and no longer participate in the simulation
-# - immortal particles, on the other hand, don't die, so they never disappear from the simulation (infinite lifetime)
-# - therefore, we also divide particles into dead and alive
-# - dead particles don't appear in the simulation
-# - alive particles appear in the simulation
-# - dead particles can be used to implement particle spawner without having to resize particle buffers on GPU
-# - this is because dead particles are "free to reuse"
-# - we can just check if we currently have any dead particles, and if so, we can reuse them as new particles being spawned by marking them as alive
-# - we can specify how many mortal particles and how many immortal particles start the simulation as alive
-# - if a mortal particle starts the simulation as alive, it will die eventually, after some time
-# - if an immortal particle starts the simulation as alive, it won't ever die
-# - some mortal and some immortal particles can initially be marked as dead and used as spawnable particles from the very start of the simulation
-# - spawned mortal particles will eventually die, while spawned immortal particles won't do this
-# - thus, the total number of dead particles at any given time determines the total number of particles that we can possibly spawn at that time
-# - we can also of course specify how many mortal and how many immortal particles we have out of the total number of particles
+#region variables
+
+#region nodes
+@onready var particles_sub_viewport: SubViewport = $ParticlesSubViewport
+@onready var gpu_particles_2d: GPUParticles2D = $ParticlesSubViewport/GPUParticles2D
+@onready var low_res_sub_viewport: SubViewport = $LowResSubViewport
+@onready var low_res_texture_rect: TextureRect = $LowResSubViewport/LowResTextureRect
+@onready var low_res_color_rect: ColorRect = $LowResSubViewport/LowResColorRect
+@onready var water_sub_viewport: SubViewport = $WaterSubViewport
+@onready var another_background_sprite_2d: Sprite2D = $WaterSubViewport/AnotherBackgroundSprite2D
+@onready var upscaled_texture_rect: TextureRect = $WaterSubViewport/UpscaledTextureRect
+@onready var display: Sprite2D = $Display
+@onready var glass: Polygon2D = $Glass    # we assume that all verties of the polygon are within the normalized world boundaries
+@onready var canvas_layer: CanvasLayer = $CanvasLayer
+@onready var label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/Label
+@onready var fps_label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/FPSLabel
+@onready var top_margin_container: MarginContainer = $CanvasLayer/VBoxContainer/TopMarginContainer
+@onready var bottom_margin_container: MarginContainer = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer
+
+@onready var water_main_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterMainColorMarginContainer/WaterMainColorPickerButton
+@onready var water_tint_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterTintColorMarginContainer/WaterTintColorPickerButton
+
+@onready var particle_vis_size_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer/ParticleVisSizeValue
+@onready var rest_density_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer/RestDensityValue
+@onready var stiffness_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer/StiffnessValue
+@onready var stiffness_near_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer/StiffnessNearValue
+@onready var viscosity_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer/ViscosityScaleValue
+@onready var xsph_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer/XSPHScaleValue
+@onready var vorticity_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer/VorticityScaleValue
+@onready var surface_tension_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer/SurfaceTensionThresholdValue
+@onready var surface_tension_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer/SurfaceTensionScaleValue
+@onready var adhesion_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer/AdhesionThresholdValue
+@onready var adhesion_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer/AdhesionScaleValue
+@onready var gravity_multiplier_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer/GravityMultiplierValue
+@onready var damping_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer/DampingValue
+@onready var bounds_damping_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer/BoundsDampingValue
+@onready var vel_clamp_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer/VelClampValue
+@onready var mouse_interaction_radius_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer/MouseInteractionRadiusValue
+@onready var mouse_interaction_strength_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer/MouseInteractionStrengthValue
+@onready var glass_movement_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer/GlassMovementSpeedValue
+@onready var glass_rotation_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer/GlassRotationSpeedValue
+@onready var glass_scaling_speed_x_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer/GlassScalingSpeedXValue
+@onready var glass_scaling_speed_y_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer/GlassScalingSpeedYValue
+@onready var spawn_rate_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer/SpawnRateValue
+@onready var spawn_random_offset_range_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeValue
+@onready var spawn_init_vel_x_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXValue
+@onready var spawn_init_vel_y_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYValue
+@onready var lerp_factor_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorValue
+@onready var blur_amount_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountValue
+@onready var water_density_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdValue
+@onready var edge_softness_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessValue
+@onready var tint_threshold_min_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinValue
+@onready var tint_threshold_max_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxValue
+
+@onready var particle_vis_size_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer/ParticleVisSizeMarginContainer/ParticleVisSizeHSlider
+@onready var rest_density_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer/RestDensityMarginContainer/RestDensityHSlider
+@onready var stiffness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer/StiffnessMarginContainer/StiffnessHSlider
+@onready var stiffness_near_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer/StiffnessNearMarginContainer/StiffnessNearHSlider
+@onready var viscosity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer/ViscosityScaleMarginContainer/ViscosityScaleHSlider
+@onready var xsph_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer/XSPHScaleMarginContainer/XSPHScaleHSlider
+@onready var vorticity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer/VorticityScaleMarginContainer/VorticityScaleHSlider
+@onready var surface_tension_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer/SurfaceTensionThresholdMarginContainer/SurfaceTensionThresholdHSlider
+@onready var surface_tension_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer/SurfaceTensionScaleMarginContainer/SurfaceTensionScaleHSlider
+@onready var adhesion_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer/AdhesionThresholdMarginContainer/AdhesionThresholdHSlider
+@onready var adhesion_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer/AdhesionScaleMarginContainer/AdhesionScaleHSlider
+@onready var gravity_multiplier_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer/GravityMultiplierMarginContainer/GravityMultiplierHSlider
+@onready var damping_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer/DampingMarginContainer/DampingHSlider
+@onready var bounds_damping_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer/BoundsDampingMarginContainer/BoundsDampingHSlider
+@onready var vel_clamp_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer/VelClampMarginContainer/VelClampHSlider
+@onready var mouse_interaction_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer/MouseInteractionRadiusMarginContainer/MouseInteractionRadiusHSlider
+@onready var mouse_interaction_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer/MouseInteractionStrengthMarginContainer/MouseInteractionStrengthHSlider
+@onready var glass_movement_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer/GlassMovementSpeedMarginContainer/GlassMovementSpeedHSlider
+@onready var glass_rotation_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer/GlassRotationSpeedMarginContainer/GlassRotationSpeedHSlider
+@onready var glass_scaling_speed_x_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer/GlassScalingSpeedXMarginContainer/GlassScalingSpeedXHSlider
+@onready var glass_scaling_speed_y_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer/GlassScalingSpeedYMarginContainer/GlassScalingSpeedYHSlider
+@onready var spawn_rate_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer/SpawnRateMarginContainer/SpawnRateHSlider
+@onready var spawn_random_offset_range_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeMarginContainer/SpawnRandomOffsetRangeHSlider
+@onready var spawn_init_vel_x_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXMarginContainer/SpawnInitVelXHSlider
+@onready var spawn_init_vel_y_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYMarginContainer/SpawnInitVelYHSlider
+@onready var lerp_factor_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer/LerpFactorHSlider
+@onready var blur_amount_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountMarginContainer/BlurAmountHSlider
+@onready var water_density_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdMarginContainer/WaterDensityThresholdHSlider
+@onready var edge_softness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessMarginContainer/EdgeSoftnessHSlider
+@onready var tint_threshold_min_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinMarginContainer/TintThresholdMinHSlider
+@onready var tint_threshold_max_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxMarginContainer/TintThresholdMaxHSlider
 #endregion
 
 #region tweakable variables for 196x196 simulation
@@ -33,28 +93,31 @@ extends Node2D
 #region init tweakables
 
 ## Which algorithm to use. Default option is WCSPH. Other option is PCISPH.
-## Warning: for PCISPH it's recommended to set all particles as immortal because mortal particles can cause instabilities.
+## Warning: if PCISPH is chosen, then dying particles can cause stability problems.
 @export var use_pcisph: bool = false
 
 ## Number of predictive-corrective iterations performed in PCISPH.
 @export var pcisph_num_iterations: int = 7
 
-## Size of the window that the simulation will be displayed in.
+## Size of the window that the water simulation will be displayed in.
 @export var viewport_size: Vector2i = Vector2i(1152, 648)
 
 ## Size of the low resolution buffer which is used in rendering discrete particles as continuous water.
-## Note: it turns out that Godot provides built-in tools which allow us to actually use the normal resolution instead of the low resolution without affecting the performace (moreover, lower resolutions give worse results).
+## Note: it turns out that Godot provides built-in tools which allow us to actually use bigger resolutions without affecting performance that much.
 @export var low_res_size: Vector2i = Vector2i(1152, 648)
+
+## Size of particles->grid and grid->particles communication grids (viewports).
+@export var pg_gp_size: Vector2i = Vector2i(96, 54)
 
 ## How many simulation steps to run per frame.
 @export var sim_steps_per_frame: int = 8
 
 ## How many frames will the CPU wait to sync with the GPU after submitting the work to the GPU.
 ## Syncing is a costly operation.
-## Should be at least ~1,2,3 to allow CPU and GPU to work in parallel.
+## Should be at least ~1/2/3 to allow CPU and GPU to work in parallel.
 @export var desired_waiting_frames: int = 2
 
-## Generally, a number between 0.0 and 1.0.
+## A number between 0.0 and 1.0.
 ## Controls the maximum allowed timestep of one simulation step.
 ## Helps to keep the simulation stable.
 @export var safety_courant_number: float = 0.33
@@ -62,17 +125,17 @@ extends Node2D
 ## Determines the total number of particles that can be used in the simulation.
 @export var particle_grid_size: Vector2i = Vector2i(196, 196)
 
-## Expressed in normalized world units.
+## Expressed in normalized units.
 ## Shifts the initial position of the particles when starting the simulation.
 @export var init_grid_top_left_corner: Vector2 = Vector2(0.0, 0.0)
 
 ## Very important variable.
 ## Determines the values of a few other important variables.
-## Expressed in normalized world units.
+## Expressed in normalized units.
 ## Particles = samples of a continuous fluid, particle spacing = sampling resolution.
 @export var particle_spacing: float = 1.0 / 196.0
 
-## Generally, a number between ~1.0 and ~2.0 (~3.0 is probably too much).
+## A number between ~1.0 and ~2.0 (~3.0 is probably too much).
 ## Controls the size of the smoothing radius.
 @export var smoothing_radius_multiplier: float = 2.0
 
@@ -97,21 +160,18 @@ extends Node2D
 @export var mortal_particle_lifetime_max: float = 5.0
 
 ## [K]
-## Default (initial) temperature.
+## Default (initial) water temperature.
 @export var particle_temp_ambient: float = 300.0
 
 ## [K]
-## Maximum (boiling) temperature.
+## Maximum (boiling) water temperature.
 @export var particle_temp_max: float = 373.0
 
-## Size of particles->grid and grid->particles viewports.
-@export var pg_gp_size: Vector2i = Vector2i(96, 54)
 #endregion
 
 #region real-time tweakables
 var water_main_color: Color = Color(0.0, 0.762, 0.672, 1.0)
 var water_tint_color: Color = Color(0.0, 1.0, 0.883, 1.0)
-var particle_color: Color = Color.RED    # predefined, used to encode the density in the R channel
 var particle_vis_size: float = 0.25
 var rest_density: float = 1.0
 var stiffness: float = 10.0
@@ -141,6 +201,38 @@ var water_density_threshold: float = 0.2
 var edge_softness: float = 0.05
 var tint_threshold_min: float = 0.25
 var tint_threshold_max: float = 1.0
+
+var rt_water_main_color: Color
+var rt_water_tint_color: Color
+var rt_particle_vis_size: float
+var rt_rest_density: float
+var rt_stiffness: float
+var rt_stiffness_near: float
+var rt_viscosity_scale: float
+var rt_xsph_scale: float
+var rt_vorticity_scale: float
+var rt_surface_tension_threshold: float
+var rt_surface_tension_scale: float
+var rt_adhesion_threshold: float
+var rt_adhesion_scale: float
+var rt_gravity_multiplier: float
+var rt_damping: float
+var rt_bounds_damping: float
+var rt_vel_clamp: float
+var rt_mouse_interaction_radius: float
+var rt_mouse_interaction_strength: float
+var rt_glass_movement_speed: float
+var rt_glass_rotation_speed: float
+var rt_glass_scaling_speed: Vector2
+var rt_spawn_rate: float
+var rt_spawn_random_offset_range: int
+var rt_spawn_init_vel: Vector2
+var rt_lerp_factor: float
+var rt_blur_amount: float
+var rt_water_density_threshold: float
+var rt_edge_softness: float
+var rt_tint_threshold_min: float
+var rt_tint_threshold_max: float
 #endregion
 
 #endregion
@@ -149,8 +241,6 @@ var tint_threshold_max: float = 1.0
 
 #region general predefined variables
 var background_color: Color
-var verbose_particle_color: Color
-var neighbor_particle_color: Color
 
 var normalized_sim_world_bounds_min: Vector2
 var normalized_sim_world_bounds_max: Vector2
@@ -192,8 +282,6 @@ var particle_grid_size_f: Vector2
 var particle_pos_ener_img_size_f: float
 var glass_sdf_imgs_size_f: Vector2
 var grid_to_particles_img_size_f: Vector2
-
-var verbose_particle_idx: int
 
 var mouse_normalized_pos: Vector2
 
@@ -238,10 +326,6 @@ var store_particle_info_workgroup_size_x: int
 var store_particle_info_workgroups_x: int
 var store_particle_info_workgroup_size_y: int
 var store_particle_info_workgroups_y: int
-var store_neighbors_workgroup_size_x: int
-var store_neighbors_workgroups_x: int
-var mark_neighbors_workgroup_size_x: int
-var mark_neighbors_workgroups_x: int
 var compute_non_pressure_forces_workgroup_size_x: int
 var compute_non_pressure_forces_workgroups_x: int
 var compute_predicted_positions_workgroup_size_x: int
@@ -255,8 +339,6 @@ var integrate_motion_pcisph_workgroups_x: int
 
 var positions_size: int
 var velocities_size: int
-#var temperatures_size: int
-#var latent_heats_size: int
 var energies_size: int
 var evaporated_masses_size: int
 var lifetimes_size: int
@@ -273,7 +355,6 @@ var near_densities_size: int
 var near_pressures_size: int
 var vorticities_size: int
 var forces_size: int
-var neighbor_flags_size: int
 var non_pressure_forces_size: int
 var pressure_forces_size: int
 var predicted_positions_size: int
@@ -312,140 +393,10 @@ var spawn_count: int
 var spawn_grid_size: int
 var spawn_random_offset: Vector2i
 
-var rt_water_main_color: Color
-var rt_water_tint_color: Color
-var rt_particle_color: Color
-var rt_particle_vis_size: float
-var rt_rest_density: float
-var rt_stiffness: float
-var rt_stiffness_near: float
-var rt_viscosity_scale: float
-var rt_xsph_scale: float
-var rt_vorticity_scale: float
-var rt_surface_tension_threshold: float
-var rt_surface_tension_scale: float
-var rt_adhesion_threshold: float
-var rt_adhesion_scale: float
-var rt_gravity_multiplier: float
-var rt_damping: float
-var rt_bounds_damping: float
-var rt_vel_clamp: float
-var rt_mouse_interaction_radius: float
-var rt_mouse_interaction_strength: float
-var rt_glass_movement_speed: float
-var rt_glass_rotation_speed: float
-var rt_glass_scaling_speed: Vector2
-var rt_spawn_rate: float
-var rt_spawn_random_offset_range: int
-var rt_spawn_init_vel: Vector2
-var rt_heating_speed: float
-var rt_vaporization_speed: float
-var rt_lerp_factor: float
-var rt_blur_amount: float
-var rt_water_density_threshold: float
-var rt_edge_softness: float
-var rt_tint_threshold_min: float
-var rt_tint_threshold_max: float
-
 var color_picker_button_callbacks_dict: Dictionary
 var slider_callbacks_dict: Dictionary
-var toggle_callbacks_dict: Dictionary
 
 var curr_display_idx: int
-
-@export var textures: Array[ViewportTexture] = []    # textures to display in the simulation
-@export var labels: Array[String] = []    # labels visible in the top-left corner
-
-@onready var glass_sdf_sprite_2d: Sprite2D = $GlassSDFSprite2D
-@onready var glass_sdf_gradient_sprite_2d: Sprite2D = $GlassSDFGradientSprite2D
-@onready var particles_sub_viewport: SubViewport = $ParticlesSubViewport
-@onready var gpu_particles_2d: GPUParticles2D = $ParticlesSubViewport/GPUParticles2D
-@onready var low_res_water_density_temperature_sub_viewport: SubViewport = $LowResWaterDensityTemperatureSubViewport
-@onready var low_res_texture_rect: TextureRect = $LowResWaterDensityTemperatureSubViewport/LowResTextureRect
-@onready var low_res_color_rect: ColorRect = $LowResWaterDensityTemperatureSubViewport/LowResColorRect
-@onready var water_sub_viewport: SubViewport = $WaterSubViewport
-@onready var another_background_sprite_2d: Sprite2D = $WaterSubViewport/AnotherBackgroundSprite2D
-@onready var upscaled_texture_rect: TextureRect = $WaterSubViewport/UpscaledTextureRect
-@onready var display: Sprite2D = $Display
-@onready var glass: Polygon2D = $Glass    # we assume that all verties of the polygon are within the normalized world boundaries
-#@onready var glass: Polygon2D = $NotGlass
-@onready var canvas_layer: CanvasLayer = $CanvasLayer
-@onready var label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/Label
-@onready var fps_label: Label = $CanvasLayer/VBoxContainer/TopMarginContainer/HBoxContainer/FPSLabel
-@onready var top_margin_container: MarginContainer = $CanvasLayer/VBoxContainer/TopMarginContainer
-@onready var bottom_margin_container: MarginContainer = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer
-
-@onready var particle_vis_size_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer/ParticleVisSizeValue
-@onready var rest_density_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer/RestDensityValue
-@onready var stiffness_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer/StiffnessValue
-@onready var stiffness_near_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer/StiffnessNearValue
-@onready var viscosity_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer/ViscosityScaleValue
-@onready var xsph_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer/XSPHScaleValue
-@onready var vorticity_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer/VorticityScaleValue
-@onready var surface_tension_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer/SurfaceTensionThresholdValue
-@onready var surface_tension_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer/SurfaceTensionScaleValue
-@onready var adhesion_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer/AdhesionThresholdValue
-@onready var adhesion_scale_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer/AdhesionScaleValue
-@onready var gravity_multiplier_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer/GravityMultiplierValue
-@onready var damping_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer/DampingValue
-@onready var bounds_damping_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer/BoundsDampingValue
-@onready var vel_clamp_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer/VelClampValue
-@onready var mouse_interaction_radius_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer/MouseInteractionRadiusValue
-@onready var mouse_interaction_strength_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer/MouseInteractionStrengthValue
-@onready var glass_movement_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer/GlassMovementSpeedValue
-@onready var glass_rotation_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer/GlassRotationSpeedValue
-@onready var glass_scaling_speed_x_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer/GlassScalingSpeedXValue
-@onready var glass_scaling_speed_y_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer/GlassScalingSpeedYValue
-@onready var spawn_rate_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer/SpawnRateValue
-@onready var spawn_random_offset_range_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeValue
-@onready var spawn_init_vel_x_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXValue
-@onready var spawn_init_vel_y_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYValue
-@onready var heating_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedValue
-@onready var vaporization_speed_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedValue
-@onready var lerp_factor_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorValue
-@onready var blur_amount_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountValue
-@onready var water_density_threshold_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdValue
-@onready var edge_softness_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessValue
-@onready var tint_threshold_min_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinValue
-@onready var tint_threshold_max_value: Label = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxValue
-
-@onready var water_main_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterMainColorMarginContainer/WaterMainColorPickerButton
-@onready var water_tint_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterTintColorMarginContainer/WaterTintColorPickerButton
-@onready var particle_color_picker_button: ColorPickerButton = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/ParticleColorMarginContainer/ParticleColorPickerButton
-
-@onready var particle_vis_size_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ParticleVisSizeHBoxContainer/ParticleVisSizeMarginContainer/ParticleVisSizeHSlider
-@onready var rest_density_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/RestDensityHBoxContainer/RestDensityMarginContainer/RestDensityHSlider
-@onready var stiffness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessHBoxContainer/StiffnessMarginContainer/StiffnessHSlider
-@onready var stiffness_near_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer/StiffnessNearMarginContainer/StiffnessNearHSlider
-@onready var viscosity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer/ViscosityScaleMarginContainer/ViscosityScaleHSlider
-@onready var xsph_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/XSPHScaleHBoxContainer/XSPHScaleMarginContainer/XSPHScaleHSlider
-@onready var vorticity_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VorticityScaleHBoxContainer/VorticityScaleMarginContainer/VorticityScaleHSlider
-@onready var surface_tension_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionThresholdHBoxContainer/SurfaceTensionThresholdMarginContainer/SurfaceTensionThresholdHSlider
-@onready var surface_tension_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SurfaceTensionScaleHBoxContainer/SurfaceTensionScaleMarginContainer/SurfaceTensionScaleHSlider
-@onready var adhesion_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionThresholdHBoxContainer/AdhesionThresholdMarginContainer/AdhesionThresholdHSlider
-@onready var adhesion_scale_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/AdhesionScaleHBoxContainer/AdhesionScaleMarginContainer/AdhesionScaleHSlider
-@onready var gravity_multiplier_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GravityMultiplierHBoxContainer/GravityMultiplierMarginContainer/GravityMultiplierHSlider
-@onready var damping_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer/DampingMarginContainer/DampingHSlider
-@onready var bounds_damping_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BoundsDampingHBoxContainer/BoundsDampingMarginContainer/BoundsDampingHSlider
-@onready var vel_clamp_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer/VelClampMarginContainer/VelClampHSlider
-@onready var mouse_interaction_radius_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionRadiusHBoxContainer/MouseInteractionRadiusMarginContainer/MouseInteractionRadiusHSlider
-@onready var mouse_interaction_strength_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/MouseInteractionStrengthHBoxContainer/MouseInteractionStrengthMarginContainer/MouseInteractionStrengthHSlider
-@onready var glass_movement_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer/GlassMovementSpeedMarginContainer/GlassMovementSpeedHSlider
-@onready var glass_rotation_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer/GlassRotationSpeedMarginContainer/GlassRotationSpeedHSlider
-@onready var glass_scaling_speed_x_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer/GlassScalingSpeedXMarginContainer/GlassScalingSpeedXHSlider
-@onready var glass_scaling_speed_y_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer/GlassScalingSpeedYMarginContainer/GlassScalingSpeedYHSlider
-@onready var spawn_rate_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer/SpawnRateMarginContainer/SpawnRateHSlider
-@onready var spawn_random_offset_range_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRandomOffsetRangeHBoxContainer/SpawnRandomOffsetRangeMarginContainer/SpawnRandomOffsetRangeHSlider
-@onready var spawn_init_vel_x_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/XHBoxContainer/SpawnInitVelXMarginContainer/SpawnInitVelXHSlider
-@onready var spawn_init_vel_y_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnInitVelHBoxContainer/YHBoxContainer/SpawnInitVelYMarginContainer/SpawnInitVelYHSlider
-@onready var heating_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedMarginContainer/HeatingSpeedHSlider
-@onready var vaporization_speed_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedMarginContainer/VaporizationSpeedHSlider
-@onready var lerp_factor_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer/LerpFactorHSlider
-@onready var blur_amount_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/BlurAmountHBoxContainer/BlurAmountMarginContainer/BlurAmountHSlider
-@onready var water_density_threshold_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/WaterDensityThresholdHBoxContainer/WaterDensityThresholdMarginContainer/WaterDensityThresholdHSlider
-@onready var edge_softness_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/EdgeSoftnessHBoxContainer/EdgeSoftnessMarginContainer/EdgeSoftnessHSlider
-@onready var tint_threshold_min_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMinHBoxContainer/TintThresholdMinMarginContainer/TintThresholdMinHSlider
-@onready var tint_threshold_max_h_slider: HSlider = $CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/TintThresholdMaxHBoxContainer/TintThresholdMaxMarginContainer/TintThresholdMaxHSlider
 #endregion
 
 #region parallel radix sort predefined variables
@@ -459,16 +410,12 @@ var digits_times_groups: int
 
 var counts_per_digit_workgroup_size_x: int
 var counts_per_digit_workgroups_x: int
-
 var pps16_workgroup_size_x: int
 var pps16_workgroups_x: int
-
 var scan_per_digit_workgroup_size_x: int
 var scan_per_digit_workgroups_x: int
-
 var combine_offsets_workgroup_size_x: int
 var combine_offsets_workgroups_x: int
-
 var scatter_workgroup_size_x: int
 var scatter_workgroups_x: int
 
@@ -477,6 +424,14 @@ var digit_totals_size: int
 var digit_totals_after_scan_size: int
 var prefix_groups_size: int
 var group_offsets_size: int
+#endregion
+
+#region other predefined variables
+@export var textures: Array[ViewportTexture] = []    # textures to display in the simulation
+@export var labels: Array[String] = []    # labels visible in the top-left corner
+
+var PARTICLE_COLOR: Color = Color.RED    # predefined, used to encode the density in the R channel
+var FIXED_DT: float = 1.0 / 960.0
 #endregion
 
 #endregion
@@ -519,8 +474,6 @@ var integrate_motion_pcisph_shader_rid: RID
 # buffers store all necessary data on GPU and are initialized with bytes on CPU
 var positions_buffer_rid: RID
 var velocities_buffer_rid: RID
-#var temperatures_buffer_rid: RID
-#var latent_heats_buffer_rid: RID
 var energies_buffer_rid: RID
 var evaporated_masses_buffer_rid: RID
 var lifetimes_buffer_rid: RID
@@ -547,7 +500,6 @@ var near_densities_buffer_rid: RID
 var near_pressures_buffer_rid: RID
 var vorticities_buffer_rid: RID
 var forces_buffer_rid: RID
-var neighbor_flags_buffer_rid: RID
 var non_pressure_forces_buffer_rid: RID
 var pressure_forces_buffer_rid: RID
 var predicted_positions_buffer_rid: RID
@@ -556,6 +508,7 @@ var predicted_densities_buffer_rid: RID
 
 #region textures
 # textures can be used as buffers when our data isn't regular data but rather image data
+
 var particle_pos_ener_img_texture_view: RDTextureView
 var particle_pos_ener_img_texture_format: RDTextureFormat
 var particle_pos_ener_img_ren_texture_rid: RID
@@ -574,11 +527,6 @@ var glass_sdf_gradient_img_ren_texture_rid: RID
 var glass_sdf_gradient_img_texture_rid: RID
 var glass_sdf_gradient_img_texture_2drd: Texture2DRD
 
-var grid_viewport_texture: ViewportTexture
-var grid_viewport_texture_rid: RID
-var grid_viewport_texture_format: RDTextureFormat
-var grid_viewport_copying_size: Vector3
-
 var grid_to_particles_img_texture_view: RDTextureView
 var grid_to_particles_img_texture_format: RDTextureFormat
 var grid_to_particles_img_ren_texture_rid: RID
@@ -590,6 +538,11 @@ var particles_to_grid_img_texture_format: RDTextureFormat
 var particles_to_grid_img_ren_texture_rid: RID
 var particles_to_grid_img_texture_rid: RID
 var particles_to_grid_img_texture_2drd: Texture2DRD
+
+var grid_viewport_texture: ViewportTexture
+var grid_viewport_texture_rid: RID
+var grid_viewport_texture_format: RDTextureFormat
+var grid_viewport_copying_size: Vector3
 #endregion
 
 #region uniform sets
@@ -615,8 +568,6 @@ var compute_vorticities_uniform_set_rid: RID
 var compute_forces_uniform_set_rid: RID
 var integrate_motion_wcsph_uniform_set_rid: RID
 var store_particle_info_uniform_set_rid: RID
-var store_neighbors_uniform_set_rid: RID
-var mark_neighbors_uniform_set_rid: RID
 var compute_non_pressure_forces_uniform_set_rid: RID
 var compute_predicted_positions_uniform_set_rid: RID
 var predict_densities_update_pressures_uniform_set_rid: RID
@@ -645,8 +596,6 @@ var compute_vorticities_pipeline_rid: RID
 var compute_forces_pipeline_rid: RID
 var integrate_motion_wcsph_pipeline_rid: RID
 var store_particle_info_pipeline_rid: RID
-var store_neighbors_pipeline_rid: RID
-var mark_neighbors_pipeline_rid: RID
 var compute_non_pressure_forces_pipeline_rid: RID
 var compute_predicted_positions_pipeline_rid: RID
 var predict_densities_update_pressures_pipeline_rid: RID
@@ -656,24 +605,46 @@ var integrate_motion_pcisph_pipeline_rid: RID
 
 #endregion
 
-var tmp_buffer_rid: RID
-var get_particle_info_tmp_buffer_uniform: RDUniform
-var store_particle_info_tmp_buffer_uniform: RDUniform
-
-var frame_counter: int
-var on: bool
-
-var FIXED_DT: float = 1.0 / 960.0
+#endregion
 
 func water_ready() -> void:
-	frame_counter = 0
-	on = false
+	rt_water_main_color = water_main_color
+	rt_water_tint_color = water_tint_color
+	rt_particle_vis_size = particle_vis_size
+	rt_rest_density = rest_density
+	rt_stiffness = stiffness
+	rt_stiffness_near = stiffness_near
+	rt_viscosity_scale = viscosity_scale
+	rt_xsph_scale = xsph_scale
+	rt_vorticity_scale = vorticity_scale
+	rt_surface_tension_threshold = surface_tension_threshold
+	rt_surface_tension_scale = surface_tension_scale
+	rt_adhesion_threshold = adhesion_threshold
+	rt_adhesion_scale = adhesion_scale
+	rt_gravity_multiplier = gravity_multiplier
+	rt_damping = damping
+	rt_bounds_damping = bounds_damping
+	rt_vel_clamp = vel_clamp
+	rt_mouse_interaction_radius = mouse_interaction_radius
+	rt_mouse_interaction_strength = mouse_interaction_strength
+	rt_glass_movement_speed = glass_movement_speed
+	rt_glass_rotation_speed = glass_rotation_speed
+	rt_glass_scaling_speed = glass_scaling_speed
+	rt_spawn_rate = spawn_rate
+	rt_spawn_random_offset_range = spawn_random_offset_range
+	rt_spawn_init_vel = spawn_init_vel
+	rt_lerp_factor = lerp_factor
+	rt_blur_amount = blur_amount
+	rt_water_density_threshold = water_density_threshold
+	rt_edge_softness = edge_softness
+	rt_tint_threshold_min = tint_threshold_min
+	rt_tint_threshold_max = tint_threshold_max
 	
 	init_general_predefined_variables()
 	init_parallel_radix_sort_predefined_variables()
 	
 	particles_sub_viewport.size = viewport_size
-	low_res_water_density_temperature_sub_viewport.size = low_res_size
+	low_res_sub_viewport.size = low_res_size
 	low_res_texture_rect.size = low_res_size
 	low_res_color_rect.size = low_res_size
 	water_sub_viewport.size = viewport_size
@@ -682,8 +653,6 @@ func water_ready() -> void:
 	glass.position = Vector2(0.8 * viewport_size_f.x, 0.4 * viewport_size_f.y)
 	glass.rotation = -0.1 * PI
 	glass.scale = Vector2(1.0, 1.5) * 0.75
-	
-	#glass.position = Vector2(0.0 * viewport_size_f.x, 0.8 * viewport_size_f.y)
 	
 	T_init = glass.get_global_transform()
 	T_init_inverse = T_init.affine_inverse()
@@ -722,8 +691,6 @@ func water_ready() -> void:
 	
 	compute_sigma_part()
 	
-	verbose_particle_idx = randi() % particle_count
-	
 	var another_background_img: Image = Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	another_background_img.fill(background_color)
 	
@@ -735,23 +702,18 @@ func water_ready() -> void:
 	
 	glass_sdf_img_texture_2drd = Texture2DRD.new()
 	glass_sdf_img_texture_2drd.texture_rd_rid = glass_sdf_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
-	glass_sdf_sprite_2d.texture = glass_sdf_img_texture_2drd
 	
 	glass_sdf_gradient_img_texture_2drd = Texture2DRD.new()
 	glass_sdf_gradient_img_texture_2drd.texture_rd_rid = glass_sdf_gradient_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
-	glass_sdf_gradient_sprite_2d.texture = glass_sdf_gradient_img_texture_2drd
 	
 	grid_to_particles_img_texture_2drd = Texture2DRD.new()
 	grid_to_particles_img_texture_2drd.texture_rd_rid = grid_to_particles_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
-	#tmp_display.texture = grid_to_particles_img_texture_2drd
 	
 	particles_to_grid_img_texture_2drd = Texture2DRD.new()
 	particles_to_grid_img_texture_2drd.texture_rd_rid = particles_to_grid_img_ren_texture_rid    # texture_2drd should automatically free ren_texture_rid
-	#tmp_display.texture = particles_to_grid_img_texture_2drd
 	
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_pos_ener_img", particle_pos_ener_img_texture_2drd)
-	#gpu_particles_2d.process_material.set_shader_parameter("u_verbose_particle_color", Vector4(verbose_particle_color.r, verbose_particle_color.g, verbose_particle_color.b, verbose_particle_color.a))
-	#gpu_particles_2d.process_material.set_shader_parameter("u_neighbor_particle_color", Vector4(neighbor_particle_color.r, neighbor_particle_color.g, neighbor_particle_color.b, neighbor_particle_color.a))
+	gpu_particles_2d.process_material.set_shader_parameter("u_particle_color", PARTICLE_COLOR)
 	gpu_particles_2d.process_material.set_shader_parameter("u_n_to_v_scale_factor", normalized_to_viewport_scale_factor)
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_temp_ambient", particle_temp_ambient)
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_temp_max", particle_temp_max)
@@ -779,16 +741,12 @@ func water_ready() -> void:
 			# this second parameter is bound to the original callable after the original call supplies the first parameter
 			ps.value_changed.connect(Callable(self, "_on_slidervalue_changed").bind(ps.name))
 	
-	for pt in get_tree().get_nodes_in_group("ParamToggle"):
-		if pt is CheckBox:
-			# see the explanation above
-			pt.toggled.connect(Callable(self, "_on_togglevalue_changed").bind(pt.name))
-	
-	reset_params()
+	reset_tweakable_params()
 	
 	set_display()
 	
-	print("Max simulation timestep: ", max_timestep)
+	print("Max water simulation timestep: ", max_timestep)
+	print("Actual water simulation timestep: ", FIXED_DT)
 
 func water_process(_delta: float) -> void:
 	if not waiting_for_gpu:
@@ -806,22 +764,17 @@ func water_process(_delta: float) -> void:
 		
 		if desired_waiting_frames == 0:
 			rd.sync()
-			if on:
-				frame_counter += sim_steps_per_frame
 		else:
 			curr_waiting_frames += 1
 			waiting_for_gpu = true
 	else:
 		if curr_waiting_frames == desired_waiting_frames:
 			rd.sync()
-			if on:
-				frame_counter += sim_steps_per_frame
 			curr_waiting_frames = 0
 			waiting_for_gpu = false
 		else:
 			curr_waiting_frames += 1
 	
-	gpu_particles_2d.process_material.set_shader_parameter("u_particle_color", Vector4(rt_particle_color.r, rt_particle_color.g, rt_particle_color.b, rt_particle_color.a))
 	gpu_particles_2d.process_material.set_shader_parameter("u_particle_vis_size", rt_particle_vis_size)
 	
 	low_res_color_rect.material.set("shader_parameter/lod", rt_blur_amount)
@@ -837,8 +790,48 @@ func water_process(_delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	
+	if event is InputEventKey and event.keycode == KEY_LEFT:
+		if event.pressed:
+			left_arrow_pressed = true
+		else:
+			left_arrow_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_RIGHT:
+		if event.pressed:
+			right_arrow_pressed = true
+		else:
+			right_arrow_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_UP:
+		if event.pressed:
+			up_arrow_pressed = true
+		else:
+			up_arrow_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_DOWN:
+		if event.pressed:
+			down_arrow_pressed = true
+		else:
+			down_arrow_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_A:
+		if event.pressed:
+			a_key_pressed = true
+		else:
+			a_key_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_D:
+		if event.pressed:
+			d_key_pressed = true
+		else:
+			d_key_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_W:
+		if event.pressed:
+			w_key_pressed = true
+		else:
+			w_key_pressed = false
+	elif event is InputEventKey and event.keycode == KEY_S:
+		if event.pressed:
+			s_key_pressed = true
+		else:
+			s_key_pressed = false
+	
 	if event is InputEventMouseButton:
-		
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			left_button_clicked = true
 		else:
@@ -846,90 +839,39 @@ func _input(event: InputEvent) -> void:
 			spawn_accumulator = 0.0
 			prev_spawn_accumulator_int_part = 0
 			curr_spawn_accumulator_int_part = 0
-		
 		if event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			right_button_clicked = true
 		else:
 			right_button_clicked = false
-		
 		if event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
 			middle_button_clicked = true
 		else:
-			middle_button_clicked = false
+			middle_button_clicked = false	
 	
 	if event is InputEventKey:
-		
-		if event.pressed and event.keycode == KEY_LEFT:
-			left_arrow_pressed = true
-		else:
-			left_arrow_pressed = false
-		if event.pressed and event.keycode == KEY_RIGHT:
-			right_arrow_pressed = true
-		else:
-			right_arrow_pressed = false
-		if event.pressed and event.keycode == KEY_UP:
-			up_arrow_pressed = true
-		else:
-			up_arrow_pressed = false
-		if event.pressed and event.keycode == KEY_DOWN:
-			down_arrow_pressed = true
-		else:
-			down_arrow_pressed = false
-		if event.pressed and event.keycode == KEY_A:
-			a_key_pressed = true
-		else:
-			a_key_pressed = false
-		if event.pressed and event.keycode == KEY_D:
-			d_key_pressed = true
-		else:
-			d_key_pressed = false
-		if event.pressed and event.keycode == KEY_W:
-			w_key_pressed = true
-		else:
-			w_key_pressed = false
-		if event.pressed and event.keycode == KEY_S:
-			s_key_pressed = true
-		else:
-			s_key_pressed = false
-		
 		if event.pressed and event.keycode == KEY_R:
-			reset_params()
+			reset_tweakable_params()
 		if event.pressed and event.keycode == KEY_H:
 			top_margin_container.visible = !top_margin_container.visible
 		if event.pressed and event.keycode == KEY_T:
 			bottom_margin_container.visible = !bottom_margin_container.visible
-		
 		if event.pressed and event.keycode == KEY_PERIOD:
 			curr_display_idx = (curr_display_idx + 1) % textures.size()
 			set_display()
 		elif event.pressed and event.keycode == KEY_COMMA:
 			curr_display_idx = (curr_display_idx - 1) % textures.size()
 			set_display()
-		
-		if event.pressed and event.keycode == KEY_C:
-			verbose_particle_idx = randi() % particle_count
-			
+		#if event.pressed and event.keycode == KEY_C:
 			#run_gpu(1.0 / 120.0, 1, false)
 			#
 			#print("Positions: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(positions_buffer_rid)).slice(0, 10))
 			#print("Velocities: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(velocities_buffer_rid)).slice(0, 10))
 			#
-			#var temperatures_gpu: PackedFloat32Array = rd.buffer_get_data(temperatures_buffer_rid).to_float32_array()
-			#print("Temperatures avg: ", average(temperatures_gpu))
-			#print("Temperatures: ", temperatures_gpu.slice(0, 10))
-			#
-			#var latent_heats_gpu: PackedFloat32Array = rd.buffer_get_data(latent_heats_buffer_rid).to_float32_array()
-			#print("Latent heats avg: ", average(latent_heats_gpu))
-			#print("Latent heats: ", latent_heats_gpu.slice(0, 10))
-			#
-			var energies_gpu: PackedFloat32Array = rd.buffer_get_data(energies_buffer_rid).to_float32_array()
-			print("Energies avg: ", average(energies_gpu))
-			print("Energies: ", energies_gpu.slice(0, 10))
+			#var energies_gpu: PackedFloat32Array = rd.buffer_get_data(energies_buffer_rid).to_float32_array()
+			#print("Energies avg: ", average(energies_gpu))
+			#print("Energies: ", energies_gpu.slice(0, 10))
 			#print("Temperatures: ", Array(energies_gpu.slice(0, 10)).map(func(elem): return particle_temp_ambient + (min(elem, heating_energy_cost) / (mass * specific_heat_capacity))))
 			#print("Latent heats: ", Array(energies_gpu.slice(0, 10)).map(func(elem): return max(elem - heating_energy_cost, 0.0)))
-			var tmp_gpu: PackedFloat32Array = rd.buffer_get_data(tmp_buffer_rid).to_float32_array()
-			print("Tmp avg: ", average(tmp_gpu))
-			print("Tmp: ", tmp_gpu.slice(0, 10))
 			#
 			#print("Lifetimes: ", rd.buffer_get_data(lifetimes_buffer_rid).to_float32_array())
 			#print("Ages: ", rd.buffer_get_data(ages_buffer_rid).to_float32_array())
@@ -976,8 +918,6 @@ func init_general_predefined_variables() -> void:
 	# commented variables are initialized in other parts of the code
 	
 	background_color = Color(0.0, 0.0, 0.0, 0.0)
-	verbose_particle_color = Color(1.0, 0.0, 1.0, 1.0)
-	neighbor_particle_color = Color(1.0, 1.0, 0.0, 1.0)
 	
 	normalized_sim_world_bounds_min = Vector2(0.0, 0.0)
 	normalized_sim_world_bounds_max = Vector2(1.0, 1.0)
@@ -1019,8 +959,6 @@ func init_general_predefined_variables() -> void:
 	particle_pos_ener_img_size_f = float(particle_pos_ener_img_size)
 	glass_sdf_imgs_size_f = Vector2(float(glass_sdf_imgs_size.x), float(glass_sdf_imgs_size.y))
 	#grid_to_particles_img_size_f
-	
-	verbose_particle_idx = -1
 	
 	mouse_normalized_pos = Vector2(-1.0, -1.0)
 	
@@ -1065,10 +1003,6 @@ func init_general_predefined_variables() -> void:
 	store_particle_info_workgroups_x = int(ceil(pg_gp_size.x / float(store_particle_info_workgroup_size_x)))
 	store_particle_info_workgroup_size_y = 16    # should match local_size_y in the corresponding shader
 	store_particle_info_workgroups_y = int(ceil(pg_gp_size.y / float(store_particle_info_workgroup_size_y)))
-	store_neighbors_workgroup_size_x = kill_particles_workgroup_size_x
-	store_neighbors_workgroups_x = kill_particles_workgroups_x
-	mark_neighbors_workgroup_size_x = kill_particles_workgroup_size_x
-	mark_neighbors_workgroups_x = kill_particles_workgroups_x
 	compute_non_pressure_forces_workgroup_size_x = kill_particles_workgroup_size_x
 	compute_non_pressure_forces_workgroups_x = kill_particles_workgroups_x
 	compute_predicted_positions_workgroup_size_x = kill_particles_workgroup_size_x
@@ -1082,15 +1016,13 @@ func init_general_predefined_variables() -> void:
 	
 	positions_size = particle_count
 	velocities_size = positions_size
-	#temperatures_size = positions_size
-	#latent_heats_size = positions_size
 	energies_size = positions_size
 	evaporated_masses_size = positions_size
 	lifetimes_size = positions_size
 	ages_size = positions_size
 	is_alive_size = positions_size
 	dead_stack_size = positions_size    # this is actually the maximum POSSIBLE stack size
-	hashes_size = positions_size    # number of grid cells = number of particles, collisions expected
+	hashes_size = positions_size    # number of neighborhood search grid cells = number of particles, collisions expected
 	particle_indices_size = positions_size
 	start_indices_size = positions_size
 	end_indices_size = positions_size
@@ -1100,7 +1032,6 @@ func init_general_predefined_variables() -> void:
 	near_pressures_size = positions_size
 	vorticities_size = positions_size
 	forces_size = positions_size
-	neighbor_flags_size = positions_size
 	non_pressure_forces_size = positions_size
 	pressure_forces_size = positions_size
 	predicted_positions_size = positions_size
@@ -1139,42 +1070,8 @@ func init_general_predefined_variables() -> void:
 	spawn_grid_size = 0
 	spawn_random_offset = Vector2(0, 0)    # in particle_spacing units
 	
-	rt_water_main_color = water_main_color
-	rt_water_tint_color = water_tint_color
-	rt_particle_color = particle_color
-	rt_particle_vis_size = particle_vis_size
-	rt_rest_density = rest_density
-	rt_stiffness = stiffness
-	rt_stiffness_near = stiffness_near
-	rt_viscosity_scale = viscosity_scale
-	rt_xsph_scale = xsph_scale
-	rt_vorticity_scale = vorticity_scale
-	rt_surface_tension_threshold = surface_tension_threshold
-	rt_surface_tension_scale = surface_tension_scale
-	rt_adhesion_threshold = adhesion_threshold
-	rt_adhesion_scale = adhesion_scale
-	rt_gravity_multiplier = gravity_multiplier
-	rt_damping = damping
-	rt_bounds_damping = bounds_damping
-	rt_vel_clamp = vel_clamp
-	rt_mouse_interaction_radius = mouse_interaction_radius
-	rt_mouse_interaction_strength = mouse_interaction_strength
-	rt_glass_movement_speed = glass_movement_speed
-	rt_glass_rotation_speed = glass_rotation_speed
-	rt_glass_scaling_speed = glass_scaling_speed
-	rt_spawn_rate = spawn_rate
-	rt_spawn_random_offset_range = spawn_random_offset_range
-	rt_spawn_init_vel = spawn_init_vel
-	rt_lerp_factor = lerp_factor
-	rt_blur_amount = blur_amount
-	rt_water_density_threshold = water_density_threshold
-	rt_edge_softness = edge_softness
-	rt_tint_threshold_min = tint_threshold_min
-	rt_tint_threshold_max = tint_threshold_max
-	
 	color_picker_button_callbacks_dict = {}
 	slider_callbacks_dict = {}
-	toggle_callbacks_dict = {}
 	
 	curr_display_idx = 1
 
@@ -1321,16 +1218,6 @@ func init_gpu() -> void:
 		velocities.append(Vector2(0.0, 0.0))
 	var velocities_bytes: PackedByteArray = velocities.to_byte_array()
 	
-	#var temperatures: PackedFloat32Array = PackedFloat32Array()
-	#temperatures.resize(temperatures_size)
-	#temperatures.fill(particle_temp_ambient)
-	#var temperatures_bytes: PackedByteArray = temperatures.to_byte_array()
-	#
-	#var latent_heats: PackedFloat32Array = PackedFloat32Array()
-	#latent_heats.resize(latent_heats_size)
-	#latent_heats.fill(0.0)
-	#var latent_heats_bytes: PackedByteArray = latent_heats.to_byte_array()
-	
 	var energies: PackedFloat32Array = PackedFloat32Array()
 	energies.resize(energies_size)
 	energies.fill(0.0)
@@ -1394,7 +1281,7 @@ func init_gpu() -> void:
 	
 	var positions_bytes: PackedByteArray = positions.to_byte_array()
 	
-	print("{0}\n".format([total_dead_counter == init_dead_particle_count]))
+	print("\n{0}\n".format([total_dead_counter == init_dead_particle_count]))
 	
 	var dead_count: int = init_dead_particle_count
 	var dead_count_bytes: PackedByteArray
@@ -1485,11 +1372,6 @@ func init_gpu() -> void:
 		forces.append(Vector2(0.0, 0.0))
 	var forces_bytes: PackedByteArray = forces.to_byte_array()
 	
-	var neighbor_flags: Array[int] = []
-	neighbor_flags.resize(neighbor_flags_size)
-	neighbor_flags.fill(0)
-	var neighbor_flags_bytes: PackedByteArray = get_uint_packed_byte_array(neighbor_flags)
-	
 	var non_pressure_forces: PackedVector2Array = PackedVector2Array()
 	for i in non_pressure_forces_size:
 		non_pressure_forces.append(Vector2(0.0, 0.0))
@@ -1511,16 +1393,9 @@ func init_gpu() -> void:
 	var predicted_densities_bytes: PackedByteArray = predicted_densities.to_byte_array()
 	#endregion
 	
-	var tmp_buffer_vals: PackedFloat32Array = PackedFloat32Array()
-	tmp_buffer_vals.resize(positions_size)
-	tmp_buffer_vals.fill(0.0)
-	var tmp_buffer_vals_bytes: PackedByteArray = tmp_buffer_vals.to_byte_array()
-	
 	#region buffers
 	positions_buffer_rid = rd.storage_buffer_create(positions_bytes.size(), positions_bytes)
 	velocities_buffer_rid = rd.storage_buffer_create(velocities_bytes.size(), velocities_bytes)
-	#temperatures_buffer_rid = rd.storage_buffer_create(temperatures_bytes.size(), temperatures_bytes)
-	#latent_heats_buffer_rid = rd.storage_buffer_create(latent_heats_bytes.size(), latent_heats_bytes)
 	energies_buffer_rid = rd.storage_buffer_create(energies_bytes.size(), energies_bytes)
 	evaporated_masses_buffer_rid = rd.storage_buffer_create(evaporated_masses_bytes.size(), evaporated_masses_bytes)
 	lifetimes_buffer_rid = rd.storage_buffer_create(lifetimes_bytes.size(), lifetimes_bytes)
@@ -1549,14 +1424,11 @@ func init_gpu() -> void:
 	near_pressures_buffer_rid = rd.storage_buffer_create(near_pressures_bytes.size(), near_pressures_bytes)
 	vorticities_buffer_rid = rd.storage_buffer_create(vorticities_bytes.size(), vorticities_bytes)
 	forces_buffer_rid = rd.storage_buffer_create(forces_bytes.size(), forces_bytes)
-	neighbor_flags_buffer_rid = rd.storage_buffer_create(neighbor_flags_bytes.size(), neighbor_flags_bytes)
 	non_pressure_forces_buffer_rid = rd.storage_buffer_create(non_pressure_forces_bytes.size(), non_pressure_forces_bytes)
 	pressure_forces_buffer_rid = rd.storage_buffer_create(pressure_forces_bytes.size(), pressure_forces_bytes)
 	predicted_positions_buffer_rid = rd.storage_buffer_create(predicted_positions_bytes.size(), predicted_positions_bytes)
 	predicted_densities_buffer_rid = rd.storage_buffer_create(predicted_densities_bytes.size(), predicted_densities_bytes)
 	#endregion
-	
-	tmp_buffer_rid = rd.storage_buffer_create(tmp_buffer_vals_bytes.size(), tmp_buffer_vals_bytes)
 	
 	#region uniforms
 	# uniforms point to existing buffers on GPU and connect them to shaders
@@ -1632,14 +1504,6 @@ func init_gpu() -> void:
 	spawn_particles_dead_count_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_dead_count_uniform.binding = 5
 	spawn_particles_dead_count_uniform.add_id(dead_count_buffer_rid)
-	#spawn_particles_temperatures_uniform: RDUniform = RDUniform.new()
-	#spawn_particles_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#spawn_particles_temperatures_uniform.binding = 6
-	#spawn_particles_temperatures_uniform.add_id(temperatures_buffer_rid)
-	#spawn_particles_latent_heats_uniform: RDUniform = RDUniform.new()
-	#spawn_particles_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#spawn_particles_latent_heats_uniform.binding = 7
-	#spawn_particles_latent_heats_uniform.add_id(latent_heats_buffer_rid)
 	var spawn_particles_energies_uniform: RDUniform = RDUniform.new()
 	spawn_particles_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	spawn_particles_energies_uniform.binding = 6
@@ -1920,10 +1784,6 @@ func init_gpu() -> void:
 	integrate_motion_wcsph_is_alive_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	integrate_motion_wcsph_is_alive_uniform.binding = 7
 	integrate_motion_wcsph_is_alive_uniform.add_id(is_alive_buffer_rid)
-	#integrate_motion_wcsph_temperatures_uniform: RDUniform = RDUniform.new()
-	#integrate_motion_wcsph_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#integrate_motion_wcsph_temperatures_uniform.binding = 8
-	#integrate_motion_wcsph_temperatures_uniform.add_id(temperatures_buffer_rid)
 	var integrate_motion_wcsph_energies_uniform: RDUniform = RDUniform.new()
 	integrate_motion_wcsph_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	integrate_motion_wcsph_energies_uniform.binding = 8
@@ -1948,14 +1808,6 @@ func init_gpu() -> void:
 	store_particle_info_densities_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_densities_uniform.binding = 4
 	store_particle_info_densities_uniform.add_id(densities_buffer_rid)
-	#store_particle_info_temperatures_uniform: RDUniform = RDUniform.new()
-	#store_particle_info_temperatures_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#store_particle_info_temperatures_uniform.binding = 5
-	#store_particle_info_temperatures_uniform.add_id(temperatures_buffer_rid)
-	#store_particle_info_latent_heats_uniform: RDUniform = RDUniform.new()
-	#store_particle_info_latent_heats_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	#store_particle_info_latent_heats_uniform.binding = 6
-	#store_particle_info_latent_heats_uniform.add_id(latent_heats_buffer_rid)
 	var store_particle_info_energies_uniform: RDUniform = RDUniform.new()
 	store_particle_info_energies_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_energies_uniform.binding = 5
@@ -1964,30 +1816,6 @@ func init_gpu() -> void:
 	store_particle_info_evaporated_masses_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	store_particle_info_evaporated_masses_uniform.binding = 6
 	store_particle_info_evaporated_masses_uniform.add_id(evaporated_masses_buffer_rid)
-	var store_neighbors_positions_uniform: RDUniform = RDUniform.new()
-	store_neighbors_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_neighbors_positions_uniform.binding = 0
-	store_neighbors_positions_uniform.add_id(positions_buffer_rid)
-	var store_neighbors_sorted_particle_indices_uniform: RDUniform = RDUniform.new()
-	store_neighbors_sorted_particle_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_neighbors_sorted_particle_indices_uniform.binding = 1
-	store_neighbors_sorted_particle_indices_uniform.add_id(particle_indices_1_buffer_rid)
-	var store_neighbors_start_indices_uniform: RDUniform = RDUniform.new()
-	store_neighbors_start_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_neighbors_start_indices_uniform.binding = 2
-	store_neighbors_start_indices_uniform.add_id(start_indices_buffer_rid)
-	var store_neighbors_end_indices_uniform: RDUniform = RDUniform.new()
-	store_neighbors_end_indices_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_neighbors_end_indices_uniform.binding = 3
-	store_neighbors_end_indices_uniform.add_id(end_indices_buffer_rid)
-	var store_neighbors_neighbor_flags_uniform: RDUniform = RDUniform.new()
-	store_neighbors_neighbor_flags_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_neighbors_neighbor_flags_uniform.binding = 4
-	store_neighbors_neighbor_flags_uniform.add_id(neighbor_flags_buffer_rid)
-	var mark_neighbors_neighbor_flags_uniform: RDUniform = RDUniform.new()
-	mark_neighbors_neighbor_flags_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	mark_neighbors_neighbor_flags_uniform.binding = 0
-	mark_neighbors_neighbor_flags_uniform.add_id(neighbor_flags_buffer_rid)
 	var compute_non_pressure_forces_positions_uniform: RDUniform = RDUniform.new()
 	compute_non_pressure_forces_positions_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
 	compute_non_pressure_forces_positions_uniform.binding = 0
@@ -2166,15 +1994,6 @@ func init_gpu() -> void:
 	integrate_motion_pcisph_energies_uniform.add_id(energies_buffer_rid)
 	#endregion
 	
-	get_particle_info_tmp_buffer_uniform = RDUniform.new()
-	get_particle_info_tmp_buffer_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	get_particle_info_tmp_buffer_uniform.binding = 5
-	get_particle_info_tmp_buffer_uniform.add_id(tmp_buffer_rid)
-	store_particle_info_tmp_buffer_uniform = RDUniform.new()
-	store_particle_info_tmp_buffer_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	store_particle_info_tmp_buffer_uniform.binding = 8
-	store_particle_info_tmp_buffer_uniform.add_id(tmp_buffer_rid)
-	
 	#region textures
 	# my usage bits: allow sampling and allow shaders to read from and write to an image without using a fixed-function graphics pipeline
 	# bonus: allow one texture to be the destination of copying
@@ -2277,6 +2096,8 @@ func init_gpu() -> void:
 	#print(grid_viewport_texture_format.samples)
 	#print(grid_viewport_texture_format.mipmaps)
 	
+	assert(pg_gp_size.x == grid_viewport_texture_format.width and pg_gp_size.y == grid_viewport_texture_format.height, "Specified PG/GP size should match PG/GP viewport size")
+	
 	grid_to_particles_img_texture_view = RDTextureView.new()
 	grid_to_particles_img_texture_format = RDTextureFormat.new()
 	grid_to_particles_img_texture_format.width = grid_viewport_texture_format.width
@@ -2300,8 +2121,6 @@ func init_gpu() -> void:
 		grid_to_particles_img_texture_format.depth,
 		grid_to_particles_img_texture_format.array_layers
 	)
-	
-	assert(pg_gp_size.x == grid_viewport_texture_format.width and pg_gp_size.y == grid_viewport_texture_format.height, "Sizes should match")
 	
 	particles_to_grid_img_texture_view = RDTextureView.new()
 	particles_to_grid_img_texture_format = RDTextureFormat.new()
@@ -2345,14 +2164,6 @@ func init_gpu() -> void:
 	store_particle_info_particles_to_grid_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	store_particle_info_particles_to_grid_img_uniform.binding = 7
 	store_particle_info_particles_to_grid_img_uniform.add_id(particles_to_grid_img_texture_rid)
-	var store_neighbors_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
-	store_neighbors_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	store_neighbors_particle_pos_ener_img_uniform.binding = 5
-	store_neighbors_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
-	var mark_neighbors_particle_pos_ener_img_uniform: RDUniform = RDUniform.new()
-	mark_neighbors_particle_pos_ener_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
-	mark_neighbors_particle_pos_ener_img_uniform.binding = 1
-	mark_neighbors_particle_pos_ener_img_uniform.add_id(particle_pos_ener_img_texture_rid)
 	var compute_predicted_positions_glass_sdf_img_uniform: RDUniform = RDUniform.new()
 	compute_predicted_positions_glass_sdf_img_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	compute_predicted_positions_glass_sdf_img_uniform.binding = 7
@@ -2376,7 +2187,7 @@ func init_gpu() -> void:
 	#endregion
 	
 	#region uniform sets
-	get_particle_info_uniform_set_rid = rd.uniform_set_create([get_particle_info_positions_uniform, get_particle_info_is_alive_uniform, get_particle_info_energies_uniform, get_particle_info_evaporated_masses_uniform, get_particle_info_grid_to_particles_img_uniform, get_particle_info_tmp_buffer_uniform], get_particle_info_shader_rid, 0)
+	get_particle_info_uniform_set_rid = rd.uniform_set_create([get_particle_info_positions_uniform, get_particle_info_is_alive_uniform, get_particle_info_energies_uniform, get_particle_info_evaporated_masses_uniform, get_particle_info_grid_to_particles_img_uniform], get_particle_info_shader_rid, 0)
 	kill_particles_uniform_set_rid = rd.uniform_set_create([kill_particles_positions_uniform, kill_particles_velocities_uniform, kill_particles_lifetimes_uniform, kill_particles_ages_uniform, kill_particles_is_alive_uniform, kill_particles_dead_stack_uniform, kill_particles_dead_count_uniform, kill_particles_energies_uniform], kill_particles_shader_rid, 0)
 	spawn_particles_uniform_set_rid = rd.uniform_set_create([spawn_particles_positions_uniform, spawn_particles_velocities_uniform, spawn_particles_ages_uniform, spawn_particles_is_alive_uniform, spawn_particles_dead_stack_uniform, spawn_particles_dead_count_uniform, spawn_particles_energies_uniform, spawn_particles_evaporated_masses_uniform], spawn_particles_shader_rid, 0)
 	compute_hashes_uniform_set_rid = rd.uniform_set_create([compute_hashes_positions_uniform, compute_hashes_hashes_uniform, compute_hashes_particle_indices_uniform], compute_hashes_shader_rid, 0)
@@ -2397,18 +2208,8 @@ func init_gpu() -> void:
 	compute_pressures_uniform_set_rid = rd.uniform_set_create([compute_pressures_densities_uniform, compute_pressures_pressures_uniform, compute_pressures_near_densities_uniform, compute_pressures_near_pressures_uniform, compute_pressures_is_alive_uniform], compute_pressures_shader_rid, 0)
 	compute_vorticities_uniform_set_rid = rd.uniform_set_create([compute_vorticities_positions_uniform, compute_vorticities_sorted_particle_indices_uniform, compute_vorticities_start_indices_uniform, compute_vorticities_end_indices_uniform, compute_vorticities_densities_uniform, compute_vorticities_velocities_uniform, compute_vorticities_vorticities_uniform, compute_vorticities_is_alive_uniform], compute_vorticities_shader_rid, 0)
 	compute_forces_uniform_set_rid = rd.uniform_set_create([compute_forces_positions_uniform, compute_forces_velocities_uniform, compute_forces_sorted_particle_indices_uniform, compute_forces_start_indices_uniform, compute_forces_end_indices_uniform, compute_forces_densities_uniform, compute_forces_pressures_uniform, compute_forces_near_densities_uniform, compute_forces_near_pressures_uniform, compute_forces_vorticities_uniform, compute_forces_forces_uniform, compute_forces_is_alive_uniform], compute_forces_shader_rid, 0)
-	#integrate_motion_wcsph_uniform_set_rid = rd.uniform_set_create([integrate_motion_wcsph_positions_uniform, integrate_motion_wcsph_velocities_uniform, integrate_motion_wcsph_densities_uniform, integrate_motion_wcsph_forces_uniform, integrate_motion_wcsph_sorted_particle_indices_uniform, integrate_motion_wcsph_start_indices_uniform, integrate_motion_wcsph_end_indices_uniform, integrate_motion_wcsph_is_alive_uniform, integrate_motion_wcsph_temperatures_uniform, integrate_motion_wcsph_particle_pos_ener_img_uniform, integrate_motion_wcsph_glass_sdf_img_uniform, integrate_motion_wcsph_glass_sdf_gradient_img_uniform], integrate_motion_wcsph_shader_rid, 0)
 	integrate_motion_wcsph_uniform_set_rid = rd.uniform_set_create([integrate_motion_wcsph_positions_uniform, integrate_motion_wcsph_velocities_uniform, integrate_motion_wcsph_densities_uniform, integrate_motion_wcsph_forces_uniform, integrate_motion_wcsph_sorted_particle_indices_uniform, integrate_motion_wcsph_start_indices_uniform, integrate_motion_wcsph_end_indices_uniform, integrate_motion_wcsph_is_alive_uniform, integrate_motion_wcsph_energies_uniform, integrate_motion_wcsph_particle_pos_ener_img_uniform, integrate_motion_wcsph_glass_sdf_img_uniform, integrate_motion_wcsph_glass_sdf_gradient_img_uniform], integrate_motion_wcsph_shader_rid, 0)
-	
-	# deprecated
-	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_temperatures_uniform, store_particle_info_latent_heats_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
-	
-	# with tmp
-	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform, store_particle_info_tmp_buffer_uniform], store_particle_info_shader_rid, 0)
-	
-	# without tmp
-	#store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
-	
+	store_particle_info_uniform_set_rid = rd.uniform_set_create([store_particle_info_positions_uniform, store_particle_info_sorted_particle_indices_uniform, store_particle_info_start_indices_uniform, store_particle_info_end_indices_uniform, store_particle_info_densities_uniform, store_particle_info_energies_uniform, store_particle_info_evaporated_masses_uniform, store_particle_info_particles_to_grid_img_uniform], store_particle_info_shader_rid, 0)
 	compute_non_pressure_forces_uniform_set_rid = rd.uniform_set_create([compute_non_pressure_forces_positions_uniform, compute_non_pressure_forces_velocities_uniform, compute_non_pressure_forces_sorted_particle_indices_uniform, compute_non_pressure_forces_start_indices_uniform, compute_non_pressure_forces_end_indices_uniform, compute_non_pressure_forces_densities_uniform, compute_non_pressure_forces_vorticities_uniform, compute_non_pressure_forces_non_pressure_forces_uniform, compute_non_pressure_forces_pressures_uniform, compute_non_pressure_forces_pressure_forces_uniform, compute_non_pressure_forces_near_densities_uniform, compute_non_pressure_forces_is_alive_uniform], compute_non_pressure_forces_shader_rid, 0)
 	compute_predicted_positions_uniform_set_rid = rd.uniform_set_create([compute_predicted_positions_positions_uniform, compute_predicted_positions_velocities_uniform, compute_predicted_positions_densities_uniform, compute_predicted_positions_non_pressure_forces_uniform, compute_predicted_positions_pressure_forces_uniform, compute_predicted_positions_predicted_positions_uniform, compute_predicted_positions_is_alive_uniform, compute_predicted_positions_glass_sdf_img_uniform, compute_predicted_positions_glass_sdf_gradient_img_uniform], compute_predicted_positions_shader_rid, 0)
 	predict_densities_update_pressures_uniform_set_rid = rd.uniform_set_create([predict_densities_update_pressures_predicted_positions_uniform, predict_densities_update_pressures_sorted_particle_indices_uniform, predict_densities_update_pressures_start_indices_uniform, predict_densities_update_pressures_end_indices_uniform, predict_densities_update_pressures_predicted_densities_uniform, predict_densities_update_pressures_pressures_uniform, predict_densities_update_pressures_is_alive_uniform], predict_densities_update_pressures_shader_rid, 0)
@@ -2480,6 +2281,7 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 	#endregion
 	
 	# it seems it makes no difference if we write "range(n_times)" or just "n_times"
+	
 	for n in n_times:
 		#region kill particles pass
 		rd.compute_list_bind_compute_pipeline(compute_list, kill_particles_pipeline_rid)
@@ -2496,15 +2298,14 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 		
 		#region spawning logic
 		if spawning_on:
-		#if true:
 			spawn_accumulator += rt_spawn_rate * delta
 			curr_spawn_accumulator_int_part = int(spawn_accumulator)
 			
 			if curr_spawn_accumulator_int_part != prev_spawn_accumulator_int_part:
-				spawn_count += curr_spawn_accumulator_int_part - prev_spawn_accumulator_int_part
+				spawn_count += (curr_spawn_accumulator_int_part - prev_spawn_accumulator_int_part)
 				prev_spawn_accumulator_int_part = curr_spawn_accumulator_int_part
 		
-		# spawn only once, in the last loop iteration
+		# spawn only once, in the last iteration of the loop
 		# otherwise, there's a high chance that one dispatch in one iteration will spawn only one particle
 		# this seems like wasting GPU potential
 		# by accumulating the spawn data and waiting until the last iteration we increase the chances that one final dispatch will spawn a bunch of particles
@@ -2534,7 +2335,6 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 			params.encode_float(32, particle_spacing)
 			params.encode_s32(36, spawn_random_offset.x)
 			params.encode_s32(40, spawn_random_offset.y)
-			#params.encode_float(44, particle_temp_ambient)
 			rd.compute_list_set_push_constant(compute_list, params, params.size())
 			rd.compute_list_add_barrier(compute_list)
 			rd.compute_list_dispatch(compute_list, spawn_particles_workgroups_x, 1, 1)
@@ -2959,7 +2759,6 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 	rd.compute_list_dispatch(compute_list, store_particle_info_workgroups_x, store_particle_info_workgroups_y, 1)
 	#endregion
 	
-		
 	# end the list of instructions
 	rd.compute_list_end()
 	
@@ -2996,8 +2795,6 @@ func free_gpu() -> void:
 	rd.free_rid(compute_forces_pipeline_rid)
 	rd.free_rid(integrate_motion_wcsph_pipeline_rid)
 	rd.free_rid(store_particle_info_pipeline_rid)
-	rd.free_rid(store_neighbors_pipeline_rid)
-	rd.free_rid(mark_neighbors_pipeline_rid)
 	rd.free_rid(compute_non_pressure_forces_pipeline_rid)
 	rd.free_rid(compute_predicted_positions_pipeline_rid)
 	rd.free_rid(predict_densities_update_pressures_pipeline_rid)
@@ -3027,8 +2824,6 @@ func free_gpu() -> void:
 	rd.free_rid(compute_forces_uniform_set_rid)
 	rd.free_rid(integrate_motion_wcsph_uniform_set_rid)
 	rd.free_rid(store_particle_info_uniform_set_rid)
-	rd.free_rid(store_neighbors_uniform_set_rid)
-	rd.free_rid(mark_neighbors_uniform_set_rid)
 	rd.free_rid(compute_non_pressure_forces_uniform_set_rid)
 	rd.free_rid(compute_predicted_positions_uniform_set_rid)
 	rd.free_rid(predict_densities_update_pressures_uniform_set_rid)
@@ -3039,8 +2834,6 @@ func free_gpu() -> void:
 	#region buffers
 	rd.free_rid(positions_buffer_rid)
 	rd.free_rid(velocities_buffer_rid)
-	#rd.free_rid(temperatures_buffer_rid)
-	#rd.free_rid(latent_heats_buffer_rid)
 	rd.free_rid(energies_buffer_rid)
 	rd.free_rid(evaporated_masses_buffer_rid)
 	rd.free_rid(lifetimes_buffer_rid)
@@ -3067,14 +2860,11 @@ func free_gpu() -> void:
 	rd.free_rid(near_pressures_buffer_rid)
 	rd.free_rid(vorticities_buffer_rid)
 	rd.free_rid(forces_buffer_rid)
-	rd.free_rid(neighbor_flags_buffer_rid)
 	rd.free_rid(non_pressure_forces_buffer_rid)
 	rd.free_rid(pressure_forces_buffer_rid)
 	rd.free_rid(predicted_positions_buffer_rid)
 	rd.free_rid(predicted_densities_buffer_rid)
 	#endregion
-	
-	rd.free_rid(tmp_buffer_rid)
 	
 	#region shaders
 	rd.free_rid(get_particle_info_shader_rid)
@@ -3113,117 +2903,6 @@ func free_gpu() -> void:
 	
 	rd.free()
 
-func compute_sigma_part() -> void:
-	# precompute the kernel sums present in the formula for sigma, the parameter commonly used in PCISPH
-	# do it by assuming a perfect distribution of particles around some center point
-	# the perfect distribution is given by the spacing between particles at the bery beginning of the simulation
-	# everything is done with virtual/prototype/temporary particles since the only thing we need is their positions
-	
-	sigma_part = 0.0
-	
-	var sum_grad_w: Vector2 = Vector2(0.0, 0.0)
-	var sum_grad_w_dot_grad_w: float = 0.0
-	
-	var center: Vector2 = Vector2(0.5, 0.5)
-	var h2: float = smoothing_radius * smoothing_radius
-	var steps: int = int(ceil(smoothing_radius / particle_spacing))
-	var num_neighbors: int = 0
-	
-	for y in range(-steps, steps + 1):
-		for x in range(-steps, steps + 1):
-			if (x == 0 and y == 0):
-				continue
-			
-			var p: Vector2 = center + (Vector2(x, y) * particle_spacing)
-			var diff: Vector2 = center - p
-			var r2: float = diff.length_squared()
-			
-			if r2 < h2:
-				#var gradient_W: Vector2 = spiky_2d_gradient_constant * pow(sqrt(h2) - sqrt(r2), 2.0) * (diff / sqrt(r2))
-				var gradient_W: Vector2 = poly6_2d_gradient_constant * ((h2 - r2) * (h2 - r2)) * diff;
-				sum_grad_w += gradient_W
-				sum_grad_w_dot_grad_w += gradient_W.length_squared()
-				num_neighbors += 1
-	
-	var sum_dot_sum: float = sum_grad_w.length_squared()
-	
-	sigma_part = sum_dot_sum + sum_grad_w_dot_grad_w
-	
-	print("Steps: ", steps)
-	print("Number of neighbors: ", num_neighbors)
-	print("Sigma part: ", sigma_part)
-	print()
-
-func update_glass_transform(delta: float) -> void:
-	var moved: bool = false
-	
-	# movement
-	if (left_arrow_pressed):
-		# move glass left
-		glass.position.x -= rt_glass_movement_speed * delta
-		moved = true
-	if (right_arrow_pressed):
-		# move glass right
-		glass.position.x += rt_glass_movement_speed * delta
-		moved = true
-	if (up_arrow_pressed):
-		# move glass up
-		glass.position.y -= rt_glass_movement_speed * delta
-		moved = true
-	if (down_arrow_pressed):
-		# move glass down
-		glass.position.y += rt_glass_movement_speed * delta
-		moved = true
-	
-	# rotation
-	if (a_key_pressed):
-		# rotate glass CCW
-		glass.rotation -= rt_glass_rotation_speed * delta
-		moved = true
-	if (d_key_pressed):
-		# rotate glass CW
-		glass.rotation += rt_glass_rotation_speed * delta
-		moved = true
-	
-	# scaling
-	if (w_key_pressed):
-		# scale glass up
-		var factor: Vector2 = Vector2(1.0 + (rt_glass_scaling_speed.x * delta), 1.0 + (rt_glass_scaling_speed.y * delta))
-		glass.scale *= Vector2(factor.x, factor.y)
-		moved = true
-	if (s_key_pressed):
-		# scale glass down
-		var factor: Vector2 = Vector2(1.0 + (rt_glass_scaling_speed.x * delta), 1.0 + (rt_glass_scaling_speed.y * delta))
-		glass.scale /= Vector2(factor.x, factor.y)
-		moved = true
-	
-	# prevent invalid scale (very important!)
-	glass.scale.x = max(glass.scale.x, 0.001)
-	glass.scale.y = max(glass.scale.y, 0.001)
-	
-	# recompute transforms only if needed
-	if moved:
-		var T_new: Transform2D = glass.get_global_transform()
-		var M: Transform2D = T_new * T_init_inverse
-		
-		# store full transform (for GPU)
-		M_X_x = M.x.x
-		M_X_y = M.x.y
-		M_Y_x = M.y.x
-		M_Y_y = M.y.y
-		M_origin_x = M.origin.x
-		M_origin_y = M.origin.y
-		
-		# extract rotation (normalize columns)
-		var col_X: Vector2 = M.x.normalized()
-		var col_Y: Vector2 = M.y.normalized()
-		
-		# store only the rotation part (also for GPU)
-		M_rotation_X_x = col_X.x
-		M_rotation_X_y = col_X.y
-		M_rotation_Y_x = col_Y.x
-		M_rotation_Y_y = col_Y.y
-
 func _on_colorpickerbuttonvalue_changed(new_color: Color, color_picker_button_name: String) -> void:
 	if color_picker_button_callbacks_dict.has(color_picker_button_name):
 		color_picker_button_callbacks_dict[color_picker_button_name].call(new_color)
@@ -3231,10 +2910,6 @@ func _on_colorpickerbuttonvalue_changed(new_color: Color, color_picker_button_na
 func _on_slidervalue_changed(new_value: float, slider_name: String) -> void:
 	if slider_callbacks_dict.has(slider_name):
 		slider_callbacks_dict[slider_name].call(new_value)
-
-func _on_togglevalue_changed(toggled_on: bool, toggle_name: String) -> void:
-	if toggle_callbacks_dict.has(toggle_name):
-		toggle_callbacks_dict[toggle_name].call(toggled_on)
 
 func init_color_picker_button_callbacks() -> void:
 	# for each color picker button we define its corresponding callable
@@ -3248,11 +2923,6 @@ func init_color_picker_button_callbacks() -> void:
 	color_picker_button_callbacks_dict["WaterTintColorPickerButton"] = func(new_color: Color) -> void:
 		water_tint_color_picker_button.color = new_color
 		rt_water_tint_color = new_color
-	
-	color_picker_button_callbacks_dict["ParticleColorPickerButton"] = func(new_color: Color) -> void:
-		particle_color_picker_button.color = new_color
-		if labels[curr_display_idx] == "Particles":
-			rt_particle_color = new_color
 
 func init_slider_callbacks() -> void:
 	# for some reason the inspector doesn't allow 4 decimal digits, only 3 at most
@@ -3265,10 +2935,8 @@ func init_slider_callbacks() -> void:
 	surface_tension_scale_h_slider.step = 0.0001
 	surface_tension_scale_h_slider.value = surface_tension_scale
 	
-	damping_h_slider.value = damping
 	damping_h_slider.step = 0.0001
-	
-	#lerp_factor_h_slider.step = 0.0001
+	damping_h_slider.value = damping
 	
 	# for each slider we define its corresponding callable
 	# callables are stored in a dictionary
@@ -3399,16 +3067,6 @@ func init_slider_callbacks() -> void:
 		spawn_init_vel_y_h_slider.value = new_value
 		rt_spawn_init_vel.y = new_value
 	
-	slider_callbacks_dict["HeatingSpeedHSlider"] = func(new_value: float) -> void:
-		heating_speed_value.text = str(new_value)
-		heating_speed_h_slider.value = new_value
-		rt_heating_speed = new_value
-	
-	slider_callbacks_dict["VaporizationSpeedHSlider"] = func(new_value: float) -> void:
-		vaporization_speed_value.text = str(new_value)
-		vaporization_speed_h_slider.value = new_value
-		rt_vaporization_speed = new_value
-	
 	slider_callbacks_dict["LerpFactorHSlider"] = func(new_value: float) -> void:
 		lerp_factor_value.text = str(new_value)
 		lerp_factor_h_slider.value = new_value
@@ -3441,10 +3099,9 @@ func init_slider_callbacks() -> void:
 		tint_threshold_max_h_slider.value = new_val
 		rt_tint_threshold_max = new_val
 
-func reset_params() -> void:
+func reset_tweakable_params() -> void:
 	color_picker_button_callbacks_dict["WaterMainColorPickerButton"].call(water_main_color)
 	color_picker_button_callbacks_dict["WaterTintColorPickerButton"].call(water_tint_color)
-	color_picker_button_callbacks_dict["ParticleColorPickerButton"].call(particle_color)
 	
 	slider_callbacks_dict["ParticleVisSizeHSlider"].call(particle_vis_size)
 	slider_callbacks_dict["RestDensityHSlider"].call(rest_density)
@@ -3477,15 +3134,6 @@ func reset_params() -> void:
 	slider_callbacks_dict["EdgeSoftnessHSlider"].call(edge_softness)
 	slider_callbacks_dict["TintThresholdMinHSlider"].call(tint_threshold_min)
 	slider_callbacks_dict["TintThresholdMaxHSlider"].call(tint_threshold_max)
-
-func set_display() -> void:
-	display.texture = textures[curr_display_idx]
-	label.text = labels[curr_display_idx]
-	
-	#if labels[curr_display_idx] == "Particles":
-		#rt_particle_color = particle_color_picker_button.color
-	#else:
-		#rt_particle_color = Color.WHITE
 
 func print_transforms_intuition() -> void:
 	# the following code explains the logic of moving between some coordinate systems using transforms
@@ -3633,6 +3281,41 @@ func print_transforms_intuition() -> void:
 	print("M_inverse * P'' == P' (normalized): ", viewport_to_normalized_scale_factor * inverse_transform_point(M, normalized_to_viewport_scale_factor * P_prime_prime_normalized), " ", P_prime_normalized)
 	print()
 
+func inverse_transform_point(T: Transform2D, P: Vector2) -> Vector2:
+	# T = (A, t), where A = rotation/scaling matrix, t = translation vector
+	# (P = A * P' + t) => (P' = A^-1 * (P - t))
+	
+	# A matrix components
+	var a = T.x.x
+	var b = T.x.y
+	var c = T.y.x
+	var d = T.y.y
+	
+	# t vector components
+	var tx = T.origin.x
+	var ty = T.origin.y
+	
+	# determinant
+	var det = (a * d) - (b * c)
+	
+	# singular matrix case
+	if abs(det) < 1e-8:
+		push_error("Transform is not invertible!")
+		return Vector2.ZERO
+	
+	# non-singular matrices have inverses
+	var inv_det = 1.0 / det
+	
+	# step 1: subtract translation
+	var Pt_x = P.x - tx
+	var Pt_y = P.y - ty
+	
+	# step 2: apply inverse matrix
+	var P_prime_x = ( d * Pt_x - c * Pt_y) * inv_det
+	var P_prime_y = (-b * Pt_x + a * Pt_y) * inv_det
+	
+	return Vector2(P_prime_x, P_prime_y)
+
 func create_sdf_related_textures(sdf_collisions_on: bool) -> void:
 	if sdf_collisions_on:
 		# we need the polygon's vertices in the simulation domain
@@ -3763,40 +3446,120 @@ func is_point_inside_polygon(P: Vector2, polygon_vertices: Array[Vector2]) -> bo
 	
 	return inside
 
-func inverse_transform_point(T: Transform2D, P: Vector2) -> Vector2:
-	# T = (A, t), where A = rotation/scaling matrix, t = translation vector
-	# (P = A * P' + t) => (P' = A^-1 * (P - t))
+func compute_sigma_part() -> void:
+	# precompute the kernel sums in the formula for sigma, the parameter commonly used in PCISPH
+	# do it by assuming a perfect distribution of particles around some center point
+	# the perfect distribution is given by the spacing between particles at the bery beginning of the simulation
+	# everything is done with virtual/prototype/temporary particles since the only thing we need is their positions
 	
-	# A matrix components
-	var a = T.x.x
-	var b = T.x.y
-	var c = T.y.x
-	var d = T.y.y
+	sigma_part = 0.0
 	
-	# t vector components
-	var tx = T.origin.x
-	var ty = T.origin.y
+	var sum_grad_w: Vector2 = Vector2(0.0, 0.0)
+	var sum_grad_w_dot_grad_w: float = 0.0
 	
-	# determinant
-	var det = (a * d) - (b * c)
+	var center: Vector2 = Vector2(0.5, 0.5)
+	var h2: float = smoothing_radius * smoothing_radius
+	var steps: int = int(ceil(smoothing_radius / particle_spacing))
+	var num_neighbors: int = 0
 	
-	# singular matrix case
-	if abs(det) < 1e-8:
-		push_error("Transform is not invertible!")
-		return Vector2.ZERO
+	for y in range(-steps, steps + 1):
+		for x in range(-steps, steps + 1):
+			if (x == 0 and y == 0):
+				continue
+			
+			var p: Vector2 = center + (Vector2(x, y) * particle_spacing)
+			var diff: Vector2 = center - p
+			var r2: float = diff.length_squared()
+			
+			if r2 < h2:
+				#var gradient_W: Vector2 = spiky_2d_gradient_constant * pow(sqrt(h2) - sqrt(r2), 2.0) * (diff / sqrt(r2))
+				var gradient_W: Vector2 = poly6_2d_gradient_constant * ((h2 - r2) * (h2 - r2)) * diff;
+				sum_grad_w += gradient_W
+				sum_grad_w_dot_grad_w += gradient_W.length_squared()
+				num_neighbors += 1
 	
-	# non-singular matrices have inverses
-	var inv_det = 1.0 / det
+	var sum_dot_sum: float = sum_grad_w.length_squared()
 	
-	# step 1: subtract translation
-	var Pt_x = P.x - tx
-	var Pt_y = P.y - ty
+	sigma_part = sum_dot_sum + sum_grad_w_dot_grad_w
 	
-	# step 2: apply inverse matrix
-	var P_prime_x = ( d * Pt_x - c * Pt_y) * inv_det
-	var P_prime_y = (-b * Pt_x + a * Pt_y) * inv_det
+	print("Steps: ", steps)
+	print("Number of neighbors: ", num_neighbors)
+	print("Sigma part: ", sigma_part)
+	print()
+
+func set_display() -> void:
+	display.texture = textures[curr_display_idx]
+	label.text = labels[curr_display_idx]
+
+func update_glass_transform(delta: float) -> void:
+	var moved: bool = false
 	
-	return Vector2(P_prime_x, P_prime_y)
+	# movement
+	if (left_arrow_pressed):
+		# move glass left
+		glass.position.x -= rt_glass_movement_speed * delta
+		moved = true
+	if (right_arrow_pressed):
+		# move glass right
+		glass.position.x += rt_glass_movement_speed * delta
+		moved = true
+	if (up_arrow_pressed):
+		# move glass up
+		glass.position.y -= rt_glass_movement_speed * delta
+		moved = true
+	if (down_arrow_pressed):
+		# move glass down
+		glass.position.y += rt_glass_movement_speed * delta
+		moved = true
+	
+	# rotation
+	if (a_key_pressed):
+		# rotate glass CCW
+		glass.rotation -= rt_glass_rotation_speed * delta
+		moved = true
+	if (d_key_pressed):
+		# rotate glass CW
+		glass.rotation += rt_glass_rotation_speed * delta
+		moved = true
+	
+	# scaling
+	if (w_key_pressed):
+		# scale glass up
+		var factor: Vector2 = Vector2(1.0 + (rt_glass_scaling_speed.x * delta), 1.0 + (rt_glass_scaling_speed.y * delta))
+		glass.scale *= Vector2(factor.x, factor.y)
+		moved = true
+	if (s_key_pressed):
+		# scale glass down
+		var factor: Vector2 = Vector2(1.0 + (rt_glass_scaling_speed.x * delta), 1.0 + (rt_glass_scaling_speed.y * delta))
+		glass.scale /= Vector2(factor.x, factor.y)
+		moved = true
+	
+	# prevent invalid scale (very important!)
+	glass.scale.x = max(glass.scale.x, 0.001)
+	glass.scale.y = max(glass.scale.y, 0.001)
+	
+	# recompute transforms only if needed
+	if moved:
+		var T_new: Transform2D = glass.get_global_transform()
+		var M: Transform2D = T_new * T_init_inverse
+		
+		# store full transform (for GPU)
+		M_X_x = M.x.x
+		M_X_y = M.x.y
+		M_Y_x = M.y.x
+		M_Y_y = M.y.y
+		M_origin_x = M.origin.x
+		M_origin_y = M.origin.y
+		
+		# extract rotation (normalize columns)
+		var col_X: Vector2 = M.x.normalized()
+		var col_Y: Vector2 = M.y.normalized()
+		
+		# store the rotation-only part (also for GPU)
+		M_rotation_X_x = col_X.x
+		M_rotation_X_y = col_X.y
+		M_rotation_Y_x = col_Y.x
+		M_rotation_Y_y = col_Y.y
 
 func give_me_my_packedvector2array_xD(bytes: PackedByteArray) -> PackedVector2Array:
 	if bytes.size() % 8 != 0:
@@ -3845,6 +3608,12 @@ func get_grid_data() -> void:
 	if error != OK:
 		printerr("Failure!")
 
+func get_obstacle() -> Polygon2D:
+	return glass
+
+func set_obstacle_sampler(obstacles_raw_viewport: SubViewport) -> void:
+	upscaled_texture_rect.material.set("shader_parameter/u_obstacles_raw", obstacles_raw_viewport.get_texture())
+
 func get_extinguishing_data() -> Array[float]:
 	var data: Array[float] = []
 	data.append(mass)
@@ -3853,10 +3622,6 @@ func get_extinguishing_data() -> Array[float]:
 	data.append(heating_energy_cost)
 	data.append(vaporization_energy_cost)
 	data.append(total_energy_cost)
+	data.append(particle_temp_ambient)
+	data.append(particle_temp_max)
 	return data
-
-func get_obstacle() -> Polygon2D:
-	return glass
-
-func set_obstacle_sampler(obstacles_raw_viewport: SubViewport) -> void:
-	upscaled_texture_rect.material.set("shader_parameter/u_obstacles_raw", obstacles_raw_viewport.get_texture())

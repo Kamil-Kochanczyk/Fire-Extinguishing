@@ -4,7 +4,7 @@ render_mode blend_disabled;
 uniform highp sampler2D u_grid_to_particles : filter_linear, repeat_disable;
 uniform highp float u_timestep;
 uniform float u_temp_drop_sensitivity = 2500.0;
-uniform float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
 
 void fragment() {

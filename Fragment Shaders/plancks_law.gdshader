@@ -5,7 +5,7 @@ uniform highp sampler2D u_obstacles_raw : filter_nearest, repeat_disable;
 uniform highp sampler2D u_baked_fire_temp : filter_nearest, repeat_disable;
 uniform highp sampler2D u_custom_fire_temp;
 uniform int u_use_custom_fire_temp = 0;
-uniform highp float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform highp float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform highp float u_fire_temp_max = 2000.0;    // Kelvin
 
 void fragment() {

@@ -1,35 +1,16 @@
-[gd_scene load_steps=21 format=3 uid="uid://bs31tu7ihq6ph"]
+[gd_scene load_steps=18 format=3 uid="uid://bs31tu7ihq6ph"]
 
 [ext_resource type="Script" uid="uid://ddeygv6482xxi" path="res://Scripts/water-compatible.gd" id="1_slmpt"]
-[ext_resource type="Shader" uid="uid://bki2xhd26lcbb" path="res://Fragment Shaders/clamp.gdshader" id="2_bjixy"]
 [ext_resource type="Texture2D" uid="uid://nvy17qohbhok" path="res://Images/white_dot.png" id="2_qq3op"]
 [ext_resource type="Shader" uid="uid://c4haf57i81360" path="res://Particle Shaders/water_particles.gdshader" id="3_qq3op"]
 [ext_resource type="Shader" uid="uid://c48ebg6d0jeej" path="res://Fragment Shaders/blur.gdshader" id="5_rqihb"]
 [ext_resource type="Shader" uid="uid://dtkum57k88kwj" path="res://Fragment Shaders/water_color.gdshader" id="6_jf7k4"]
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_wojkn"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_tgdvr"]
 viewport_path = NodePath("ParticlesSubViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_wojkn"]
 viewport_path = NodePath("WaterSubViewport")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_jf7k4"]
-shader = ExtResource("2_bjixy")
-shader_parameter/u_use_r = true
-shader_parameter/u_use_g = true
-shader_parameter/u_use_b = true
-shader_parameter/u_use_a = true
-shader_parameter/u_min_value = -0.5
-shader_parameter/u_max_value = 0.5
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_bjixy"]
-shader = ExtResource("2_bjixy")
-shader_parameter/u_use_r = true
-shader_parameter/u_use_g = true
-shader_parameter/u_use_b = true
-shader_parameter/u_use_a = true
-shader_parameter/u_min_value = -1.0
-shader_parameter/u_max_value = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rqihb"]
 shader = ExtResource("3_qq3op")
@@ -60,11 +41,11 @@ shader_parameter/u_tint_threshold_max = 0.5
 shader_parameter/u_water_main_color = Vector3(0.033, 0.707, 0.581)
 shader_parameter/u_water_tint_color = Vector3(0.723, 0.902, 0.893)
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_jk0yl"]
-viewport_path = NodePath("LowResWaterDensityTemperatureSubViewport")
+[sub_resource type="ViewportTexture" id="ViewportTexture_2i0ow"]
+viewport_path = NodePath("LowResSubViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_rqihb"]
-viewport_path = NodePath("ParticlesSubViewport")
+[sub_resource type="ViewportTexture" id="ViewportTexture_rh4ni"]
+viewport_path = NodePath("WaterSubViewport")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bjixy"]
 bg_color = Color(0.6, 0.6, 0.6, 0)
@@ -84,22 +65,8 @@ font_size = 10
 
 [node name="WaterCompatible" type="Node2D"]
 script = ExtResource("1_slmpt")
-textures = Array[ViewportTexture]([SubResource("ViewportTexture_wojkn"), SubResource("ViewportTexture_2i0ow")])
+textures = Array[ViewportTexture]([SubResource("ViewportTexture_tgdvr"), SubResource("ViewportTexture_wojkn")])
 labels = Array[String](["Particles", "Water"])
-
-[node name="GlassSDFSprite2D" type="Sprite2D" parent="."]
-visible = false
-texture_filter = 1
-texture_repeat = 1
-material = SubResource("ShaderMaterial_jf7k4")
-centered = false
-
-[node name="GlassSDFGradientSprite2D" type="Sprite2D" parent="."]
-visible = false
-texture_filter = 1
-texture_repeat = 1
-material = SubResource("ShaderMaterial_bjixy")
-centered = false
 
 [node name="ParticlesSubViewport" type="SubViewport" parent="."]
 disable_3d = true
@@ -113,20 +80,20 @@ texture = ExtResource("2_qq3op")
 preprocess = 1.0
 process_material = SubResource("ShaderMaterial_rqihb")
 
-[node name="LowResWaterDensityTemperatureSubViewport" type="SubViewport" parent="."]
+[node name="LowResSubViewport" type="SubViewport" parent="."]
 disable_3d = true
 transparent_bg = true
 use_hdr_2d = true
 size = Vector2i(256, 256)
 render_target_update_mode = 4
 
-[node name="LowResTextureRect" type="TextureRect" parent="LowResWaterDensityTemperatureSubViewport"]
+[node name="LowResTextureRect" type="TextureRect" parent="LowResSubViewport"]
 offset_right = 256.0
 offset_bottom = 256.0
 texture = SubResource("ViewportTexture_bjixy")
 expand_mode = 1
 
-[node name="LowResColorRect" type="ColorRect" parent="LowResWaterDensityTemperatureSubViewport"]
+[node name="LowResColorRect" type="ColorRect" parent="LowResSubViewport"]
 material = SubResource("ShaderMaterial_mkv50")
 offset_right = 256.0
 offset_bottom = 256.0
@@ -147,21 +114,16 @@ centered = false
 material = SubResource("ShaderMaterial_tosn6")
 offset_right = 1152.0
 offset_bottom = 648.0
-texture = SubResource("ViewportTexture_jk0yl")
+texture = SubResource("ViewportTexture_2i0ow")
 
 [node name="Display" type="Sprite2D" parent="."]
-texture = SubResource("ViewportTexture_rqihb")
+texture = SubResource("ViewportTexture_rh4ni")
 centered = false
 
 [node name="Glass" type="Polygon2D" parent="."]
 offset = Vector2(4, 0)
 polygon = PackedVector2Array(-80, -72, -56, 72, 48, 72, 72, -72, 64, -72, 40, 64, -48, 64, -72, -72)
 uv = PackedVector2Array(440.081, 216.02, 463.976, 359.986, 568.13, 360.065, 592.068, 216.049, 584.056, 216.045, 560.04, 352.004, 472.108, 352.043, 447.974, 216.02)
-
-[node name="NotGlass" type="Polygon2D" parent="."]
-visible = false
-offset = Vector2(4, 0)
-polygon = PackedVector2Array(0, 0, 1920, 0, 1920, 25, 0, 25)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -243,7 +205,7 @@ theme_override_constants/margin_right = 3
 [node name="WaterMainColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterMainColorMarginContainer" groups=["ParamColorPickerButton"]]
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
-color = Color(0, 0.413, 0.66, 1)
+color = Color(0, 0.762, 0.672, 1)
 edit_alpha = false
 
 [node name="WaterTintColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
@@ -258,26 +220,7 @@ theme_override_constants/margin_right = 3
 [node name="WaterTintColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/WaterTintColorMarginContainer" groups=["ParamColorPickerButton"]]
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
-color = Color(0, 0.652, 0.85, 1)
-edit_alpha = false
-
-[node name="ParticleColor" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
-visible = false
-layout_mode = 2
-size_flags_vertical = 1
-text = "Particle Color"
-
-[node name="ParticleColorMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer"]
-visible = false
-layout_mode = 2
-theme_override_constants/margin_left = 3
-theme_override_constants/margin_right = 3
-
-[node name="ParticleColorPickerButton" type="ColorPickerButton" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ColorPickerButtonsHBoxContainer/ParticleColorMarginContainer" groups=["ParamColorPickerButton"]]
-visible = false
-custom_minimum_size = Vector2(50, 0)
-layout_mode = 2
-color = Color(0.111, 0.639, 0.925, 1)
+color = Color(0, 1, 0.883, 1)
 edit_alpha = false
 
 [node name="ParticleVisSizeHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
@@ -379,12 +322,12 @@ size_flags_vertical = 1
 min_value = -2.0
 max_value = 10.0
 step = 0.01
-value = 2.0
+value = 1.0
 
 [node name="StiffnessNearValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/StiffnessNearHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "2.0"
+text = "1.0"
 
 [node name="ViscosityScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -410,7 +353,7 @@ value = 0.001
 [node name="ViscosityScaleValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/ViscosityScaleHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.001"
+text = "0.0005"
 
 [node name="XSPHScaleHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -614,12 +557,12 @@ size_flags_vertical = 1
 min_value = 0.999
 max_value = 1.0
 step = 0.001
-value = 0.999
+value = 1.0
 
 [node name="DampingValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/DampingHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.999"
+text = "0.9999"
 
 [node name="BoundsDampingHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -666,12 +609,12 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 20.0
 step = 0.1
-value = 3.0
+value = 20.0
 
 [node name="VelClampValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VelClampHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "3.0"
+text = "20.0"
 
 [node name="MouseInteractionRadiusHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -742,12 +685,12 @@ custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
 max_value = 2000.0
-value = 200.0
+value = 1500.0
 
 [node name="GlassMovementSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassMovementSpeedHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "200.0"
+text = "1500.0"
 
 [node name="GlassRotationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -766,14 +709,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 12.566
+max_value = 15.708
 step = 0.001
-value = 3.141
+value = 12.566
 
 [node name="GlassRotationSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassRotationSpeedHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "3.141"
+text = "12.566"
 
 [node name="GlassScalingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -795,14 +738,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 10.0
+max_value = 15.0
 step = 0.1
-value = 3.0
+value = 10.0
 
 [node name="GlassScalingSpeedXValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/XHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "3.0"
+text = "10.0"
 
 [node name="YHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer"]
 layout_mode = 2
@@ -816,14 +759,14 @@ theme_override_constants/margin_right = 5
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_vertical = 1
-max_value = 10.0
+max_value = 15.0
 step = 0.1
-value = 3.0
+value = 10.0
 
 [node name="GlassScalingSpeedYValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/GlassScalingSpeedHBoxContainer/YHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "3.0"
+text = "10.0"
 
 [node name="SpawnRateHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -844,12 +787,11 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 32000.0
 step = 100.0
-value = 32000.0
 
 [node name="SpawnRateValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/SpawnRateHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "32000.0"
+text = "0.0"
 
 [node name="SpawnRandomOffsetRangeHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -926,59 +868,6 @@ layout_mode = 2
 size_flags_vertical = 1
 text = "0.0"
 
-[node name="HeatingSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-
-[node name="HeatingSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "Heating Speed"
-
-[node name="HeatingSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_right = 5
-
-[node name="HeatingSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer/HeatingSpeedMarginContainer" groups=["ParamSlider"]]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_vertical = 1
-step = 0.1
-value = 100.0
-
-[node name="HeatingSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/HeatingSpeedHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "100.0"
-
-[node name="VaporizationSpeedHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-
-[node name="VaporizationSpeed" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "Vaporization Speed"
-
-[node name="VaporizationSpeedMarginContainer" type="MarginContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_right = 5
-
-[node name="VaporizationSpeedHSlider" type="HSlider" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer/VaporizationSpeedMarginContainer" groups=["ParamSlider"]]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-size_flags_vertical = 1
-max_value = 250.0
-step = 0.1
-value = 250.0
-
-[node name="VaporizationSpeedValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/VaporizationSpeedHBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 1
-text = "250.0"
-
 [node name="LerpFactorHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -1006,7 +895,7 @@ layout_mode = 2
 size_flags_vertical = 1
 max_value = 1.0
 step = 0.01
-value = 0.1
+value = 0.2
 
 [node name="Smoother" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer/LerpFactorMarginContainer/HSliderHBoxContainer"]
 layout_mode = 2
@@ -1016,7 +905,7 @@ label_settings = SubResource("LabelSettings_2i0ow")
 [node name="LerpFactorValue" type="Label" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer/LerpFactorHBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "0.01"
+text = "0.2"
 
 [node name="BlurAmountHBoxContainer" type="HBoxContainer" parent="CanvasLayer/VBoxContainer/ScrollContainer/BottomMarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

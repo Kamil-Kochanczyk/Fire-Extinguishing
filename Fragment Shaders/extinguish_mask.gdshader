@@ -3,14 +3,11 @@ render_mode blend_disabled;
 
 uniform highp sampler2D u_particles_to_grid : filter_linear, repeat_disable;
 uniform highp sampler2D u_splash_mask : filter_nearest, repeat_disable;
-uniform highp sampler2D u_fire_fuel_smoke_density_splash : filter_nearest, repeat_disable;
-uniform highp sampler2D u_fire_smoke_temperature : filter_nearest, repeat_disable;
-uniform highp sampler2D u_grid_to_particles : filter_linear, repeat_disable;
 uniform highp sampler2D u_fire_temperature_extinguish : filter_nearest, repeat_disable;
 uniform float u_timestep;
 uniform float u_extinguish_strength = 1.0;
 uniform float u_reignition_strength = 1.0;
-uniform float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
 uniform bool u_init_state = true;
 
@@ -55,7 +52,7 @@ void fragment() {
 
 			highp float cooling_contribution = 0.1 * delta_temp;
 			highp float evaporation_contribution = 1000.0 * evaporated_mass * particle_density;
-			highp float wetness_contribution = (1.0 * particle_density) / (cooling_contribution + evaporation_contribution + 1.0);
+			highp float wetness_contribution = (3.0 * particle_density) / (cooling_contribution + evaporation_contribution + 1.0);
 			highp float total_contribution = cooling_contribution + evaporation_contribution + wetness_contribution;
 
 			// water extinguishes

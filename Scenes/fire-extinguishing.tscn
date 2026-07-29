@@ -16,9 +16,6 @@ script = ExtResource("1_off2x")
 [node name="FireSmokeCompatible" parent="." instance=ExtResource("2_ls062")]
 
 [node name="WaterCompatible" parent="." instance=ExtResource("3_qwxo8")]
-use_pcisph = true
-low_res_size = Vector2i(576, 324)
-mortal_particles_amount = 0.75
 textures = Array[ViewportTexture]([SubResource("ViewportTexture_biknc"), SubResource("ViewportTexture_co81p")])
 
 [node name="ExtinguishMaskOverlay" type="Sprite2D" parent="."]

@@ -6,16 +6,16 @@ uniform highp sampler2D u_fire_temperature_cool : filter_linear, repeat_disable;
 uniform highp float u_timestep;
 uniform highp float u_water_heating_speed = 250.0;
 uniform highp float u_water_vaporization_speed = 250.0;
-uniform float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform float u_fire_temp_max = 2000.0;    // Kelvin
+uniform highp float u_mass = 0.0;
+uniform highp float u_specific_heat_capacity = 0.0;    // J / kg / K
+uniform highp float u_specific_latent_heat_vaporization = 0.0;    // J / kg
+uniform highp float u_heating_energy_cost = 0.0;    // J
+uniform highp float u_vaporization_energy_cost = 0.0;    // J
+uniform highp float u_total_energy_cost = 0.0;    // J
 uniform float u_particle_temp_ambient = 300.0;    // Kelvin
 uniform float u_particle_temp_max = 373.0;    // Kelvin
-uniform highp float u_mass;
-uniform highp float u_specific_heat_capacity;    // J / kg / K
-uniform highp float u_specific_latent_heat_vaporization;    // J / kg
-uniform highp float u_heating_energy_cost;    // J
-uniform highp float u_vaporization_energy_cost;    // J
-uniform highp float u_total_energy_cost;    // J
 
 float get_temperature(float energy) {
     return u_particle_temp_ambient + (min(energy, u_heating_energy_cost) / (u_mass * u_specific_heat_capacity));

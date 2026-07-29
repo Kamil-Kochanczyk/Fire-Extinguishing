@@ -13,7 +13,7 @@ uniform highp float u_fire_disturbance_radius = 0.005;
 uniform highp float u_fire_disturbance_strength = 2.5;
 uniform float u_fire_vorticity_scale = 5.0;
 uniform highp float u_fire_beta = 10.0;    // buoyancy strength
-uniform highp float u_fire_temp_ambient = 500.0;    // Kelvin
+uniform highp float u_fire_temp_ambient = 300.0;    // Kelvin
 uniform highp float u_fire_temp_max = 2000.0;    // Kelvin
 uniform vec2 u_fire_buoyancy_dir = vec2(0.0, -1.0);
 
