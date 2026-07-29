@@ -13,7 +13,7 @@ void fragment() {
 	// lod = level of detail
 	// "a form of level of detail management has been applied to texture maps for years, under the name of mipmapping"
 	// the bigger the lod, the bigger the blur
-
+	
 	vec3 res = textureLod(SCREEN_TEXTURE, SCREEN_UV, lod).rgb;
 	COLOR.rgb = res;
 }

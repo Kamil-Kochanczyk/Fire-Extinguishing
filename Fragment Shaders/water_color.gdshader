@@ -14,7 +14,7 @@ uniform vec3 u_water_tint_color = vec3(0.723, 0.902, 0.893);
 void fragment() {
 	const float THRESHOLD = 0.5;
 	bool is_inside_obstacle = texture(u_obstacles_raw, UV).r > THRESHOLD;
-
+	
 	if (is_inside_obstacle) {
 		COLOR = texture(u_obstacles_raw, UV);
 	}

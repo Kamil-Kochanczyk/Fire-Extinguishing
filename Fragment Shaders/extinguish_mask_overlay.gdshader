@@ -2,7 +2,6 @@ shader_type canvas_item;
 render_mode blend_disabled;
 
 uniform highp sampler2D u_splash_mask: filter_nearest, repeat_disable;
-//uniform float u_fire_vis_temp_threshold = 750.0;
 
 void fragment() {
 	float extinguish_mask = texture(TEXTURE, UV).r;

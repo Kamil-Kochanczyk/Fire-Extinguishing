@@ -338,7 +338,6 @@ func fire_smoke_ready() -> void:
 	pressure_init_sprite.texture = pressure_boundary_last_viewport.get_texture()
 	velocity_div_free_sprite.texture = pressure_boundary_last_viewport.get_texture()
 	
-	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_init_state", false)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_burn", fire_temp_burn)
@@ -347,12 +346,8 @@ func fire_smoke_ready() -> void:
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_max", smoke_temp_max)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	fire_temperature_extinguish_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
-	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
-	extinguish_mask_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_ambient", fire_temp_ambient)
 	velocity_forces_sprite.material.set("shader_parameter/u_fire_temp_max", fire_temp_max)
@@ -418,13 +413,13 @@ func fire_smoke_process(_delta: float) -> void:
 	
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_splash_radius", fire_curr_splash_radius)
 	splash_mask_sprite.material.set("shader_parameter/u_fuel_splash_strength", fire_curr_splash_strength)
-	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_vapor_density_injection_strength", smoke_curr_vapor_density_injection_strength)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_density_heating_injection_strength", smoke_curr_density_and_heating_injection_strength)
+	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_vapor_density_injection_strength", smoke_curr_vapor_density_injection_strength)
 	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_density_dissipation_rate", smoke_curr_density_dissipation)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_fire_temp_release_rate", fire_curr_temperature_release_rate)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_density_heating_injection_strength", smoke_curr_density_and_heating_injection_strength)
-	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_dissipation_rate", smoke_curr_temperature_dissipation)
 	fire_smoke_temperature_sprite.material.set("shader_parameter/u_vapor_heating_injection_strength", smoke_curr_vapor_heating_injection_strength)
+	fire_smoke_temperature_sprite.material.set("shader_parameter/u_smoke_temp_dissipation_rate", smoke_curr_temperature_dissipation)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_gamma_fuel", fire_curr_fuel_dissipation)
 	fire_fuel_burn_sprite.material.set("shader_parameter/u_burn_strength", fire_curr_fuel_burn_strength)
 	fire_temperature_cool_sprite.material.set("shader_parameter/u_sigma_cool", fire_curr_temperature_dissipation)
@@ -1369,20 +1364,15 @@ func set_extinguishing_data(extinguishing_data: Array[float]) -> void:
 	
 	var particle_mass: float = extinguishing_data[0]
 	var particle_specific_heat_capacity: float = extinguishing_data[1]
-	var particle_specific_latent_heat_vaporization: float = extinguishing_data[2]
+	var _particle_specific_latent_heat_vaporization: float = extinguishing_data[2]
 	var particle_heating_energy_cost: float = extinguishing_data[3]
 	var particle_vaporization_energy_cost: float = extinguishing_data[4]
 	var particle_total_energy_cost: float = extinguishing_data[5]
 	var particle_temp_ambient: float = extinguishing_data[6]
 	var particle_temp_max: float = extinguishing_data[7]
 	
-	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_ambient", particle_temp_ambient)
-	particles_to_grid_texture_rect.material.set("shader_parameter/u_particle_temp_max", particle_temp_max)
-	fire_fuel_smoke_density_splash_sprite.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
-	fire_smoke_temperature_sprite.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_mass", particle_mass)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_specific_heat_capacity", particle_specific_heat_capacity)
-	grid_to_particles_texture_rect.material.set("shader_parameter/u_specific_latent_heat_vaporization", particle_specific_latent_heat_vaporization)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_heating_energy_cost", particle_heating_energy_cost)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_vaporization_energy_cost", particle_vaporization_energy_cost)
 	grid_to_particles_texture_rect.material.set("shader_parameter/u_total_energy_cost", particle_total_energy_cost)

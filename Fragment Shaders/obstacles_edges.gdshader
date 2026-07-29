@@ -58,7 +58,7 @@ void fragment() {
 	
 	// by convention, we want normals pointing from obstacle into free space
 	// but gradient, as written, points from free space to obstacle
-	vec2 normal = vec2(0.0);
+	vec2 normal = vec2(0.0, 0.0);
 	if (is_edge) {
 		normal = normalize(-grad);
 	}

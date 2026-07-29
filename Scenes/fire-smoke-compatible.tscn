@@ -1,4 +1,4 @@
-[gd_scene load_steps=100 format=3 uid="uid://cnqcnhd6ct3ry"]
+[gd_scene load_steps=97 format=3 uid="uid://cnqcnhd6ct3ry"]
 
 [ext_resource type="Script" uid="uid://cwj65k86vchhd" path="res://Scripts/fire-smoke-compatible.gd" id="1_lak56"]
 [ext_resource type="Shader" uid="uid://codbwhe1etld3" path="res://Fragment Shaders/map_particle_temperature.gdshader" id="2_cwdux"]
@@ -31,8 +31,6 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kid1v"]
 shader = ExtResource("2_cwdux")
 shader_parameter/u_init_state = true
-shader_parameter/u_particle_temp_ambient = 300.0
-shader_parameter/u_particle_temp_max = 373.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0aj0r"]
 shader = ExtResource("3_cphy5")
@@ -58,9 +56,6 @@ viewport_path = NodePath("SplashMaskViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_w6xmb"]
 viewport_path = NodePath("ExtinguishMaskViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_v6dpt"]
-viewport_path = NodePath("FireSmokeTemperatureAdvectViewport")
-
 [sub_resource type="ViewportTexture" id="ViewportTexture_b2345"]
 viewport_path = NodePath("ObstaclesRawViewport")
 
@@ -77,13 +72,10 @@ shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_jj6as")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_b2345")
 shader_parameter/u_splash_mask = SubResource("ViewportTexture_cwdux")
 shader_parameter/u_extinguish_mask = SubResource("ViewportTexture_w6xmb")
-shader_parameter/u_fire_smoke_temperature_advect = SubResource("ViewportTexture_v6dpt")
 shader_parameter/u_timestep = 0.0
-shader_parameter/u_vapor_density_injection_strength = 1.0
 shader_parameter/u_density_heating_injection_strength = 10.0
+shader_parameter/u_vapor_density_injection_strength = 1.0
 shader_parameter/u_density_dissipation_rate = 0.05
-shader_parameter/u_fire_temp_ambient = 300.0
-shader_parameter/u_heating_energy_cost = 0.0
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_rr1vq"]
 viewport_path = NodePath("FireFuelSmokeDensitySplashViewport")
@@ -94,15 +86,11 @@ viewport_path = NodePath("ObstaclesRawViewport")
 [sub_resource type="ViewportTexture" id="ViewportTexture_c4pv6"]
 viewport_path = NodePath("ParticlesToGridViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_kid1v"]
-viewport_path = NodePath("SplashMaskViewport")
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_7mbn0"]
 resource_local_to_scene = true
 shader = ExtResource("6_1pbsg")
 shader_parameter/u_particles_to_grid = SubResource("ViewportTexture_c4pv6")
 shader_parameter/u_obstacles_raw = SubResource("ViewportTexture_fcd3f")
-shader_parameter/u_splash_mask = SubResource("ViewportTexture_kid1v")
 shader_parameter/u_fire_fuel_smoke_density_splash = SubResource("ViewportTexture_rr1vq")
 shader_parameter/u_init_state = true
 shader_parameter/u_timestep = 0.0
@@ -113,9 +101,8 @@ shader_parameter/u_smoke_temp_ambient = 300.0
 shader_parameter/u_smoke_temp_max = 500.0
 shader_parameter/u_fire_temp_release_rate = 7.5
 shader_parameter/u_density_heating_injection_strength = 10.0
-shader_parameter/u_smoke_temp_dissipation_rate = 0.05
 shader_parameter/u_vapor_heating_injection_strength = 1.0
-shader_parameter/u_heating_energy_cost = 0.0
+shader_parameter/u_smoke_temp_dissipation_rate = 0.05
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jd5mo"]
 shader = ExtResource("8_3bid5")
@@ -137,25 +124,18 @@ shader_parameter/u_exponent = 1.0
 [sub_resource type="ViewportTexture" id="ViewportTexture_gwkax"]
 viewport_path = NodePath("FireSmokeTemperatureViewport")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_v8m02"]
-viewport_path = NodePath("FireFuelBurnViewport")
-
 [sub_resource type="ViewportTexture" id="ViewportTexture_3bid5"]
 viewport_path = NodePath("FireTemperatureCoolViewport")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hbe1w"]
 resource_local_to_scene = true
 shader = ExtResource("21_hbe1w")
-shader_parameter/u_fire_fuel_burn = SubResource("ViewportTexture_v8m02")
 shader_parameter/u_fire_temperature_cool = SubResource("ViewportTexture_3bid5")
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_water_heating_speed = 250.0
 shader_parameter/u_water_vaporization_speed = 250.0
-shader_parameter/u_fire_temp_ambient = 300.0
-shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_mass = 0.0
 shader_parameter/u_specific_heat_capacity = 0.0
-shader_parameter/u_specific_latent_heat_vaporization = 0.0
 shader_parameter/u_heating_energy_cost = 0.0
 shader_parameter/u_vaporization_energy_cost = 0.0
 shader_parameter/u_total_energy_cost = 0.0
@@ -198,8 +178,6 @@ shader_parameter/u_fire_temperature_extinguish = SubResource("ViewportTexture_oj
 shader_parameter/u_timestep = 0.0
 shader_parameter/u_extinguish_strength = 1.0
 shader_parameter/u_reignition_strength = 1.0
-shader_parameter/u_fire_temp_ambient = 300.0
-shader_parameter/u_fire_temp_max = 2000.0
 shader_parameter/u_init_state = true
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_gujhc"]
