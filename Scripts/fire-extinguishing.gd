@@ -35,7 +35,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	fire_smoke.fire_smoke_process(delta)
-	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw    # water contains viewports as well -> does it mean we only see water as it was in the previous frame?
 	water.get_grid_data()
 	water.water_process(delta)
 
