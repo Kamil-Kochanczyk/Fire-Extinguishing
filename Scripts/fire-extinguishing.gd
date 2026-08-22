@@ -38,6 +38,7 @@ func _process(delta: float) -> void:
 	await RenderingServer.frame_post_draw    # water contains viewports as well -> does it mean we only see water as it was in the previous frame?
 	water.get_grid_data()
 	water.water_process(delta)
+	#benchmarker.measure_performance(delta)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -50,9 +51,9 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_V:
 			extinguish_mask_overlay.visible = not extinguish_mask_overlay.visible
 		#elif event.keycode == KEY_B:
-			#if not benchmarker.is_recording():
-				#benchmarker.start_new_measurement()
+			#if not benchmarker.is_recording_performance():
+				#benchmarker.start_new_performance_measurement()
 			#else:
-				#benchmarker.stop_curr_measurement()
+				#benchmarker.stop_curr_performance_measurement()
 		elif event.keycode == KEY_Q:
 			get_tree().quit()

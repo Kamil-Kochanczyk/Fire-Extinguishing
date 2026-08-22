@@ -862,6 +862,11 @@ func _input(event: InputEvent) -> void:
 			curr_display_idx = (curr_display_idx - 1) % textures.size()
 			set_display()
 		#if event.pressed and event.keycode == KEY_C:
+			#if benchmarker.is_recording_stability():
+				#benchmarker.stop_curr_stability_measurement()
+			#else:
+				#benchmarker.start_new_stability_measurement()
+			#
 			#run_gpu(1.0 / 120.0, 1, false)
 			#
 			#print("Positions: ", give_me_my_packedvector2array_xD(rd.buffer_get_data(positions_buffer_rid)).slice(0, 10))
@@ -2744,6 +2749,17 @@ func run_gpu(delta: float, n_times: int, spawning_on: bool) -> void:
 			rd.compute_list_dispatch(compute_list, integrate_motion_pcisph_workgroups_x, 1, 1)
 			#endregion
 	
+	#rd.compute_list_end()
+	#rd.submit()
+	#rd.sync()
+	#benchmarker.measure_stability(get_velocities(), get_densities())
+	#if benchmarker.is_recording_stability():
+		#time_s = tick * FIXED_DT * sim_steps_per_frame_f
+		#if tick % (20 * 20) == 0:
+			#print(str(time_s), " s = ", str(time_s / 60.0), " min")
+		#tick += 1
+	#compute_list = rd.compute_list_begin()
+	
 	#region store particle info pass
 	rd.compute_list_bind_compute_pipeline(compute_list, store_particle_info_pipeline_rid)
 	rd.compute_list_bind_uniform_set(compute_list, store_particle_info_uniform_set_rid, 0)
@@ -3625,3 +3641,9 @@ func get_extinguishing_data() -> Array[float]:
 	data.append(particle_temp_ambient)
 	data.append(particle_temp_max)
 	return data
+
+func get_velocities() -> PackedVector2Array:
+	return give_me_my_packedvector2array_xD(rd.buffer_get_data(velocities_buffer_rid))
+
+func get_densities() -> PackedFloat32Array:
+	return rd.buffer_get_data(densities_buffer_rid).to_float32_array()
