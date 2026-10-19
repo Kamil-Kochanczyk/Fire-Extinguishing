@@ -858,7 +858,7 @@ func _input(event: InputEvent) -> void:
 		if event.pressed and event.keycode == KEY_PERIOD:
 			curr_display_idx = (curr_display_idx + 1) % textures.size()
 			set_display()
-		elif event.pressed and event.keycode == KEY_COMMA:
+		if event.pressed and event.keycode == KEY_COMMA:
 			curr_display_idx = (curr_display_idx - 1) % textures.size()
 			set_display()
 		#if event.pressed and event.keycode == KEY_C:

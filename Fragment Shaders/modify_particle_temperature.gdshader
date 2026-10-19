@@ -44,10 +44,10 @@ void fragment() {
 	highp float modified_latent_heat = orig_particle_latent_heat;
 	
 	// heating and vaporization speed is multiplied by 8
-	// this is because originally a mistake was made
-	// heating and vaporization speed were tuned in a situation where the updates were done 8 times
-	// while the updates should have always been done only once
-	// so the tuned parameters were 8 times smaller than they should
+	// this is because originally, when writing this code, a mistake has been made
+	// heating and vaporization speed were tuned in a situation where the updates were performed 8 times
+	// but the updates should always be done only once
+	// so the tuned parameters were 8 times smaller than they should have been
 	
 	if ((fire_temperature > u_particle_temp_max) && (orig_particle_density > 0.0)) {
 		heat_transfer = area * (fire_temperature - orig_particle_temperature) * u_timestep;
