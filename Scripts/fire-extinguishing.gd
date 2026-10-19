@@ -7,6 +7,9 @@ extends Node
 
 @export var eng_max_fps: int = 120
 
+var fire_smoke_viewports: Array[SubViewport]
+var water_viewports: Array[SubViewport]
+
 func _ready() -> void:
 	print("Max allowed FPS: ", eng_max_fps, "\n")
 	Engine.max_fps = eng_max_fps
@@ -32,12 +35,39 @@ func _ready() -> void:
 	water.canvas_layer.visible = false
 	
 	extinguish_mask_overlay.texture = fire_smoke.extinguish_mask_overlay_viewport.get_texture()
+	
+	fire_smoke_viewports = fire_smoke.get_viewports()
+	water_viewports = water.get_viewports()
+	
+	print("\nFire/Smoke viewports:")
+	for v in fire_smoke_viewports:
+		print(v.name)
+		#v.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	
+	print("\nWater viewports:")
+	for v in water_viewports:
+		print(v.name)
+		#v.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func _process(delta: float) -> void:
 	fire_smoke.fire_smoke_process(delta)
-	await RenderingServer.frame_post_draw    # water contains viewports as well -> does it mean we only see water as it was in the previous frame?
+	
+	# here we only want to await the rendering of fire/smoke viewports
+	# but water contains viewports as well
+	# and currently Godot only allows to await the rendering of all viewports
+	# it doesn't allow to choose a subset of viewports to await for
+	# thus awaiting means water viewports will be updates as well
+	# but water viewports should be updated later
+	# it means that we see water as it was in the previous frame
+	# TODO: wait until Godot provides a mechanism to manually trigger chosen viewport's updates
+	set_process(false)
+	await RenderingServer.frame_post_draw
+	#await get_tree().create_timer(1).timeout
+	set_process(true)
+	
 	water.get_grid_data()
 	water.water_process(delta)
+	
 	#benchmarker.measure_performance(delta)
 
 func _input(event: InputEvent) -> void:

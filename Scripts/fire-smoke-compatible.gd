@@ -310,6 +310,8 @@ var curr_mouse_pos: Vector2 = Vector2(-INF, -INF)
 var disturbance_direction: Vector2 = Vector2(-INF, -INF)
 
 var FIXED_DT: float = 1.0 / 120.0
+
+var viewport_list: Array[SubViewport] = []
 #endregion
 
 #endregion
@@ -397,6 +399,9 @@ func fire_smoke_ready() -> void:
 			pcpb.color_changed.connect(Callable(self, "_on_colorpickerbuttonvalue_changed").bind(pcpb.name))
 	
 	reset_tweakable_params()
+	
+	for node in get_tree().get_nodes_in_group("ViewportPipeline"):
+		viewport_list.append(node as SubViewport)
 
 func fire_smoke_process(_delta: float) -> void:
 	velocity_sprite.material.set("shader_parameter/u_timestep", FIXED_DT)
@@ -1383,3 +1388,6 @@ func clear_extinguish_mask() -> void:
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", true)
 	await RenderingServer.frame_post_draw
 	extinguish_mask_sprite.material.set("shader_parameter/u_init_state", false)
+
+func get_viewports() -> Array[SubViewport]:
+	return viewport_list

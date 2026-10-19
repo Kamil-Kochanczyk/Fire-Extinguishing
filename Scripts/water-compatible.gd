@@ -3647,3 +3647,6 @@ func get_velocities() -> PackedVector2Array:
 
 func get_densities() -> PackedFloat32Array:
 	return rd.buffer_get_data(densities_buffer_rid).to_float32_array()
+
+func get_viewports() -> Array[SubViewport]:
+	return [particles_sub_viewport, low_res_sub_viewport, water_sub_viewport]

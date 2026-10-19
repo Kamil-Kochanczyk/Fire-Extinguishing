@@ -33,7 +33,7 @@ void fragment() {
 			// wetness helps to make sure that each fire can be extinguished 100%
 			highp float cooling_contribution = 0.1 * delta_temp;
 			highp float evaporation_contribution = 1000.0 * evaporated_mass * particle_density;
-			highp float wetness_contribution = (4.0 * particle_density) / (cooling_contribution + evaporation_contribution + 1.0);
+			highp float wetness_contribution = (10.0 * particle_density) / (cooling_contribution + evaporation_contribution + 1.0);
 			highp float total_contribution = cooling_contribution + evaporation_contribution + wetness_contribution;
 			
 			// water extinguishes
